@@ -128,3 +128,11 @@ class PinExtender(commands.Cog):
 
                         # Send a confirmation message to the channel
                         await channel.send(f"Removed {line} from the extended pins message.")
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """A listener that triggers when a message is sent in a channel."""
+        # Check if the message is a system message of type MessageType.pins_add, which indicates that a message was pinned
+        if isinstance(message, discord.Message) and message.type == discord.MessageType.pins_add:
+            # React to the message with a :pushpin: emoji to indicate that it was added to the extended pins message
+            await message.add_reaction("\U0001F4CC")
