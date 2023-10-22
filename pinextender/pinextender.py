@@ -1,5 +1,5 @@
 # Import the necessary modules
-from redbot.core import commands, checks
+from redbot.core import commands, checks, Config # Added Config module
 import discord
 import urllib.parse # Added this module to parse URLs
 
@@ -16,14 +16,15 @@ class PinExtender(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.extended_pins = {} # A dictionary that maps channel IDs to extended pins message IDs
+        self.config = Config.get_conf(self, identifier=1234567890) # Get a Config instance for this cog
+        self.config.register_channel(extended_pins=None) # Register the default value for extended_pins setting for each channel
 
     @commands.command()
     @checks.mod_or_permissions(manage_messages=True)
     async def pinextender(self, ctx):
         """Creates an extended pins message in the current channel and pins it."""
         # Check if the channel already has an extended pins message
-        if ctx.channel.id in self.extended_pins:
+        if await self.config.channel(ctx.channel).extended_pins(): # Use Config to get the value of extended_pins setting for this channel
             await ctx.send("This channel already has an extended pins message.")
             return
 
@@ -33,8 +34,8 @@ class PinExtender(commands.Cog):
         # Pin the message to the channel
         await message.pin()
 
-        # Store the message ID in the dictionary
-        self.extended_pins[ctx.channel.id] = message.id
+        # Store the message ID in the config setting
+        await self.config.channel(ctx.channel).extended_pins.set(message.id) # Use Config to set the value of extended_pins setting for this channel
 
         # Send a confirmation message
         await ctx.send("Created and pinned an extended pins message for this channel.")
@@ -43,9 +44,9 @@ class PinExtender(commands.Cog):
     async def on_guild_channel_pins_update(self, channel, last_pin):
         """A listener that triggers when a channel's pins are updated."""
         # Check if the channel has an extended pins message and if it is at 49/50 pins
-        if channel.id in self.extended_pins and len(await channel.pins()) == 50:
+        if await self.config.channel(channel).extended_pins() and len(await channel.pins()) == 50: # Use Config to get the value of extended_pins setting for this channel
             # Get the extended pins message object
-            extended_pins_message = await channel.fetch_message(self.extended_pins[channel.id])
+            extended_pins_message = await channel.fetch_message(await self.config.channel(channel).extended_pins()) # Use Config to get the value of extended_pins setting for this channel
 
             # Get the list of pinned messages in the channel
             pinned_messages = await channel.pins()
