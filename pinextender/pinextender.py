@@ -44,13 +44,19 @@ class PinExtender(commands.Cog):
     @commands.Cog.listener()
     async def on_guild_channel_pins_update(self, channel, last_pin):
         """A listener that triggers when a channel's pins are updated."""
-        # Check if the channel has an extended pins message and if it is at 49/50 pins
-        if await self.config.channel(channel).extended_pins() and len(await channel.pins()) == 50: # Use Config to get the value of extended_pins setting for this channel
-            # Get the extended pins message object
-            extended_pins_message = await channel.fetch_message(await self.config.channel(channel).extended_pins()) # Use Config to get the value of extended_pins setting for this channel
+        # Check if the last pinned message is not the extended pins message for the channel
+        if await self.config.channel(channel).extended_pins() != last_pin.id: # Use Config to get the value of extended_pins setting for this channel
+            # Get the built-in pin confirmation message object by fetching the latest system message in the channel
+            pin_confirmation_message = await channel.fetch_message(channel.last_message_id)
+
+            # React to the built-in pin confirmation message with a :pushpin: emoji to indicate that it was added to the extended pins message
+            await pin_confirmation_message.add_reaction("\U0001F4CC")
 
             # Get the list of pinned messages in the channel
             pinned_messages = await channel.pins()
+
+            # Get the extended pins message object
+            extended_pins_message = await channel.fetch_message(await self.config.channel(channel).extended_pins()) # Use Config to get the value of extended_pins setting for this channel
 
             # Get the last pinned message object from the list
             last_pinned_message = pinned_messages[0]
@@ -65,9 +71,6 @@ class PinExtender(commands.Cog):
 
             # Remove the pin from the last pinned message
             await last_pinned_message.unpin()
-
-            # Get the built-in pin confirmation message object by fetching the latest system message in the channel
-            pin_confirmation_message = await channel.fetch_message(channel.last_message_id)
 
             # React to each message link in the extended pins message with a :wastebasket: emoji to allow unpinning them later
             await extended_pins_message.add_reaction("\U0001F5D1")
@@ -128,11 +131,3 @@ class PinExtender(commands.Cog):
 
                         # Send a confirmation message to the channel
                         await channel.send(f"Removed {line} from the extended pins message.")
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """A listener that triggers when a message is sent in a channel."""
-        # Check if the message is a system message of type MessageType.pins_add, which indicates that a message was pinned
-        if isinstance(message, discord.Message) and message.type == discord.MessageType.pins_add:
-            # React to the message with a :pushpin: emoji to indicate that it was added to the extended pins message
-            await message.add_reaction("\U0001F4CC")
