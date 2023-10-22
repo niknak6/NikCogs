@@ -69,9 +69,6 @@ class PinExtender(commands.Cog):
             # Get the built-in pin confirmation message object by fetching the latest system message in the channel
             pin_confirmation_message = await channel.fetch_message(channel.last_message_id)
 
-            # React to the built-in pin confirmation message with a :pushpin: emoji to indicate that it was added to the extended pins message
-            await pin_confirmation_message.add_reaction("\U0001F4CC")
-
             # React to each message link in the extended pins message with a :wastebasket: emoji to allow unpinning them later
             await extended_pins_message.add_reaction("\U0001F5D1")
 
@@ -105,8 +102,8 @@ class PinExtender(commands.Cog):
 
                     # Check if the list exists and has the same length as the content
                     if message_ids and len(message_ids) == len(content) - 1:
-                        # Get the index of the line that corresponds to the reaction by finding the position of the payload.message_id in the list
-                        index = message_ids.index(payload.message_id)
+                        # Get the index of the line that corresponds to the reaction by finding the position of the payload.message_reference.message_id in the list
+                        index = message_ids.index(payload.message_reference.message_id)
 
                         # Get the line to be removed from the content
                         line = content[index + 1]
