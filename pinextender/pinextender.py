@@ -70,3 +70,45 @@ class PinExtender(commands.Cog):
 
             # React to the built-in pin confirmation message with a :pushpin: emoji to indicate that it was added to the extended pins message
             await pin_confirmation_message.add_reaction("\U0001F4CC")
+
+            # React to each message link in the extended pins message with a :wastebasket: emoji to allow unpinning them later
+            await extended_pins_message.add_reaction("\U0001F5D1")
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        """A listener that triggers when a reaction is added to a message."""
+        # Check if the reaction is from a user (not a bot) and is a :wastebasket: emoji
+        if not payload.member.bot and payload.emoji.name == "\U0001F5D1":
+            # Get the channel and message objects from the payload
+            channel = self.bot.get_channel(payload.channel_id)
+            message = await channel.fetch_message(payload.message_id)
+
+            # Check if the message is an extended pins message for the channel
+            if await self.config.channel(channel).extended_pins() == message.id: # Use Config to get the value of extended_pins setting for the channel
+                # Get the message content and split it by newlines
+                content = message.content.split("\n")
+
+                # Check if the content has more than one line (the first line is the title)
+                if len(content) > 1:
+                    # Get the index of the line that corresponds to the reaction (the first reaction is for the second line, and so on)
+                    index = payload.emoji_count - 1
+
+                    # Check if the index is valid (not out of range)
+                    if 0 < index < len(content):
+                        # Get the line to be removed from the content
+                        line = content[index]
+
+                        # Remove the line from the content
+                        content.pop(index)
+
+                        # Join the content back by newlines
+                        content = "\n".join(content)
+
+                        # Edit the message with the updated content
+                        await message.edit(content=content)
+
+                        # Remove the reaction from the message
+                        await message.remove_reaction(payload.emoji, payload.member)
+
+                        # Send a confirmation message to the channel
+                        await channel.send(f"Removed {line} from the extended pins message.")
