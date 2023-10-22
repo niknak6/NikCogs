@@ -74,6 +74,19 @@ class PinExtender(commands.Cog):
             # React to each message link in the extended pins message with a :wastebasket: emoji to allow unpinning them later
             await extended_pins_message.add_reaction("\U0001F5D1")
 
+            # Get the list of message IDs for each message link in the extended pins message from the config setting
+            message_ids = await self.config.channel(channel).get_raw("extended_pins", "message_ids")
+
+            # If the list does not exist, create an empty list
+            if message_ids is None:
+                message_ids = []
+
+            # Append the last pinned message ID to the list
+            message_ids.append(last_pinned_message.id)
+
+            # Store the updated list in the config setting
+            await self.config.channel(channel).set_raw("extended_pins", "message_ids", value=message_ids)
+
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         """A listener that triggers when a reaction is added to a message."""
@@ -90,22 +103,31 @@ class PinExtender(commands.Cog):
 
                 # Check if the content has more than one line (the first line is the title)
                 if len(content) > 1:
-                    # Get the index of the line that corresponds to the reaction (the first reaction is for the second line, and so on)
-                    index = payload.emoji_count - 1
+                    # Get the list of message IDs for each message link in the extended pins message from the config setting
+                    message_ids = await self.config.channel(channel).get_raw("extended_pins", "message_ids")
 
-                    # Check if the index is valid (not out of range)
-                    if 0 < index < len(content):
+                    # Check if the list exists and has the same length as the content
+                    if message_ids and len(message_ids) == len(content) - 1:
+                        # Get the index of the line that corresponds to the reaction by finding the position of the payload.message_id in the list
+                        index = message_ids.index(payload.message_id)
+
                         # Get the line to be removed from the content
-                        line = content[index]
+                        line = content[index + 1]
 
                         # Remove the line from the content
-                        content.pop(index)
+                        content.pop(index + 1)
+
+                        # Remove the message ID from the list
+                        message_ids.pop(index)
 
                         # Join the content back by newlines
                         content = "\n".join(content)
 
                         # Edit the message with the updated content
                         await message.edit(content=content)
+
+                        # Store the updated list in the config setting
+                        await self.config.channel(channel).set_raw("extended_pins", "message_ids", value=message_ids)
 
                         # Remove the reaction from the message
                         await message.remove_reaction(payload.emoji, payload.member)
