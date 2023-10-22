@@ -1,5 +1,5 @@
 # Import the necessary modules
-from redbot.core import commands, checks
+from redbot.core import commands, checks, Config
 import discord
 import urllib.parse # Added this module to parse URLs
 
@@ -16,7 +16,24 @@ class PinExtender(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.extended_pins = {} # A dictionary that maps channel IDs to extended pins message IDs
+        # Create a Config object for this cog
+        self.config = Config.get_conf(self, identifier=1234567890)
+        # Register a custom group for each channel
+        self.config.register_channel(extended_pins=None)
+        # Create a listener for when a channel's extended pins message ID changes
+        @self.config.channel.extended_pins()
+        async def on_extended_pins_change(channel_id, value):
+            # Update the extended pins dictionary with the new value
+            self.extended_pins[channel_id] = value
+
+        # Initialize an empty dictionary for extended pins
+        self.extended_pins = {}
+
+    def cog_unload(self):
+        # Perform any cleanup tasks before unloading the cog
+        # Save the config data
+        self.config.save()
+        # Remove any listeners or connections
 
     @commands.command()
     @checks.mod_or_permissions(manage_messages=True)
@@ -33,7 +50,8 @@ class PinExtender(commands.Cog):
         # Pin the message to the channel
         await message.pin()
 
-        # Store the message ID in the dictionary
+        # Store the message ID in the config and the dictionary
+        await self.config.channel(ctx.channel).extended_pins.set(message.id)
         self.extended_pins[ctx.channel.id] = message.id
 
         # Send a confirmation message
