@@ -17,7 +17,8 @@ class PinExtender(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890) # Get a Config instance for this cog
-        self.config.register_channel(extended_pins=None) # Register the default value for extended_pins setting for each channel
+        # Register the default values for extended_pins and message_ids settings for each channel
+        self.config.register_channel(extended_pins=None, message_ids=[]) 
 
     @commands.command()
     @checks.mod_or_permissions(manage_messages=True)
@@ -75,17 +76,13 @@ class PinExtender(commands.Cog):
             await extended_pins_message.add_reaction("\U0001F5D1")
 
             # Get the list of message IDs for each message link in the extended pins message from the config setting
-            message_ids = await self.config.channel(channel).get_raw("extended_pins", "message_ids")
-
-            # If the list does not exist, create an empty list
-            if message_ids is None:
-                message_ids = []
+            message_ids = await self.config.channel(channel).message_ids() # Use Config to get the value of message_ids setting for the channel
 
             # Append the last pinned message ID to the list
             message_ids.append(last_pinned_message.id)
 
             # Store the updated list in the config setting
-            await self.config.channel(channel).set_raw("extended_pins", "message_ids", value=message_ids)
+            await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
@@ -104,7 +101,7 @@ class PinExtender(commands.Cog):
                 # Check if the content has more than one line (the first line is the title)
                 if len(content) > 1:
                     # Get the list of message IDs for each message link in the extended pins message from the config setting
-                    message_ids = await self.config.channel(channel).get_raw("extended_pins", "message_ids")
+                    message_ids = await self.config.channel(channel).message_ids() # Use Config to get the value of message_ids setting for the channel
 
                     # Check if the list exists and has the same length as the content
                     if message_ids and len(message_ids) == len(content) - 1:
@@ -127,7 +124,7 @@ class PinExtender(commands.Cog):
                         await message.edit(content=content)
 
                         # Store the updated list in the config setting
-                        await self.config.channel(channel).set_raw("extended_pins", "message_ids", value=message_ids)
+                        await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
 
                         # Remove the reaction from the message
                         await message.remove_reaction(payload.emoji, payload.member)
