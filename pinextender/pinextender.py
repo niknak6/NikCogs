@@ -20,12 +20,6 @@ class PinExtender(commands.Cog):
         self.config = Config.get_conf(self, identifier=1234567890)
         # Register a custom group for each channel
         self.config.register_channel(extended_pins=None)
-        # Create a listener for when a channel's extended pins message ID changes
-        @self.config.channel.extended_pins()
-        async def on_extended_pins_change(channel_id, value):
-            # Update the extended pins dictionary with the new value
-            self.extended_pins[channel_id] = value
-
         # Initialize an empty dictionary for extended pins
         self.extended_pins = {}
 
@@ -84,3 +78,13 @@ class PinExtender(commands.Cog):
 
             # Send a notification message to the channel
             await channel.send(f"Added {message_link} to the extended pins message and removed its pin.")
+
+    # Create a listener for when a channel's extended pins message ID changes
+    @self.config.listener(channel="extended_pins")
+    async def on_extended_pins_change(self, event_name, event_data):
+        # Get the channel ID and the new value from the event data
+        channel_id = event_data["identifier"]
+        value = event_data["value"]
+        # Update the extended pins dictionary with the new value
+        self.extended_pins[channel_id] = value
+
