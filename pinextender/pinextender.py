@@ -44,45 +44,47 @@ class PinExtender(commands.Cog):
     @commands.Cog.listener()
     async def on_guild_channel_pins_update(self, channel, last_pin):
         """A listener that triggers when a channel's pins are updated."""
-        # Check if the last pinned message is not the extended pins message for the channel
-        if await self.config.channel(channel).extended_pins() != last_pin.id: # Use Config to get the value of extended_pins setting for this channel
-            # Get the built-in pin confirmation message object by fetching the latest system message in the channel
-            pin_confirmation_message = await channel.fetch_message(channel.last_message_id)
+        # Get the list of pinned messages in the channel
+        pinned_messages = await channel.pins()
 
-            # React to the built-in pin confirmation message with a :pushpin: emoji to indicate that it was added to the extended pins message
-            await pin_confirmation_message.add_reaction("\U0001F4CC")
-
-            # Get the list of pinned messages in the channel
-            pinned_messages = await channel.pins()
-
-            # Get the extended pins message object
-            extended_pins_message = await channel.fetch_message(await self.config.channel(channel).extended_pins()) # Use Config to get the value of extended_pins setting for this channel
-
+        # Check if there are any pinned messages in the channel
+        if pinned_messages:
             # Get the last pinned message object from the list
             last_pinned_message = pinned_messages[0]
 
-            # Get the message link and description of the last pinned message
-            message_link = last_pinned_message.jump_url
-            # Modified this line to check if the message content is only a valid URL or if it has any attachments or embeds, and use the :paperclip: emoji accordingly
-            message_description = ":paperclip:" if (is_url(last_pinned_message.content) or last_pinned_message.attachments or last_pinned_message.embeds) else (last_pinned_message.content[:20] + "..." if len(last_pinned_message.content) > 20 else last_pinned_message.content)
+            # Check if the last pinned message is not the extended pins message for the channel
+            if await self.config.channel(channel).extended_pins() != last_pinned_message.id: # Use Config to get the value of extended_pins setting for this channel
+                # Get the built-in pin confirmation message object by fetching the latest system message in the channel
+                pin_confirmation_message = await channel.fetch_message(channel.last_message_id)
 
-            # Add the message link and description to the bottom of the extended pins message
-            await extended_pins_message.edit(content=f"{extended_pins_message.content}\n{message_link} - {message_description}")
+                # React to the built-in pin confirmation message with a :pushpin: emoji to indicate that it was added to the extended pins message
+                await pin_confirmation_message.add_reaction("\U0001F4CC")
 
-            # Remove the pin from the last pinned message
-            await last_pinned_message.unpin()
+                # Get the extended pins message object
+                extended_pins_message = await channel.fetch_message(await self.config.channel(channel).extended_pins()) # Use Config to get the value of extended_pins setting for this channel
 
-            # React to each message link in the extended pins message with a :wastebasket: emoji to allow unpinning them later
-            await extended_pins_message.add_reaction("\U0001F5D1")
+                # Get the message link and description of the last pinned message
+                message_link = last_pinned_message.jump_url
+                # Modified this line to check if the message content is only a valid URL or if it has any attachments or embeds, and use the :paperclip: emoji accordingly
+                message_description = ":paperclip:" if (is_url(last_pinned_message.content) or last_pinned_message.attachments or last_pinned_message.embeds) else (last_pinned_message.content[:20] + "..." if len(last_pinned_message.content) > 20 else last_pinned_message.content)
 
-            # Get the list of message IDs for each message link in the extended pins message from the config setting
-            message_ids = await self.config.channel(channel).message_ids() # Use Config to get the value of message_ids setting for the channel
+                # Add the message link and description to the bottom of the extended pins message
+                await extended_pins_message.edit(content=f"{extended_pins_message.content}\n{message_link} - {message_description}")
 
-            # Append the last pinned message ID to the list
-            message_ids.append(last_pinned_message.id)
+                # Remove the pin from the last pinned message
+                await last_pinned_message.unpin()
 
-            # Store the updated list in the config setting
-            await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
+                # React to each message link in the extended pins message with a :wastebasket: emoji to allow unpinning them later
+                await extended_pins_message.add_reaction("\U0001F5D1")
+
+                # Get the list of message IDs for each message link in the extended pins message from the config setting
+                message_ids = await self.config.channel(channel).message_ids() # Use Config to get the value of message_ids setting for the channel
+
+                # Append the last pinned message ID to the list
+                message_ids.append(last_pinned_message.id)
+
+                # Store the updated list in the config setting
+                await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
