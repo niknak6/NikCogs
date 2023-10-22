@@ -1,5 +1,5 @@
 # Import the necessary modules
-from redbot.core import commands, checks, Config
+from redbot.core import commands, checks
 import discord
 import urllib.parse # Added this module to parse URLs
 
@@ -16,18 +16,7 @@ class PinExtender(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        # Create a Config object for this cog
-        self.config = Config.get_conf(self, identifier=1234567890)
-        # Register a custom group for each channel
-        self.config.register_channel(extended_pins=None)
-        # Initialize an empty dictionary for extended pins
-        self.extended_pins = {}
-
-    def cog_unload(self):
-        # Perform any cleanup tasks before unloading the cog
-        # Save the config data
-        self.config.save()
-        # Remove any listeners or connections
+        self.extended_pins = {} # A dictionary that maps channel IDs to extended pins message IDs
 
     @commands.command()
     @checks.mod_or_permissions(manage_messages=True)
@@ -44,8 +33,7 @@ class PinExtender(commands.Cog):
         # Pin the message to the channel
         await message.pin()
 
-        # Store the message ID in the config and the dictionary
-        await self.config.channel(ctx.channel).extended_pins.set(message.id)
+        # Store the message ID in the dictionary
         self.extended_pins[ctx.channel.id] = message.id
 
         # Send a confirmation message
@@ -78,13 +66,3 @@ class PinExtender(commands.Cog):
 
             # Send a notification message to the channel
             await channel.send(f"Added {message_link} to the extended pins message and removed its pin.")
-
-    # Create a listener for when a channel's extended pins message ID changes
-    @self.config.listener(channel="extended_pins")
-    async def on_extended_pins_change(self, event_name, event_data):
-        # Get the channel ID and the new value from the event data
-        channel_id = event_data["identifier"]
-        value = event_data["value"]
-        # Update the extended pins dictionary with the new value
-        self.extended_pins[channel_id] = value
-
