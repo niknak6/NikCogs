@@ -21,7 +21,7 @@ class PinExtender(commands.Cog):
         # Register a custom group for each channel
         self.config.register_channel(extended_pins=None)
         # Create a listener for when a channel's extended pins message ID changes
-        @self.config.channel.extended_pins
+        @self.config.channel.extended_pins()
         async def on_extended_pins_change(channel_id, value):
             # Update the extended pins dictionary with the new value
             self.extended_pins[channel_id] = value
