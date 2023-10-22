@@ -65,5 +65,8 @@ class PinExtender(commands.Cog):
             # Remove the pin from the last pinned message
             await last_pinned_message.unpin()
 
-            # Send a notification message to the channel
-            await channel.send(f"Added {message_link} to the extended pins message and removed its pin.")
+            # Get the built-in pin confirmation message object by fetching the latest system message in the channel
+            pin_confirmation_message = await channel.fetch_message(channel.last_message_id)
+
+            # React to the built-in pin confirmation message with a :pushpin: emoji to indicate that it was added to the extended pins message
+            await pin_confirmation_message.add_reaction("\U0001F4CC")
