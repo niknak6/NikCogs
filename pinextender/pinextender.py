@@ -107,29 +107,34 @@ class PinExtender(commands.Cog):
 
                     # Check if the list exists and has the same length as the content
                     if message_ids and len(message_ids) == len(content) - 1:
-                        # Get the index of the line that corresponds to the reaction by finding the position of the payload.message_reference.message_id in the list
-                        index = message_ids.index(payload.message_reference.message_id)
+                        # Check if the event type is REACTION_ADD, which indicates that a reaction was added to a message
+                        if payload.event_type == "REACTION_ADD":
+                            # Get the ID of the message link that was reacted to by using payload.message_id attribute
+                            message_link_id = payload.message_id
 
-                        # Get the line to be removed from the content
-                        line = content[index + 1]
+                            # Get the index of the line that corresponds to the reaction by finding the position of the message_link_id in the list
+                            index = message_ids.index(message_link_id)
 
-                        # Remove the line from the content
-                        content.pop(index + 1)
+                            # Get the line to be removed from the content
+                            line = content[index + 1]
 
-                        # Remove the message ID from the list
-                        message_ids.pop(index)
+                            # Remove the line from the content
+                            content.pop(index + 1)
 
-                        # Join the content back by newlines
-                        content = "\n".join(content)
+                            # Remove the message ID from the list
+                            message_ids.pop(index)
 
-                        # Edit the message with the updated content
-                        await message.edit(content=content)
+                            # Join the content back by newlines
+                            content = "\n".join(content)
 
-                        # Store the updated list in the config setting
-                        await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
+                            # Edit the message with the updated content
+                            await message.edit(content=content)
 
-                        # Remove the reaction from the message
-                        await message.remove_reaction(payload.emoji, payload.member)
+                            # Store the updated list in the config setting
+                            await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
 
-                        # Send a confirmation message to the channel
-                        await channel.send(f"Removed {line} from the extended pins message.")
+                            # Remove the reaction from the message
+                            await message.remove_reaction(payload.emoji, payload.member)
+
+                            # Send a confirmation message to the channel
+                            await channel.send(f"Removed {line} from the extended pins message.")
