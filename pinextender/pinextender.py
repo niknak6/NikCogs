@@ -164,3 +164,33 @@ class PinExtender(commands.Cog):
                             logging.info(f"Removed {embed.title} - {embed.url} from the extended pins message in {channel.name}")
         except Exception as e: # Catch any exception and log it
             logging.error(f"An error occurred in on_raw_reaction_add: {e}")
+
+    @commands.command()
+    @checks.mod_or_permissions(manage_messages=True)
+    async def pinreset(self, ctx, channel: discord.TextChannel = None):
+        """Resets the config data and deletes the extended pins message for a channel."""
+        # If no channel is provided, use the current channel
+        if not channel:
+            channel = ctx.channel
+
+        # Get the extended pins message ID from the config
+        message_id = await self.config.channel(channel).extended_pins()
+
+        # Check if the message ID exists
+        if message_id:
+            # Try to fetch and delete the message
+            try:
+                message = await channel.fetch_message(message_id)
+                await message.delete()
+            except discord.NotFound:
+                # The message was already deleted manually
+                pass
+
+            # Clear the config data for the channel
+            await self.config.channel(channel).clear()
+
+            # Send a confirmation message
+            await ctx.send(f"Resetted config data and deleted extended pins for {channel.mention}.")
+        else:
+            # The channel does not have an extended pins message
+            await ctx.send(f"This channel does not have an extended pins.")
