@@ -57,13 +57,13 @@ class PinExtender(commands.Cog):
                     last_pinned_message = message # Assign the matching message object to the variable
                     break # Break out of the loop
 
-            # Check if the last pinned message is not the extended pins message for the channel
-            if await self.config.channel(channel).extended_pins() != last_pinned_message.id: # Use Config to get the value of extended_pins setting for this channel
+            # Check if the last pinned message is not None and is not the extended pins message for the channel
+            if last_pinned_message and await self.config.channel(channel).extended_pins() != last_pinned_message.id: # Use Config to get the value of extended_pins setting for this channel
                 # Get the built-in pin confirmation message object by fetching the latest system message in the channel
                 pin_confirmation_message = await channel.fetch_message(channel.last_message_id)
 
                 # React to the built-in pin confirmation message with a :pushpin: emoji to indicate that it was added to the extended pins message
-                await pin_confirmation_message.add_reaction("pushpin")
+                await pin_confirmation_message.add_reaction("\U0001F4CC")
 
                 # Get the extended pins message object
                 extended_pins_message = await channel.fetch_message(await self.config.channel(channel).extended_pins()) # Use Config to get the value of extended_pins setting for this channel
@@ -80,7 +80,7 @@ class PinExtender(commands.Cog):
                 await last_pinned_message.unpin()
 
                 # React to each message link in the extended pins message with a :wastebasket: emoji to allow unpinning them later
-                await extended_pins_message.add_reaction(":wastebasket:")
+                await extended_pins_message.add_reaction("\U0001F5D1")
 
                 # Get the list of message IDs for each message link in the extended pins message from the config setting
                 message_ids = await self.config.channel(channel).message_ids() # Use Config to get the value of message_ids setting for the channel
@@ -98,7 +98,7 @@ class PinExtender(commands.Cog):
     async def on_raw_reaction_add(self, payload):
         """A listener that triggers whenever a reaction is added to a message."""
         # Check if the reaction is from a user (not a bot) and is a :wastebasket: emoji
-        if not payload.user_id == self.bot.user.id and payload.emoji.name == ":wastebasket:":
+        if not payload.user_id == self.bot.user.id and payload.emoji.name == "\U0001F5D1":
             # Get the channel, message, and user objects from the payload
             channel = self.bot.get_channel(payload.channel_id)
             message = await channel.fetch_message(payload.message_id)
@@ -119,7 +119,7 @@ class PinExtender(commands.Cog):
                         # Get the URL of the last embed that contains the message link
                         message_link_url = message.embeds[-1].url # Get the URL of the last embed
                         # Parse the URL and get the ID from it
-                        message_link_id = urllib.parse.parse_qs(urllib.parse.urlsplit(message_link_url).query)["id"][0]
+                        message_link_id = message_link_url.split("/")[-1]
 
                         # Get the index of the line that corresponds to the reaction by finding the position of the message_link_id in the list
                         index = message_ids.index(message_link_id)
