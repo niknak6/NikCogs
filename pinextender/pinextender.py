@@ -2,6 +2,7 @@
 from redbot.core import commands, checks, Config # Added Config module
 import discord
 import urllib.parse # Added this module to parse URLs
+import logging # Added this module to enable logging
 
 # Define a custom function to validate URLs
 def is_url(string):
@@ -58,7 +59,7 @@ class PinExtender(commands.Cog):
                 pin_confirmation_message = await channel.fetch_message(channel.last_message_id)
 
                 # React to the built-in pin confirmation message with a :pushpin: emoji to indicate that it was added to the extended pins message
-                await pin_confirmation_message.add_reaction("\U0001F4CC")
+                await pin_confirmation_message.add_reaction(":pushpin:")
 
                 # Get the extended pins message object
                 extended_pins_message = await channel.fetch_message(await self.config.channel(channel).extended_pins()) # Use Config to get the value of extended_pins setting for this channel
@@ -75,7 +76,7 @@ class PinExtender(commands.Cog):
                 await last_pinned_message.unpin()
 
                 # React to each message link in the extended pins message with a :wastebasket: emoji to allow unpinning them later
-                await extended_pins_message.add_reaction("\U0001F5D1")
+                await extended_pins_message.add_reaction(":wastebasket:")
 
                 # Get the list of message IDs for each message link in the extended pins message from the config setting
                 message_ids = await self.config.channel(channel).message_ids() # Use Config to get the value of message_ids setting for the channel
@@ -86,14 +87,18 @@ class PinExtender(commands.Cog):
                 # Store the updated list in the config setting
                 await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
 
+                # Log the event
+                logging.info(f"Added {message_link} - {message_description} to the extended pins message in {channel.name}")
+
     @commands.Cog.listener()
-    async def on_reaction_add(self, reaction, user):
-        """A listener that triggers when a reaction is added to a message."""
+    async def on_raw_reaction_add(self, payload):
+        """A listener that triggers whenever a reaction is added to a message."""
         # Check if the reaction is from a user (not a bot) and is a :wastebasket: emoji
-        if not user.bot and reaction.emoji == "\U0001F5D1":
-            # Get the channel and message objects from the reaction
-            channel = reaction.message.channel
-            message = reaction.message
+        if not payload.user_id == self.bot.user.id and payload.emoji.name == ":wastebasket:":
+            # Get the channel, message, and user objects from the payload
+            channel = self.bot.get_channel(payload.channel_id)
+            message = await channel.fetch_message(payload.message_id)
+            user = self.bot.get_user(payload.user_id)
 
             # Check if the message is an extended pins message for the channel
             if await self.config.channel(channel).extended_pins() == message.id: # Use Config to get the value of extended_pins setting for the channel
@@ -108,7 +113,7 @@ class PinExtender(commands.Cog):
                     # Check if the list exists and has the same length as the content
                     if message_ids and len(message_ids) == len(content) - 1:
                         # Get the URL of the last embed that contains the message link
-                        message_link_url = reaction.message.embeds[-1].url # Get the URL of the last embed
+                        message_link_url = message.embeds[-1].url # Get the URL of the last embed
                         # Parse the URL and get the ID from it
                         message_link_id = urllib.parse.parse_qs(urllib.parse.urlsplit(message_link_url).query)["id"][0]
 
@@ -134,7 +139,10 @@ class PinExtender(commands.Cog):
                         await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
 
                         # Remove the reaction from the message
-                        await message.remove_reaction(reaction.emoji, user)
+                        await message.remove_reaction(payload.emoji, user)
 
                         # Send a confirmation message to the channel
                         await channel.send(f"Removed {line} from the extended pins message.")
+
+                        # Log the event
+                        logging.info(f"Removed {line} from the extended pins message in {channel.name}")
