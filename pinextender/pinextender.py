@@ -50,8 +50,12 @@ class PinExtender(commands.Cog):
 
         # Check if there are any pinned messages in the channel
         if pinned_messages:
-            # Get the last pinned message object from the list
-            last_pinned_message = pinned_messages[0]
+            # Get the last pinned message object from the list by comparing the created_at attribute with the last_pin parameter
+            last_pinned_message = None # Initialize a variable to store the last pinned message object
+            for message in pinned_messages: # Loop through each message object in the list
+                if message.created_at == last_pin: # Compare the created_at attribute of each message object with the last_pin parameter
+                    last_pinned_message = message # Assign the matching message object to the variable
+                    break # Break out of the loop
 
             # Check if the last pinned message is not the extended pins message for the channel
             if await self.config.channel(channel).extended_pins() != last_pinned_message.id: # Use Config to get the value of extended_pins setting for this channel
