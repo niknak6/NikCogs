@@ -72,7 +72,7 @@ class PinExtender(commands.Cog):
                         # Update the content of the extended pins message with the list of extended pins
                         extended_pins_content = "**__Extended Pins__**\n\n"
                         for i, (link, description) in enumerate(await self.config.channel(after.channel).extended_pins(), start=1):
-                            extended_pins_content += f"{i}. {link}\n" # Use link instead of description
+                            extended_pins_content += f"{i}. {description}\n" # Use description instead of link
                         await extended_pins_message.edit(content=extended_pins_content)
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
@@ -84,7 +84,7 @@ class PinExtender(commands.Cog):
                                     # Update the content of the extended pins message with the updated list of extended pins
                                     extended_pins_content = "**__Extended Pins__**\n\n"
                                     for j, (link, description) in enumerate(extended_pins, start=1):
-                                        extended_pins_content += f"{j}. {link}\n" # Use link instead of description
+                                        extended_pins_content += f"{j}. {description}\n" # Use description instead of link
                                     await extended_pins_message.edit(content=extended_pins_content)
                                     break
 
@@ -120,7 +120,7 @@ class PinExtender(commands.Cog):
                                 # Update the content of the extended pins message with the updated list of extended pins
                                 extended_pins_content = "**__Extended Pins__**\n\n"
                                 for j, (link, description) in enumerate(extended_pins, start=1):
-                                    extended_pins_content += f"{j}. {link}\n" # Use link instead of description
+                                    extended_pins_content += f"{j}. {description}\n" # Use description instead of link
                                 await extended_pins_message.edit(content=extended_pins_content)
                                 # Send a confirmation message to the user
                                 await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
