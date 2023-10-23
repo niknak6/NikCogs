@@ -77,7 +77,7 @@ class PinExtender(commands.Cog):
                         timestamp=after.created_at,
                         color=discord.Color.blurple()
                     )
-                    embed.set_author(name=after.author.display_name, icon_url=after.author.avatar_url)
+                    embed.set_author(name=after.author.display_name, icon_url=after.author.avatar.url) # Fixed this line
                     if after.attachments:
                         embed.set_image(url=after.attachments[0].url)
                     elif after.embeds:
