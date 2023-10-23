@@ -62,7 +62,7 @@ class PinExtender(commands.Cog):
                     # Check if the edited message was pinned or unpinned
                     if not before.pinned and after.pinned: # The message was pinned
                         # Get the message link and description of the new pin
-                        new_pin_link = after.jump_url # Use jump_url instead of url
+                        new_pin_link = after.jump_url 
                         new_pin_description = after.content[:20] + "..." if len(after.content) > 20 else after.content
                         # Add the new pin to the list of extended pins in the config
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
@@ -72,19 +72,19 @@ class PinExtender(commands.Cog):
                         # Update the content of the extended pins message with the list of extended pins
                         extended_pins_content = "**__Extended Pins__**\n\n"
                         for i, (link, description) in enumerate(await self.config.channel(after.channel).extended_pins(), start=1):
-                            extended_pins_content += f"{i}. {description}\n"
+                            extended_pins_content += f"{i}. {link}\n" # Use link instead of description
                         await extended_pins_message.edit(content=extended_pins_content)
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
                             for i, (link, description) in enumerate(extended_pins):
-                                if link == after.jump_url: # Use jump_url instead of url
+                                if link == after.jump_url: 
                                     # Remove the unpinned message from the list of extended pins
                                     del extended_pins[i]
                                     # Update the content of the extended pins message with the updated list of extended pins
                                     extended_pins_content = "**__Extended Pins__**\n\n"
                                     for j, (link, description) in enumerate(extended_pins, start=1):
-                                        extended_pins_content += f"{j}. {description}\n"
+                                        extended_pins_content += f"{j}. {link}\n" # Use link instead of description
                                     await extended_pins_message.edit(content=extended_pins_content)
                                     break
 
@@ -114,13 +114,13 @@ class PinExtender(commands.Cog):
                     # Check if the reacted message is in the list of extended pins
                     async with self.config.channel(channel).extended_pins() as extended_pins:
                         for i, (link, description) in enumerate(extended_pins):
-                            if link == reacted_message.jump_url: # Use jump_url instead of url
+                            if link == reacted_message.jump_url: 
                                 # Remove the reacted message from the list of extended pins
                                 del extended_pins[i]
                                 # Update the content of the extended pins message with the updated list of extended pins
                                 extended_pins_content = "**__Extended Pins__**\n\n"
                                 for j, (link, description) in enumerate(extended_pins, start=1):
-                                    extended_pins_content += f"{j}. {description}\n"
+                                    extended_pins_content += f"{j}. {link}\n" # Use link instead of description
                                 await extended_pins_message.edit(content=extended_pins_content)
                                 # Send a confirmation message to the user
                                 await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
