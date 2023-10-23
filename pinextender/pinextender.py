@@ -107,8 +107,8 @@ class PinExtender(commands.Cog):
 
                     # Check if the list exists and has the same length as the content
                     if message_ids and len(message_ids) == len(content) - 1:
-                        # Get the URL of the embed that contains the message link
-                        message_link_url = reaction.message.embeds[0].url
+                        # Get the URL of the last embed that contains the message link
+                        message_link_url = reaction.message.embeds[-1].url # Get the URL of the last embed
                         # Parse the URL and get the ID from it
                         message_link_id = urllib.parse.parse_qs(urllib.parse.urlsplit(message_link_url).query)["id"][0]
 
