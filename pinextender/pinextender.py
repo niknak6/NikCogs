@@ -107,8 +107,10 @@ class PinExtender(commands.Cog):
 
                     # Check if the list exists and has the same length as the content
                     if message_ids and len(message_ids) == len(content) - 1:
-                        # Get the ID of the message link that was reacted to by using reaction.message.id attribute
-                        message_link_id = reaction.message.id
+                        # Get the URL of the embed that contains the message link
+                        message_link_url = reaction.message.embeds[0].url
+                        # Parse the URL and get the ID from it
+                        message_link_id = urllib.parse.parse_qs(urllib.parse.urlsplit(message_link_url).query)["id"][0]
 
                         # Get the index of the line that corresponds to the reaction by finding the position of the message_link_id in the list
                         index = message_ids.index(message_link_id)
