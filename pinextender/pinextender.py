@@ -59,7 +59,7 @@ class PinExtender(commands.Cog):
                 pin_confirmation_message = await channel.fetch_message(channel.last_message_id)
 
                 # React to the built-in pin confirmation message with a :pushpin: emoji to indicate that it was added to the extended pins message
-                await pin_confirmation_message.add_reaction(":pushpin:")
+                await pin_confirmation_message.add_reaction("pushpin")
 
                 # Get the extended pins message object
                 extended_pins_message = await channel.fetch_message(await self.config.channel(channel).extended_pins()) # Use Config to get the value of extended_pins setting for this channel
