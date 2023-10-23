@@ -43,40 +43,50 @@ class PinExtender(commands.Cog):
         # Send a confirmation message to the user
         await ctx.send("The extended pins message has been created or reset for this channel.")
 
-    # Define an event listener for when a message is pinned or unpinned in a channel
+    # Define an event listener for when a message is edited in a channel
     @commands.Cog.listener()
-    async def on_guild_channel_pins_update(self, channel, last_pin_id):
-        """An event listener for when a message is pinned or unpinned in a channel."""
+    async def on_message_edit(self, before, after):
+        """An event listener for when a message is edited in a channel."""
         # Check if the channel is a text channel and has an extended pins message
-        if isinstance(channel, discord.TextChannel):
-            extended_pins_message_id = await self.config.channel(channel).extended_pins_message()
+        if isinstance(after.channel, discord.TextChannel):
+            extended_pins_message_id = await self.config.channel(after.channel).extended_pins_message()
             if extended_pins_message_id is not None:
                 # Try to fetch the extended pins message
                 try:
-                    extended_pins_message = await channel.fetch_message(extended_pins_message_id)
+                    extended_pins_message = await after.channel.fetch_message(extended_pins_message_id)
                 except discord.NotFound:
                     return
-                # Get the list of pinned messages in the channel
-                pinned_messages = await channel.pins()
                 # Check if there are more than 49 pinned messages (excluding the extended pins message)
+                pinned_messages = await after.channel.pins()
                 if len(pinned_messages) > 49:
-                    # Get the newest pinned message (the one that triggered the event)
-                    new_pin_message = last_pin_id or await channel.fetch_message(channel.last_message_id)
-                    # Check if the newest pinned message is not None and not the extended pins message
-                    if new_pin_message is not None and new_pin_message.id != extended_pins_message_id:
+                    # Check if the edited message was pinned or unpinned
+                    if not before.pinned and after.pinned: # The message was pinned
                         # Get the message link and description of the new pin
-                        new_pin_link = new_pin_message.jump_url
-                        new_pin_description = new_pin_message.content[:20] + "..." if len(new_pin_message.content) > 20 else new_pin_message.content
+                        new_pin_link = after.jump_url
+                        new_pin_description = after.content[:20] + "..." if len(after.content) > 20 else after.content
                         # Add the new pin to the list of extended pins in the config
-                        async with self.config.channel(channel).extended_pins() as extended_pins:
+                        async with self.config.channel(after.channel).extended_pins() as extended_pins:
                             extended_pins.insert(0, (new_pin_link, new_pin_description))
                         # Unpin the new pin from the channel
-                        await new_pin_message.unpin()
+                        await after.unpin()
                         # Update the content of the extended pins message with the list of extended pins
                         extended_pins_content = "**__Extended Pins__**\n\n"
-                        for i, (link, description) in enumerate(await self.config.channel(channel).extended_pins(), start=1):
+                        for i, (link, description) in enumerate(await self.config.channel(after.channel).extended_pins(), start=1):
                             extended_pins_content += f"{i}. {description}\n"
                         await extended_pins_message.edit(content=extended_pins_content)
+                    elif before.pinned and not after.pinned: # The message was unpinned
+                        # Check if the unpinned message is in the list of extended pins
+                        async with self.config.channel(after.channel).extended_pins() as extended_pins:
+                            for i, (link, description) in enumerate(extended_pins):
+                                if link == after.jump_url:
+                                    # Remove the unpinned message from the list of extended pins
+                                    del extended_pins[i]
+                                    # Update the content of the extended pins message with the updated list of extended pins
+                                    extended_pins_content = "**__Extended Pins__**\n\n"
+                                    for j, (link, description) in enumerate(extended_pins, start=1):
+                                        extended_pins_content += f"{j}. {description}\n"
+                                    await extended_pins_message.edit(content=extended_pins_content)
+                                    break
 
     # Define an event listener for when a reaction is added to a message in a channel
     @commands.Cog.listener()
