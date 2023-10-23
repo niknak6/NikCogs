@@ -61,17 +61,17 @@ class PinExtender(commands.Cog):
                 # Check if there are more than 49 pinned messages (excluding the extended pins message)
                 if len(pinned_messages) > 49:
                     # Get the newest pinned message (the one that triggered the event)
-                    new_pin = last_pin or await channel.fetch_message(channel.last_message_id)
+                    new_pin_message = last_pin or await channel.fetch_message(channel.last_message_id)
                     # Check if the newest pinned message is not None and not the extended pins message
-                    if new_pin is not None and new_pin.id != extended_pins_message_id:
+                    if new_pin_message is not None and new_pin_message.id != extended_pins_message_id:
                         # Get the message link and description of the new pin
-                        new_pin_link = new_pin.jump_url
-                        new_pin_description = new_pin.content[:20] + "..." if len(new_pin.content) > 20 else new_pin.content
+                        new_pin_link = new_pin_message.jump_url
+                        new_pin_description = new_pin_message.content[:20] + "..." if len(new_pin_message.content) > 20 else new_pin_message.content
                         # Add the new pin to the list of extended pins in the config
                         async with self.config.channel(channel).extended_pins() as extended_pins:
                             extended_pins.insert(0, (new_pin_link, new_pin_description))
                         # Unpin the new pin from the channel
-                        await new_pin.unpin()
+                        await new_pin_message.unpin()
                         # Update the content of the extended pins message with the list of extended pins
                         extended_pins_content = "**__Extended Pins__**\n\n"
                         for i, (link, description) in enumerate(await self.config.channel(channel).extended_pins(), start=1):
