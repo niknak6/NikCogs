@@ -62,8 +62,8 @@ class PinExtender(commands.Cog):
                 if len(pinned_messages) > 49:
                     # Get the newest pinned message (the one that triggered the event)
                     new_pin = last_pin or await channel.fetch_message(channel.last_message_id)
-                    # Check if the newest pinned message is not the extended pins message
-                    if new_pin.id != extended_pins_message_id:
+                    # Check if the newest pinned message is not None and not the extended pins message
+                    if new_pin is not None and new_pin.id != extended_pins_message_id:
                         # Get the message link and description of the new pin
                         new_pin_link = new_pin.jump_url
                         new_pin_description = new_pin.content[:20] + "..." if len(new_pin.content) > 20 else new_pin.content
