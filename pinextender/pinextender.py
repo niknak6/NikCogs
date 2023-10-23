@@ -45,7 +45,7 @@ class PinExtender(commands.Cog):
 
     # Define an event listener for when a message is pinned or unpinned in a channel
     @commands.Cog.listener()
-    async def on_guild_channel_pins_update(self, channel, last_pin):
+    async def on_guild_channel_pins_update(self, channel, last_pin_time):
         """An event listener for when a message is pinned or unpinned in a channel."""
         # Check if the channel is a text channel and has an extended pins message
         if isinstance(channel, discord.TextChannel):
@@ -61,7 +61,7 @@ class PinExtender(commands.Cog):
                 # Check if there are more than 49 pinned messages (excluding the extended pins message)
                 if len(pinned_messages) > 49:
                     # Get the newest pinned message (the one that triggered the event)
-                    new_pin_message = last_pin or await channel.fetch_message(channel.last_message_id)
+                    new_pin_message = last_pin_time or await channel.fetch_message(channel.last_message_id)
                     # Check if the newest pinned message is not None and not the extended pins message
                     if new_pin_message is not None and new_pin_message.id != extended_pins_message_id:
                         # Get the message link and description of the new pin
