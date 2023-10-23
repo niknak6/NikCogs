@@ -87,13 +87,13 @@ class PinExtender(commands.Cog):
                 await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload):
+    async def on_reaction_add(self, reaction, user):
         """A listener that triggers when a reaction is added to a message."""
         # Check if the reaction is from a user (not a bot) and is a :wastebasket: emoji
-        if not payload.member.bot and payload.emoji.name == "\U0001F5D1":
-            # Get the channel and message objects from the payload
-            channel = self.bot.get_channel(payload.channel_id)
-            message = await channel.fetch_message(payload.message_id)
+        if not user.bot and reaction.emoji == "\U0001F5D1":
+            # Get the channel and message objects from the reaction
+            channel = reaction.message.channel
+            message = reaction.message
 
             # Check if the message is an extended pins message for the channel
             if await self.config.channel(channel).extended_pins() == message.id: # Use Config to get the value of extended_pins setting for the channel
@@ -107,34 +107,32 @@ class PinExtender(commands.Cog):
 
                     # Check if the list exists and has the same length as the content
                     if message_ids and len(message_ids) == len(content) - 1:
-                        # Check if the event type is REACTION_ADD, which indicates that a reaction was added to a message
-                        if payload.event_type == "REACTION_ADD":
-                            # Get the ID of the message link that was reacted to by using payload.message_id attribute
-                            message_link_id = payload.message_id
+                        # Get the ID of the message link that was reacted to by using reaction.message.id attribute
+                        message_link_id = reaction.message.id
 
-                            # Get the index of the line that corresponds to the reaction by finding the position of the message_link_id in the list
-                            index = message_ids.index(message_link_id)
+                        # Get the index of the line that corresponds to the reaction by finding the position of the message_link_id in the list
+                        index = message_ids.index(message_link_id)
 
-                            # Get the line to be removed from the content
-                            line = content[index + 1]
+                        # Get the line to be removed from the content
+                        line = content[index + 1]
 
-                            # Remove the line from the content
-                            content.pop(index + 1)
+                        # Remove the line from the content
+                        content.pop(index + 1)
 
-                            # Remove the message ID from the list
-                            message_ids.pop(index)
+                        # Remove the message ID from the list
+                        message_ids.pop(index)
 
-                            # Join the content back by newlines
-                            content = "\n".join(content)
+                        # Join the content back by newlines
+                        content = "\n".join(content)
 
-                            # Edit the message with the updated content
-                            await message.edit(content=content)
+                        # Edit the message with the updated content
+                        await message.edit(content=content)
 
-                            # Store the updated list in the config setting
-                            await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
+                        # Store the updated list in the config setting
+                        await self.config.channel(channel).message_ids.set(message_ids) # Use Config to set the value of message_ids setting for the channel
 
-                            # Remove the reaction from the message
-                            await message.remove_reaction(payload.emoji, payload.member)
+                        # Remove the reaction from the message
+                        await message.remove_reaction(reaction.emoji, user)
 
-                            # Send a confirmation message to the channel
-                            await channel.send(f"Removed {line} from the extended pins message.")
+                        # Send a confirmation message to the channel
+                        await channel.send(f"Removed {line} from the extended pins message.")
