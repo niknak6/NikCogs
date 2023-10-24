@@ -43,6 +43,24 @@ class PinExtender(commands.Cog):
         # Send a confirmation message to the user
         await ctx.send("The extended pins message has been created or reset for this channel.")
 
+    # Define a command to calculate the total number of pins in a channel
+    @commands.command()
+    async def pinnumber(self, ctx):
+        """Calculate the total number of pins in a channel."""
+        # Get the list of pinned messages in the channel
+        pinned_messages = await ctx.channel.pins()
+        # Get the message ID of the extended pins message from the config
+        extended_pins_message_id = await self.config.channel(ctx.channel).extended_pins_message()
+        # Check if the channel has an extended pins message and exclude it from the count
+        if extended_pins_message_id is not None:
+            pinned_messages = [m for m in pinned_messages if m.id != extended_pins_message_id]
+        # Get the list of extended pins from the config
+        extended_pins = await self.config.channel(ctx.channel).extended_pins()
+        # Calculate the total number of pins by adding the length of both lists
+        total_pins = len(pinned_messages) + len(extended_pins)
+        # Send a message to the user with the total number of pins
+        await ctx.send(f"There are {total_pins} pins in this channel.")
+
     # Define an event listener for when a message is edited in a channel
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
