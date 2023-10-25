@@ -75,9 +75,8 @@ class PinExtender(commands.Cog):
                             extended_pins_content += f"- {link} - {description}\n"
                         await extended_pins_message.edit(content=extended_pins_content)
                         # Add a pushpin emoji reaction to the confirmation message that discord sends after pinning a message
-                        confirmation_message = await after.channel.history(limit=1).flatten()
-                        confirmation_message = confirmation_message[0]
-                        await confirmation_message.add_reaction("\U0001F4CC")
+                        confirmation_message = [message async for message in after.channel.history(limit=1)]
+                        await confirmation_message[0].add_reaction("\U0001F4CC")
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
