@@ -34,11 +34,6 @@ class PinExtender(commands.Cog):
             await self.config.channel(ctx.channel).extended_pins.clear()
             # Return after deleting the existing message
             return
-        # Check if there are more than 48 pinned messages in the channel
-        pinned_messages = await ctx.channel.pins()
-        if len(pinned_messages) > 48:
-            # Unpin one of them to make room for the extended pins message
-            await pinned_messages[-1].unpin()
         # Create a new message with the text "Extended Pins" in bold and underlined
         extended_pins_message = await ctx.send("**__Extended Pins__**")
         # Pin the message to the channel
@@ -47,19 +42,6 @@ class PinExtender(commands.Cog):
         await self.config.channel(ctx.channel).extended_pins_message.set(extended_pins_message.id)
         # Send a confirmation message to the user
         await ctx.send("The extended pins message has been created or reset for this channel.")
-
-    # Define a command to calculate the total number of pins in a channel
-    @commands.command()
-    async def pinnumber(self, ctx):
-        """Calculate the total number of pins in a channel."""
-        # Get the list of pinned messages in the channel
-        pinned_messages = await ctx.channel.pins()
-        # Get the list of extended pins from the config
-        extended_pins = await self.config.channel(ctx.channel).extended_pins()
-        # Calculate the total number of pins by adding the length of both lists
-        total_pins = len(pinned_messages) + len(extended_pins)
-        # Send a message to the user with the total number of pins
-        await ctx.send(f"There are {total_pins} pins in this channel.")
 
     # Define an event listener for when a message is edited in a channel
     @commands.Cog.listener()
@@ -74,9 +56,9 @@ class PinExtender(commands.Cog):
                     extended_pins_message = await after.channel.fetch_message(extended_pins_message_id)
                 except discord.NotFound:
                     return
-                # Check if there are more than 48 pinned messages (including the extended pins message)
+                # Check if there are more than 49 pinned messages (excluding the extended pins message)
                 pinned_messages = await after.channel.pins()
-                if len(pinned_messages) > 48:
+                if len(pinned_messages) > 49:
                     # Check if the edited message was pinned or unpinned
                     if not before.pinned and after.pinned: # The message was pinned
                         # Get the message link and description of the new pin
@@ -85,8 +67,8 @@ class PinExtender(commands.Cog):
                         # Add the new pin to the list of extended pins in the config
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
                             extended_pins.insert(0, (new_pin_link, new_pin_description))
-                        # Unpin one of the existing pins to make room for the new pin
-                        await pinned_messages[-1].unpin()
+                        # Unpin the new pin from the channel
+                        await after.unpin()
                         # Update the content of the extended pins message with the list of extended pins
                         extended_pins_content = "**__Extended Pins__**\n\n"
                         for link, description in await self.config.channel(after.channel).extended_pins(): # Use link, description instead of i, (link, description)
@@ -139,7 +121,7 @@ class PinExtender(commands.Cog):
                                 extended_pins_content = "**__Extended Pins__**\n\n"
                                 for link, description in extended_pins: # Use link, description instead of j, (link, description)
                                     extended_pins_content += f"- {link} - {description}\n" # Use - instead of j.
-                                await extended_pins_message.edit(content=extended_pins_content) # Add this line to fix the syntax error
+                                await extended_pins_message.edit(content=extended_pins_content)
                                 # Send a confirmation message to the user
                                 await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
                                 break
