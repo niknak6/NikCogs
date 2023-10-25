@@ -91,7 +91,7 @@ class PinExtender(commands.Cog):
                         # Use the wait_for() method of the Bot object to wait for a new message to be sent in the channel after the pin action
                         # Define a check function to filter out any messages that are not sent by Discord or do not contain the word "pinned"
                         def check(message):
-                            return message.is_system() and "pinned" in message.content
+                            return isinstance(message.type, discord.MessageType) and "pinned" in message.content
                         # Wait for a new message that passes the check function, with a timeout of 10 seconds
                         try:
                             discord_pin_message = await self.bot.wait_for("message", check=check, timeout=10)
