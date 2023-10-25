@@ -2,6 +2,7 @@
 from redbot.core import commands, Config
 import discord
 import discord.utils # Import the discord.utils module
+import asyncio # Import the asyncio module
 
 # Define the cog class
 class PinExtender(commands.Cog):
@@ -87,8 +88,17 @@ class PinExtender(commands.Cog):
                             extended_pins_content += f"- {link} - {description}\n" 
                         await extended_pins_message.edit(content=extended_pins_content)
                         # React to the Discord message that was outputted for the pin that was created, using the :pushpin: emoji
-                        # Use the before variable instead of the after variable to add the reaction
-                        await before.add_reaction("📌")
+                        # Use the wait_for() method of the Bot object to wait for a new message to be sent in the channel after the pin action
+                        # Define a check function to filter out any messages that are not sent by Discord or do not contain the word "pinned"
+                        def check(message):
+                            return message.author == self.bot.user and "pinned" in message.content
+                        # Wait for a new message that passes the check function, with a timeout of 10 seconds
+                        try:
+                            discord_pin_message = await self.bot.wait_for("message", check=check, timeout=10)
+                        except asyncio.TimeoutError:
+                            return # Return if no new message is sent within 10 seconds
+                        # Add a reaction to that message
+                        await discord_pin_message.add_reaction("📌")
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
