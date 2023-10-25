@@ -1,6 +1,7 @@
 # Import the necessary modules
 from redbot.core import commands, Config
 import discord
+import discord.utils # Import the discord.utils module
 
 # Define the cog class
 class PinExtender(commands.Cog):
@@ -44,8 +45,8 @@ class PinExtender(commands.Cog):
         await ctx.send("The extended pins message has been created or reset for this channel.")
 
     # Define a command to output the number of discord pins in the current channel
-    @commands.command(name="pinnumber") # Change the name of the command decorator
-    async def pinnumber(self, ctx): # Change the name of the function
+    @commands.command(name="pinnumber") 
+    async def pinnumber(self, ctx): 
         """Output the number of discord pins in the current channel."""
         # Get the list of pinned messages in the channel
         pinned_messages = await ctx.channel.pins()
@@ -85,6 +86,11 @@ class PinExtender(commands.Cog):
                         for link, description in await self.config.channel(after.channel).extended_pins(): 
                             extended_pins_content += f"- {link} - {description}\n" 
                         await extended_pins_message.edit(content=extended_pins_content)
+                        # React to the Discord message that was outputted for the pin that was created, using the :pushpin: emoji
+                        # Get the emoji object by its name
+                        pushpin_emoji = discord.utils.get(self.bot.emojis, name="pushpin")
+                        # Add a reaction to the message
+                        await after.add_reaction(pushpin_emoji)
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
