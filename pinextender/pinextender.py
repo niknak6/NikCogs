@@ -87,10 +87,8 @@ class PinExtender(commands.Cog):
                             extended_pins_content += f"- {link} - {description}\n" 
                         await extended_pins_message.edit(content=extended_pins_content)
                         # React to the Discord message that was outputted for the pin that was created, using the :pushpin: emoji
-                        # Get the emoji object by its name
-                        pushpin_emoji = discord.utils.get(self.bot.emojis, name="pushpin")
-                        # Add a reaction to the message
-                        await after.add_reaction("📌")
+                        # Use the before variable instead of the after variable to add the reaction
+                        await before.add_reaction("📌")
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
