@@ -113,40 +113,20 @@ class PinExtender(commands.Cog):
                                     await extended_pins_message.edit(content=extended_pins_content)
                                     break
 
-    # Define an event listener for when a reaction is added to a message in a channel
+    # Define an event listener for when any message is created in any channel that the bot can see
+    # Use the on_raw_message_create() event listener instead of the on_message() event listener
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload):
-        """An event listener for when a reaction is added to a message in a channel."""
-        # Check if the reaction is a wastebasket emoji and the user is not a bot
-        if payload.emoji.name == "🗑️" and not payload.member.bot:
-            # Get the channel and guild from the payload
-            channel = self.bot.get_channel(payload.channel_id)
-            guild = self.bot.get_guild(payload.guild_id)
-            # Check if the channel is a text channel and has an extended pins message
-            if isinstance(channel, discord.TextChannel):
-                extended_pins_message_id = await self.config.channel(channel).extended_pins_message()
-                if extended_pins_message_id is not None:
-                    # Try to fetch the extended pins message
-                    try:
-                        extended_pins_message = await channel.fetch_message(extended_pins_message_id)
-                    except discord.NotFound:
-                        return
-                    # Get the message that was reacted to
-                    try:
-                        reacted_message = await channel.fetch_message(payload.message_id)
-                    except discord.NotFound:
-                        return
-                    # Check if the reacted message is in the list of extended pins
-                    async with self.config.channel(channel).extended_pins() as extended_pins:
-                        for i, (link, description) in enumerate(extended_pins):
-                            if link == reacted_message.jump_url: 
-                                # Remove the reacted message from the list of extended pins
-                                del extended_pins[i]
-                                # Update the content of the extended pins message with the updated list of extended pins
-                                extended_pins_content = "**__Extended Pins__**\n\n"
-                                for link, description in extended_pins: 
-                                    extended_pins_content += f"- {link} - {description}\n" 
-                                await extended_pins_message.edit(content=extended_pins_content)
-                                # Send a confirmation message to the user
-                                await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
-                                break
+    @commands.bot_has_permissions(add_reactions=True)
+    async def on_raw_message_create(self, payload):
+        """An event listener for when any message is created in any channel that the bot can see."""
+        # Get the channel and message from the payload
+        channel = self.bot.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        # Check if the channel is a text channel and has an extended pins message
+        if isinstance(channel, discord.TextChannel):
+            extended_pins_message_id = await self.config.channel(channel).extended_pins_message()
+            if extended_pins_message_id is not None:
+                # Check if the message passes the check function
+                if self.check(message):
+                    # React to the Discord message that was outputted for the pin that was created, using the :pushpin: emoji
+                    await message.add_reaction("📌")
