@@ -139,4 +139,7 @@ class PinExtender(commands.Cog):
                                 extended_pins_content = "**__Extended Pins__**\n\n"
                                 for link, description in extended_pins: # Use link, description instead of j, (link, description)
                                     extended_pins_content += f"- {link} - {description}\n" # Use - instead of j.
-                                await
+                                await extended_pins_message.edit(content=extended_pins_content) # Add this line to fix the syntax error
+                                # Send a confirmation message to the user
+                                await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
+                                break
