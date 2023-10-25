@@ -56,35 +56,35 @@ class PinExtender(commands.Cog):
         # Send a message to the channel with the number of discord pins
         await ctx.send(f"There are {discord_pin_count} discord pins in this channel.")
 
-    # Define an event listener for when a message is edited in a channel
+    # Define an event listener for when any message is updated in any channel that the bot can see
+    # Use the on_raw_message_update() event listener instead of the on_raw_message_create() event listener
     @commands.Cog.listener()
-    async def on_message_edit(self, before, after):
-        """An event listener for when a message is edited in a channel."""
+    @commands.bot_has_permissions(add_reactions=True)
+    async def on_raw_message_update(self, payload):
+        """An event listener for when any message is updated in any channel that the bot can see."""
+        # Get the channel and message from the payload
+        channel = self.bot.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
         # Check if the channel is a text channel and has an extended pins message
-        if isinstance(after.channel, discord.TextChannel):
-            extended_pins_message_id = await self.config.channel(after.channel).extended_pins_message()
+        if isinstance(channel, discord.TextChannel):
+            extended_pins_message_id = await self.config.channel(channel).extended_pins_message()
             if extended_pins_message_id is not None:
-                # Try to fetch the extended pins message
-                try:
-                    extended_pins_message = await after.channel.fetch_message(extended_pins_message_id)
-                except discord.NotFound:
-                    return
                 # Check if there are more than 49 pinned messages (excluding the extended pins message)
-                pinned_messages = await after.channel.pins()
+                pinned_messages = await channel.pins()
                 if len(pinned_messages) > 49:
-                    # Check if the edited message was pinned or unpinned
-                    if not before.pinned and after.pinned: # The message was pinned
+                    # Check if the updated message was pinned or unpinned
+                    if not payload.data.get("pinned") and payload.data.get("flags") == 0: # The message was pinned
                         # Get the message link and description of the new pin
-                        new_pin_link = after.jump_url 
-                        new_pin_description = after.content[:20] + "..." if len(after.content) > 20 else after.content
+                        new_pin_link = message.jump_url 
+                        new_pin_description = message.content[:20] + "..." if len(message.content) > 20 else message.content
                         # Add the new pin to the list of extended pins in the config
-                        async with self.config.channel(after.channel).extended_pins() as extended_pins:
+                        async with self.config.channel(channel).extended_pins() as extended_pins:
                             extended_pins.insert(0, (new_pin_link, new_pin_description))
                         # Unpin the new pin from the channel
-                        await after.unpin()
+                        await message.unpin()
                         # Update the content of the extended pins message with the list of extended pins
                         extended_pins_content = "**__Extended Pins__**\n\n"
-                        for link, description in await self.config.channel(after.channel).extended_pins(): 
+                        for link, description in await self.config.channel(channel).extended_pins(): 
                             extended_pins_content += f"- {link} - {description}\n" 
                         await extended_pins_message.edit(content=extended_pins_content)
                         # React to the Discord message that was outputted for the pin that was created, using the :pushpin: emoji
@@ -99,11 +99,11 @@ class PinExtender(commands.Cog):
                             return # Return if no new message is sent within 10 seconds
                         # Add a reaction to that message
                         await discord_pin_message.add_reaction("📌")
-                    elif before.pinned and not after.pinned: # The message was unpinned
+                    elif payload.data.get("pinned") and payload.data.get("flags") == 4: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
-                        async with self.config.channel(after.channel).extended_pins() as extended_pins:
+                        async with self.config.channel(channel).extended_pins() as extended_pins:
                             for i, (link, description) in enumerate(extended_pins):
-                                if link == after.jump_url: 
+                                if link == message.jump_url: 
                                     # Remove the unpinned message from the list of extended pins
                                     del extended_pins[i]
                                     # Update the content of the extended pins message with the updated list of extended pins
@@ -113,20 +113,7 @@ class PinExtender(commands.Cog):
                                     await extended_pins_message.edit(content=extended_pins_content)
                                     break
 
-    # Define an event listener for when any message is updated in any channel that the bot can see
-    # Use the on_raw_message_update() event listener instead of the on_raw_message_create() event listener
-    @commands.Cog.listener()
-    @commands.bot_has_permissions(add_reactions=True)
-    async def on_raw_message_update(self, payload):
-        """An event listener for when any message is updated in any channel that the bot can see."""
-        # Get the channel and message from the payload
-        channel = self.bot.get_channel(payload.channel_id)
-        message = await channel.fetch_message(payload.message_id)
-        # Check if the channel is a text channel and has an extended pins message
-        if isinstance(channel, discord.TextChannel):
-            extended_pins_message_id = await self.config.channel(channel).extended_pins_message()
-            if extended_pins_message_id is not None:
-                # Check if the message passes the check function
-                if self.check(message):
-                    # React to the Discord message that was outputted for the pin that was created, using the :pushpin: emoji
-                    await message.add_reaction("📌")
+    # Define a check function to filter out any messages that are not sent by Discord or do not contain the word "pinned"
+    def check(self, message):
+        """A check function to filter out any messages that are not sent by Discord or do not contain the word "pinned"."""
+        return isinstance(message.type, discord.MessageType) and "pinned" in message.content
