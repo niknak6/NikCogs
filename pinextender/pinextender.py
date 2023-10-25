@@ -113,12 +113,12 @@ class PinExtender(commands.Cog):
                                     await extended_pins_message.edit(content=extended_pins_content)
                                     break
 
-    # Define an event listener for when any message is created in any channel that the bot can see
-    # Use the on_raw_message_create() event listener instead of the on_message() event listener
+    # Define an event listener for when any message is updated in any channel that the bot can see
+    # Use the on_raw_message_update() event listener instead of the on_raw_message_create() event listener
     @commands.Cog.listener()
     @commands.bot_has_permissions(add_reactions=True)
-    async def on_raw_message_create(self, payload):
-        """An event listener for when any message is created in any channel that the bot can see."""
+    async def on_raw_message_update(self, payload):
+        """An event listener for when any message is updated in any channel that the bot can see."""
         # Get the channel and message from the payload
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
