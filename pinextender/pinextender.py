@@ -44,8 +44,8 @@ class PinExtender(commands.Cog):
         await ctx.send("The extended pins message has been created or reset for this channel.")
 
     # Define a command to output the number of discord pins in the current channel
-    @commands.command()
-    async def discordpincount(self, ctx):
+    @commands.command(name="pinnumber") # Change the name of the command decorator
+    async def pinnumber(self, ctx): # Change the name of the function
         """Output the number of discord pins in the current channel."""
         # Get the list of pinned messages in the channel
         pinned_messages = await ctx.channel.pins()
