@@ -136,10 +136,10 @@ class PinExtender(commands.Cog):
         # Edit the content of the extended pins message
         await extended_pins_message.edit(content=extended_pins_content)
 
-    # Define an event listener for when a raw message is edited in a channel
+    # Define an event listener for when a raw message is created in a channel
     @commands.Cog.listener()
-    async def on_raw_message_edit(self, payload):
-        """An event listener for when a raw message is edited in a channel."""
+    async def on_raw_message_create(self, payload):
+        """An event listener for when a raw message is created in a channel."""
         # Check if the payload has data and content
         if payload.data and "content" in payload.data:
             # Get the channel and guild from the payload
@@ -149,12 +149,12 @@ class PinExtender(commands.Cog):
             if isinstance(channel, discord.TextChannel):
                 extended_pins_message_id = await self.config.channel(channel).extended_pins_message()
                 if extended_pins_message_id is not None:
-                    # Check if the edited message is a system message and contains the word "pinned"
+                    # Check if the created message is a system message and contains the word "pinned"
                     if payload.data["type"] == 6 and "pinned" in payload.data["content"]:
-                        # Try to fetch the edited message
+                        # Try to fetch the created message
                         try:
-                            edited_message = await channel.fetch_message(payload.message_id)
+                            created_message = await channel.fetch_message(payload.message_id)
                         except discord.NotFound:
                             return
-                        # Add the :pushpin: emoji to the edited message
-                        await edited_message.add_reaction("📌")
+                        # Add the :pushpin: emoji to the created message
+                        await created_message.add_reaction("📌")
