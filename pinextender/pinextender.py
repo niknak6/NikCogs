@@ -75,7 +75,7 @@ class PinExtender(commands.Cog):
                             extended_pins_content += f"- {link} - {description}\n" # Use - instead of i.
                         await extended_pins_message.edit(content=extended_pins_content)
                         # Get the next message in the channel history, which should be the system message
-                        next_message = await after.channel.history(limit=1, after=after).next()
+                        next_message = await anext(after.channel.history(limit=1, after=after)) # Use anext instead of next.
                         # Check if the next message is a system message
                         if next_message.is_system():
                             # React with a pushpin emoji to the system message
