@@ -77,8 +77,13 @@ class PinExtender(commands.Cog):
                         await extended_pins_message.edit(content=extended_pins_content)
                         # Get the system message that confirms the pin by using the filter_helper function
                         system_message = await anext_helper(filter_helper(after.channel.history(limit=100, after=after), lambda m: m.pinned)) # Use filter_helper instead of filter.
-                        # React with a pushpin emoji to the system message
-                        await system_message.add_reaction("📌")
+                        # Check if the system message is not None
+                        if system_message is not None:
+                            # React with a pushpin emoji to the system message
+                            await system_message.add_reaction("📌")
+                        else:
+                            # Handle the case when there is no system message by logging a warning
+                            self.bot.log.warning(f"No system message found for pinning {after.jump_url} in {after.channel.mention}.")
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
@@ -134,8 +139,13 @@ class PinExtender(commands.Cog):
 # Define the helper function for anext
 async def anext_helper(async_gen):
     """A helper function that returns the next item from an async generator."""
-    # Use the __anext__ method of the async generator to get the next item
-    return await async_gen.__anext__()
+    # Use a try-except block to catch the StopAsyncIteration exception
+    try:
+        # Use the __anext__ method of the async generator to get the next item
+        return await async_gen.__anext__()
+    except StopAsyncIteration:
+        # Return None when there are no more items
+        return None
 
 # Define the helper function for filter
 async def filter_helper(async_gen, predicate):
