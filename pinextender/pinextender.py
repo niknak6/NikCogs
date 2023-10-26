@@ -83,7 +83,7 @@ class PinExtender(commands.Cog):
                             await system_message.add_reaction("📌")
                         else:
                             # Handle the case when there is no system message by logging a warning
-                            self.bot.log.warning(f"No system message found for pinning {after.jump_url} in {after.channel.mention}.")
+                            self.bot.cog_manager.get_cog("PinExtender").log.warning(f"No system message found for pinning {after.jump_url} in {after.channel.mention}.") # Use self.bot.cog_manager.get_cog("PinExtender").log instead of self.bot.log.
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
