@@ -75,8 +75,8 @@ class PinExtender(commands.Cog):
                         for link, description in await self.config.channel(after.channel).extended_pins(): # Use link, description instead of i, (link, description)
                             extended_pins_content += f"- {link} - {description}\n" # Use - instead of i.
                         await extended_pins_message.edit(content=extended_pins_content)
-                        # Get the system message that confirms the pin by filtering out unpinned messages from the channel history
-                        system_message = await anext_helper(after.channel.history(limit=100, after=after).filter(lambda m: m.pinned)) # Use anext_helper and filter instead of next.
+                        # Get the system message that confirms the pin by using the filter_helper function
+                        system_message = await anext_helper(filter_helper(after.channel.history(limit=100, after=after), lambda m: m.pinned)) # Use filter_helper instead of filter.
                         # React with a pushpin emoji to the system message
                         await system_message.add_reaction("📌")
                     elif before.pinned and not after.pinned: # The message was unpinned
@@ -131,8 +131,24 @@ class PinExtender(commands.Cog):
                                 await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
                                 break
 
-# Define the helper function
+# Define the helper function for anext
 async def anext_helper(async_gen):
     """A helper function that returns the next item from an async generator."""
     # Use the __anext__ method of the async generator to get the next item
     return await async_gen.__anext__()
+
+# Define the helper function for filter
+async def filter_helper(async_gen, predicate):
+    """A helper function that filters an async generator by a predicate function."""
+    # Use a while loop to iterate over the async generator
+    while True:
+        try:
+            # Get the next item from the async generator
+            item = await async_gen.__anext__()
+            # Check if the item satisfies the predicate function
+            if predicate(item):
+                # Yield the item
+                yield item
+        except StopAsyncIteration:
+            # Break the loop when there are no more items
+            break
