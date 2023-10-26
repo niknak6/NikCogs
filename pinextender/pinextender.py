@@ -70,10 +70,7 @@ class PinExtender(commands.Cog):
                         # Unpin the new pin from the channel
                         await after.unpin()
                         # Update the content of the extended pins message with the list of extended pins
-                        extended_pins_content = "**__Extended Pins__**\n\n"
-                        for link, description in await self.config.channel(after.channel).extended_pins(): # Use link, description instead of i, (link, description)
-                            extended_pins_content += f"- {link} - {description}\n" # Use - instead of i.
-                        await extended_pins_message.edit(content=extended_pins_content)
+                        await self.update_extended_pins_content(after.channel) # Use a helper function instead of repeating code.
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
@@ -82,10 +79,7 @@ class PinExtender(commands.Cog):
                                     # Remove the unpinned message from the list of extended pins
                                     del extended_pins[i]
                                     # Update the content of the extended pins message with the updated list of extended pins
-                                    extended_pins_content = "**__Extended Pins__**\n\n"
-                                    for link, description in extended_pins: # Use link, description instead of j, (link, description)
-                                        extended_pins_content += f"- {link} - {description}\n" # Use - instead of j.
-                                    await extended_pins_message.edit(content=extended_pins_content)
+                                    await self.update_extended_pins_content(after.channel) # Use a helper function instead of repeating code.
                                     break
 
     # Define an event listener for when a reaction is added to a message in a channel
@@ -118,10 +112,49 @@ class PinExtender(commands.Cog):
                                 # Remove the reacted message from the list of extended pins
                                 del extended_pins[i]
                                 # Update the content of the extended pins message with the updated list of extended pins
-                                extended_pins_content = "**__Extended Pins__**\n\n"
-                                for link, description in extended_pins: # Use link, description instead of j, (link, description)
-                                    extended_pins_content += f"- {link} - {description}\n" # Use - instead of j.
-                                await extended_pins_message.edit(content=extended_pins_content)
+                                await self.update_extended_pins_content(channel) # Use a helper function instead of repeating code.
                                 # Send a confirmation message to the user
                                 await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
                                 break
+
+    # Define a helper function to update the content of the extended pins message with the list of extended pins
+    async def update_extended_pins_content(self, channel):
+        """A helper function to update the content of the extended pins message with the list of extended pins."""
+        # Get the extended pins message ID from the config
+        extended_pins_message_id = await self.config.channel(channel).extended_pins_message()
+        # Try to fetch the extended pins message
+        try:
+            extended_pins_message = await channel.fetch_message(extended_pins_message_id)
+        except discord.NotFound:
+            return
+        # Get the list of extended pins from the config
+        extended_pins = await self.config.channel(channel).extended_pins()
+        # Generate the content of the extended pins message with the list of extended pins
+        extended_pins_content = "**__Extended Pins__**\n\n"
+        for link, description in extended_pins: 
+            extended_pins_content += f"- {link} - {description}\n" 
+        # Edit the content of the extended pins message
+        await extended_pins_message.edit(content=extended_pins_content)
+
+    # Define an event listener for when a raw message is edited in a channel
+    @commands.Cog.listener()
+    async def on_raw_message_edit(self, payload):
+        """An event listener for when a raw message is edited in a channel."""
+        # Check if the payload has data and content
+        if payload.data and "content" in payload.data:
+            # Get the channel and guild from the payload
+            channel = self.bot.get_channel(payload.channel_id)
+            guild = self.bot.get_guild(payload.guild_id)
+            # Check if the channel is a text channel and has an extended pins message
+            if isinstance(channel, discord.TextChannel):
+                extended_pins_message_id = await self.config.channel(channel).extended_pins_message()
+                if extended_pins_message_id is not None:
+                    # Check if the edited message is a system message and contains the word "pinned"
+                    if payload.data["type"] == 6 and "pinned" in payload.data["content"]:
+                        # Try to fetch the edited message
+                        try:
+                            edited_message = await channel.fetch_message(payload.message_id)
+                        except discord.NotFound:
+                            return
+                        # Add the :pushpin: emoji to the edited message
+                        await edited_message.add_reaction("📌")
