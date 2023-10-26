@@ -75,12 +75,10 @@ class PinExtender(commands.Cog):
                         for link, description in await self.config.channel(after.channel).extended_pins(): # Use link, description instead of i, (link, description)
                             extended_pins_content += f"- {link} - {description}\n" # Use - instead of i.
                         await extended_pins_message.edit(content=extended_pins_content)
-                        # Get the next message in the channel history, which should be the system message
-                        next_message = await anext_helper(after.channel.history(limit=1, after=after)) # Use anext_helper instead of anext.
-                        # Check if the next message is a system message
-                        if next_message.is_system():
-                            # React with a pushpin emoji to the system message
-                            await next_message.add_reaction("📌")
+                        # Get the system message that confirms the pin by filtering out unpinned messages from the channel history
+                        system_message = await anext_helper(after.channel.history(limit=100, after=after).filter(lambda m: m.pinned)) # Use anext_helper and filter instead of next.
+                        # React with a pushpin emoji to the system message
+                        await system_message.add_reaction("📌")
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
