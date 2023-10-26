@@ -1,7 +1,7 @@
 # Import the necessary modules
 from redbot.core import commands, Config
 import discord
-from asyncio import anext
+import asyncio # Import the asyncio module
 
 # Define the cog class
 class PinExtender(commands.Cog):
@@ -76,7 +76,7 @@ class PinExtender(commands.Cog):
                             extended_pins_content += f"- {link} - {description}\n" # Use - instead of i.
                         await extended_pins_message.edit(content=extended_pins_content)
                         # Get the next message in the channel history, which should be the system message
-                        next_message = await anext(after.channel.history(limit=1, after=after)) # Use anext instead of next.
+                        next_message = await anext_helper(after.channel.history(limit=1, after=after)) # Use anext_helper instead of anext.
                         # Check if the next message is a system message
                         if next_message.is_system():
                             # React with a pushpin emoji to the system message
@@ -132,3 +132,9 @@ class PinExtender(commands.Cog):
                                 # Send a confirmation message to the user
                                 await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
                                 break
+
+# Define the helper function
+async def anext_helper(async_gen):
+    """A helper function that returns the next item from an async generator."""
+    # Use the __anext__ method of the async generator to get the next item
+    return await async_gen.__anext__()
