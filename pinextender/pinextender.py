@@ -1,6 +1,7 @@
 # Import the necessary modules
 from redbot.core import commands, Config
 import discord
+from asyncio import anext
 
 # Define the cog class
 class PinExtender(commands.Cog):
