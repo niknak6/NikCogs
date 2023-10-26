@@ -62,7 +62,7 @@ class PinExtender(commands.Cog):
                     # Check if the edited message was pinned or unpinned
                     if not before.pinned and after.pinned: # The message was pinned
                         # Get the message link and description of the new pin
-                        new_pin_link = after.jump_url 
+                        new_pin_link = after.jump_url
                         new_pin_description = after.content[:20] + "..." if len(after.content) > 20 else after.content
                         # Add the new pin to the list of extended pins in the config
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
@@ -74,11 +74,17 @@ class PinExtender(commands.Cog):
                         for link, description in await self.config.channel(after.channel).extended_pins(): # Use link, description instead of i, (link, description)
                             extended_pins_content += f"- {link} - {description}\n" # Use - instead of i.
                         await extended_pins_message.edit(content=extended_pins_content)
+                        # Get the next message in the channel history, which should be the system message
+                        next_message = await after.channel.history(limit=1, after=after).next()
+                        # Check if the next message is a system message
+                        if next_message.is_system():
+                            # React with a pushpin emoji to the system message
+                            await next_message.add_reaction("📌")
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
                             for i, (link, description) in enumerate(extended_pins):
-                                if link == after.jump_url: 
+                                if link == after.jump_url:
                                     # Remove the unpinned message from the list of extended pins
                                     del extended_pins[i]
                                     # Update the content of the extended pins message with the updated list of extended pins
@@ -114,7 +120,7 @@ class PinExtender(commands.Cog):
                     # Check if the reacted message is in the list of extended pins
                     async with self.config.channel(channel).extended_pins() as extended_pins:
                         for i, (link, description) in enumerate(extended_pins):
-                            if link == reacted_message.jump_url: 
+                            if link == reacted_message.jump_url:
                                 # Remove the reacted message from the list of extended pins
                                 del extended_pins[i]
                                 # Update the content of the extended pins message with the updated list of extended pins
