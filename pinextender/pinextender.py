@@ -34,8 +34,10 @@ class PinExtender(commands.Cog):
             await self.config.channel(ctx.channel).extended_pins.clear()
             # Return after deleting the existing message
             return
-        # Create a new message with the text "Extended Pins" in bold and underlined
-        extended_pins_message = await ctx.send("**__Extended Pins__**")
+        # Create a new embed with the title "Extended Pins" in bold and underlined
+        extended_pins_embed = discord.Embed(title="**__Extended Pins__**", color=discord.Color.blurple())
+        # Send the embed as a message to the channel
+        extended_pins_message = await ctx.send(embed=extended_pins_embed)
         # Pin the message to the channel
         await extended_pins_message.pin()
         # Save the message ID to the config
@@ -69,11 +71,11 @@ class PinExtender(commands.Cog):
                             extended_pins.insert(0, (new_pin_link, new_pin_description))
                         # Unpin the new pin from the channel
                         await after.unpin()
-                        # Update the content of the extended pins message with the list of extended pins
-                        extended_pins_content = "**__Extended Pins__**\n\n"
-                        for link, description in await self.config.channel(after.channel).extended_pins(): # Use link, description instead of i, (link, description)
-                            extended_pins_content += f"- {link} - {description}\n" # Use - instead of i.
-                        await extended_pins_message.edit(content=extended_pins_content)
+                        # Update the embed of the extended pins message with the list of extended pins
+                        extended_pins_embed = discord.Embed(title="**__Extended Pins__**", color=discord.Color.blurple())
+                        for link, description in await self.config.channel(after.channel).extended_pins(): 
+                            extended_pins_embed.add_field(name=description, value=link, inline=False) 
+                        await extended_pins_message.edit(embed=extended_pins_embed)
                         # Add a reaction to the message added with a pushpin emoji
                         await after.add_reaction("📌")
                     elif before.pinned and not after.pinned: # The message was unpinned
@@ -83,11 +85,11 @@ class PinExtender(commands.Cog):
                                 if link == after.jump_url: 
                                     # Remove the unpinned message from the list of extended pins
                                     del extended_pins[i]
-                                    # Update the content of the extended pins message with the updated list of extended pins
-                                    extended_pins_content = "**__Extended Pins__**\n\n"
-                                    for link, description in extended_pins: # Use link, description instead of j, (link, description)
-                                        extended_pins_content += f"- {link} - {description}\n" # Use - instead of j.
-                                    await extended_pins_message.edit(content=extended_pins_content)
+                                    # Update the embed of the extended pins message with the updated list of extended pins
+                                    extended_pins_embed = discord.Embed(title="**__Extended Pins__**", color=discord.Color.blurple())
+                                    for link, description in extended_pins: 
+                                        extended_pins_embed.add_field(name=description, value=link, inline=False) 
+                                    await extended_pins_message.edit(embed=extended_pins_embed)
                     elif before.pinned and after.pinned: # The message was edited while pinned
                         # Check if the edited message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
@@ -96,11 +98,11 @@ class PinExtender(commands.Cog):
                                     # Update the description of the edited message in the list of extended pins
                                     new_pin_description = after.content[:20] + "..." if len(after.content) > 20 else after.content
                                     extended_pins[i] = (link, new_pin_description)
-                                    # Update the content of the extended pins message with the updated list of extended pins
-                                    extended_pins_content = "**__Extended Pins__**\n\n"
-                                    for link, description in extended_pins: # Use link, description instead of j, (link, description)
-                                        extended_pins_content += f"- {link} - {description}\n" # Use - instead of j.
-                                    await extended_pins_message.edit(content=extended_pins_content)
+                                    # Update the embed of the extended pins message with the updated list of extended pins
+                                    extended_pins_embed = discord.Embed(title="**__Extended Pins__**", color=discord.Color.blurple())
+                                    for link, description in extended_pins: 
+                                        extended_pins_embed.add_field(name=description, value=link, inline=False) 
+                                    await extended_pins_message.edit(embed=extended_pins_embed)
                                     break
 
     # Define an event listener for when a reaction is added to a message in a channel
@@ -132,12 +134,11 @@ class PinExtender(commands.Cog):
                             if link == reacted_message.jump_url: 
                                 # Remove the reacted message from the list of extended pins
                                 del extended_pins[i]
-                                # Update the content of the extended pins message with the updated list of extended pins
-                                extended_pins_content = "**__Extended Pins__**\n\n"
-                                for link, description in extended_pins: # Use link, description instead of j, (link, description)
-                                    extended_pins_content += f"- {link} - {description}\n" # Use - instead of j.
-                                await extended_pins_message.edit(content=extended_pins_content)
+                                # Update the embed of the extended pins message with the updated list of extended pins
+                                extended_pins_embed = discord.Embed(title="**__Extended Pins__**", color=discord.Color.blurple())
+                                for link, description in extended_pins: 
+                                    extended_pins_embed.add_field(name=description, value=link, inline=False) 
+                                await extended_pins_message.edit(embed=extended_pins_embed)
                                 # Send a confirmation message to the user
                                 await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
                                 break
-
