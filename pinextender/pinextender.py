@@ -141,7 +141,7 @@ class PinExtender(commands.Cog):
                                 await extended_pins_message.edit(embed=extended_pins_embed)
                                 # Send a confirmation message to the user
                                 await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
-                                **# Remove the pushpin and wastebasket reactions from the reacted message**
+                                # Remove the pushpin and wastebasket reactions from the reacted message
                                 **await reacted_message.remove_reaction("📌", self.bot.user)**
                                 **await reacted_message.remove_reaction("🗑️", payload.member)**
                                 break
