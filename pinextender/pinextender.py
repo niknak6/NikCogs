@@ -1,7 +1,6 @@
 # Import the necessary modules
 from redbot.core import commands, Config
 import discord
-import asyncio # Import the asyncio module
 
 # Define the cog class
 class PinExtender(commands.Cog):
@@ -63,7 +62,7 @@ class PinExtender(commands.Cog):
                     # Check if the edited message was pinned or unpinned
                     if not before.pinned and after.pinned: # The message was pinned
                         # Get the message link and description of the new pin
-                        new_pin_link = after.jump_url
+                        new_pin_link = after.jump_url 
                         new_pin_description = after.content[:20] + "..." if len(after.content) > 20 else after.content
                         # Add the new pin to the list of extended pins in the config
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
@@ -75,20 +74,11 @@ class PinExtender(commands.Cog):
                         for link, description in await self.config.channel(after.channel).extended_pins(): # Use link, description instead of i, (link, description)
                             extended_pins_content += f"- {link} - {description}\n" # Use - instead of i.
                         await extended_pins_message.edit(content=extended_pins_content)
-                        # Get the system message that confirms the pin by using the filter_helper function
-                        system_message = await anext_helper(filter_helper(after.channel.history(limit=100, after=after), lambda m: m.pinned)) # Use filter_helper instead of filter.
-                        # Check if the system message is not None
-                        if system_message is not None:
-                            # React with a pushpin emoji to the system message
-                            await system_message.add_reaction("📌")
-                        else:
-                            # Handle the case when there is no system message by logging a warning
-                            self.bot.cog_manager.get_cog("PinExtender").log.warning(f"No system message found for pinning {after.jump_url} in {after.channel.mention}.") # Use self.bot.cog_manager.get_cog("PinExtender").log instead of self.bot.log.
                     elif before.pinned and not after.pinned: # The message was unpinned
                         # Check if the unpinned message is in the list of extended pins
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
                             for i, (link, description) in enumerate(extended_pins):
-                                if link == after.jump_url:
+                                if link == after.jump_url: 
                                     # Remove the unpinned message from the list of extended pins
                                     del extended_pins[i]
                                     # Update the content of the extended pins message with the updated list of extended pins
@@ -124,7 +114,7 @@ class PinExtender(commands.Cog):
                     # Check if the reacted message is in the list of extended pins
                     async with self.config.channel(channel).extended_pins() as extended_pins:
                         for i, (link, description) in enumerate(extended_pins):
-                            if link == reacted_message.jump_url:
+                            if link == reacted_message.jump_url: 
                                 # Remove the reacted message from the list of extended pins
                                 del extended_pins[i]
                                 # Update the content of the extended pins message with the updated list of extended pins
@@ -135,30 +125,3 @@ class PinExtender(commands.Cog):
                                 # Send a confirmation message to the user
                                 await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
                                 break
-
-# Define the helper function for anext
-async def anext_helper(async_gen):
-    """A helper function that returns the next item from an async generator."""
-    # Use a try-except block to catch the StopAsyncIteration exception
-    try:
-        # Use the __anext__ method of the async generator to get the next item
-        return await async_gen.__anext__()
-    except StopAsyncIteration:
-        # Return None when there are no more items
-        return None
-
-# Define the helper function for filter
-async def filter_helper(async_gen, predicate):
-    """A helper function that filters an async generator by a predicate function."""
-    # Use a while loop to iterate over the async generator
-    while True:
-        try:
-            # Get the next item from the async generator
-            item = await async_gen.__anext__()
-            # Check if the item satisfies the predicate function
-            if predicate(item):
-                # Yield the item
-                yield item
-        except StopAsyncIteration:
-            # Break the loop when there are no more items
-            break
