@@ -142,6 +142,7 @@ class PinExtender(commands.Cog):
                                 # Send a confirmation message to the user
                                 await channel.send(f"The message {reacted_message.jump_url} has been removed from the extended pins.", delete_after=10)
                                 # Remove the pushpin and wastebasket reactions from the reacted message
-                                **await reacted_message.remove_reaction("📌", self.bot.user)**
-                                **await reacted_message.remove_reaction("🗑️", payload.member)**
+                                await reacted_message.remove_reaction("📌", self.bot.user)
+                                await reacted_message.remove_reaction("🗑️", payload.member)
+                                # This comment line should be indented with four spaces
                                 break
