@@ -1,6 +1,8 @@
 # Import the necessary modules
 from redbot.core import commands, Config
 import discord
+from gensim.summarization import summarize # Added this line
+import math # Added this line
 
 # Define the cog class
 class PinExtender(commands.Cog):
@@ -65,7 +67,8 @@ class PinExtender(commands.Cog):
                     if not before.pinned and after.pinned: # The message was pinned
                         # Get the message link and description of the new pin
                         new_pin_link = after.jump_url 
-                        new_pin_description = after.content[:20] + "..." if len(after.content) > 20 else after.content
+                        #new_pin_description = after.content[:20] + "..." if len(after.content) > 20 else after.content # Replace this line
+                        new_pin_description = summarize_content(after.content) # With this line (added by me)
                         # Add the new pin to the list of extended pins in the config
                         async with self.config.channel(after.channel).extended_pins() as extended_pins:
                             extended_pins.insert(0, (new_pin_link, new_pin_description))
@@ -96,7 +99,7 @@ class PinExtender(commands.Cog):
                             for i, (link, description) in enumerate(extended_pins):
                                 if link == after.jump_url: 
                                     # Update the description of the edited message in the list of extended pins
-                                    new_pin_description = after.content[:20] + "..." if len(after.content) > 20 else after.content
+                                    new_pin_description = summarize_content(after.content) # Changed this line (added by me)
                                     extended_pins[i] = (link, new_pin_description)
                                     # Update the embed of the extended pins message with the updated list of extended pins
                                     extended_pins_embed = discord.Embed(title="**__Extended Pins__**", color=discord.Color.blurple())
@@ -146,3 +149,14 @@ class PinExtender(commands.Cog):
                                 await reacted_message.remove_reaction("🗑️", payload.member)
                                 # This comment line should be indented with four spaces
                                 break
+
+# Define a function that summarizes a message content using gensim/textrank (added by me)
+def summarize_content(content):
+    """Summarize a message content using gensim/textrank."""
+    # Use a formula to determine the word count of the summary
+    word_count = math.ceil(len(content) / 10)
+    # Use gensim/textrank to summarize the content
+    summary = summarize(content, word_count=word_count)
+    # Return the summary or the original content if it is empty
+    return summary or content
+
