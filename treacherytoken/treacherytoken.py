@@ -15,6 +15,8 @@ class TreacheryToken(commands.Cog):
     @commands.command()
     async def wowtoken(self, ctx):
         """Shows the current price of a wow token in US dollars."""
+        # Send a message to the context channel saying "Loading WoW Token Information..."
+        loading_message = await ctx.send("Loading WoW Token Information...")
         # Get the HTML content from wowtokenprices.com
         response = requests.get("https://wowtokenprices.com/")
         # Parse the HTML content using BeautifulSoup
@@ -28,5 +30,5 @@ class TreacheryToken(commands.Cog):
         # Create an embed with the price and a gold coin emoji
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0xffd700)
         embed.add_field(name="US Region", value=price)
-        # Send the embed to the context channel
-        await ctx.send(embed=embed)
+        # Edit the loading message with the embed
+        await loading_message.edit(content=None, embed=embed)
