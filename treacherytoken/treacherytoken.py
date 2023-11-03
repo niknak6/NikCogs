@@ -1,6 +1,3 @@
-# treacherytoken.py
-# A redbot 3.5 cog that parses information from wowtokenprices.com and returns the price of a wow token.
-
 import discord
 from redbot.core import commands
 import requests
@@ -33,6 +30,6 @@ class TreacheryToken(commands.Cog):
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0xffd700)
         embed.add_field(name="US Region", value=price)
         # Set the footer with the last change time
-        embed.set_footer(text=last_change, icon_url="^4^") # You can change the icon URL to any image you want
+        embed.set_footer(text=last_change)
         # Edit the loading message with the embed
         await loading_message.edit(content=None, embed=embed)
