@@ -44,7 +44,7 @@ class TreacheryToken(commands.Cog):
         timestamp = f"<t:{time}:f>"
 
         # Create the embed message
-        embed = discord.Embed(title="WoW Token Information | {price} ({change_emoji} {change}", color=0x00ff00)
+        embed = discord.Embed(title="WoW Token Information", color=0x00ff00)
         change_emoji = "📈" if change > 0 else "📉" # This is the emoji for the last change
         embed.add_field(name="", value=f"Current Price: {price} ({change_emoji} {change})") # This is the merged field with the emoji
         embed.add_field(name="", value=f"Updated {timestamp}") # This is the field without the small text
