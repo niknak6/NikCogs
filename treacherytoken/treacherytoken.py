@@ -49,14 +49,20 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name="", value=f"Current Price: {price} ({change_emoji} {change})") # This is the merged field with the emoji
         embed.add_field(name="", value=f"Updated {timestamp}") # This is the field without the small text
         embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
-        embed.add_field(name="", value=f"1 Day Low: {one_day_low}", inline=True) # This is the field without the small text
-        embed.add_field(name="", value=f"1 Day High: {one_day_high}", inline=True) # This is the field without the small text
+        one_day_low_emoji = "📈" if one_day_low > price else "📉" # This is the emoji for the 1 day low
+        embed.add_field(name="", value=f"1 Day Low {one_day_low_emoji}: {one_day_low}", inline=True) # This is the field with the emoji
+        one_day_high_emoji = "📈" if one_day_high > price else "📉" # This is the emoji for the 1 day high
+        embed.add_field(name="", value=f"1 Day High {one_day_high_emoji}: {one_day_high}", inline=True) # This is the field with the emoji
         embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
-        embed.add_field(name="", value=f"7 Day Low: {seven_day_low}", inline=True) # This is the field without the small text
-        embed.add_field(name="", value=f"7 Day High: {seven_day_high}", inline=True) # This is the field without the small text
+        seven_day_low_emoji = "📈" if seven_day_low > price else "📉" # This is the emoji for the 7 day low
+        embed.add_field(name="", value=f"7 Day Low {seven_day_low_emoji}: {seven_day_low}", inline=True) # This is the field with the emoji
+        seven_day_high_emoji = "📈" if seven_day_high > price else "📉" # This is the emoji for the 7 day high
+        embed.add_field(name="", value=f"7 Day High {seven_day_high_emoji}: {seven_day_high}", inline=True) # This is the field with the emoji
         embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
-        embed.add_field(name="", value=f"30 Day Low: {thirty_day_low}", inline=True) # This is the field without the small text
-        embed.add_field(name="", value=f"30 Day High: {thirty_day_high}", inline=True) # This is the field without the small text
+        thirty_day_low_emoji = "📈" if thirty_day_low > price else "📉" # This is the emoji for the 30 day low
+        embed.add_field(name="", value=f"30 Day Low {thirty_day_low_emoji}: {thirty_day_low}", inline=True) # This is the field with the emoji
+        thirty_day_high_emoji = "📈" if thirty_day_high > price else "📉" # This is the emoji for the 30 day high
+        embed.add_field(name="", value=f"30 Day High {thirty_day_high_emoji}: {thirty_day_high}", inline=True) # This is the field with the emoji
 
         # Send the embed message
         await ctx.send(embed=embed)
