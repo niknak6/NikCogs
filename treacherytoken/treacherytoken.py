@@ -24,12 +24,22 @@ class TreacheryToken(commands.Cog):
         price = data["us"]["current_price"]
         time = data["us"]["time_of_last_change_unix_epoch"]
         change = data["us"]["last_change"]
+        one_day_low = data["us"]["1_day_low"]
+        one_day_high = data["us"]["1_day_high"]
+        seven_day_low = data["us"]["7_day_low"]
+        seven_day_high = data["us"]["7_day_high"]
+        thirty_day_low = data["us"]["30_day_low"]
+        thirty_day_high = data["us"]["30_day_high"]
 
-        # Format the price with commas
+        # Format the values with commas
         price = f"{price:,}"
-
-        # Format the change with a plus or minus sign
         change = "{:+,}".format(change)
+        one_day_low = f"{one_day_low:,}"
+        one_day_high = f"{one_day_high:,}"
+        seven_day_low = f"{seven_day_low:,}"
+        seven_day_high = f"{seven_day_high:,}"
+        thirty_day_low = f"{thirty_day_low:,}"
+        thirty_day_high = f"{thirty_day_high:,}"
 
         # Create the dynamic timestamp syntax
         timestamp = f"<t:{time}:f>"
@@ -38,6 +48,12 @@ class TreacheryToken(commands.Cog):
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
         embed.add_field(name="Current Price", value=f"{price} gold")
         embed.add_field(name="Last Change: " + change, value=timestamp) # This is the change I made to move the dynamic timestamp from the embed footer to another field in the embed and show the last_change value
+        embed.add_field(name="1 Day Low", value=f"{one_day_low} gold", inline=True)
+        embed.add_field(name="1 Day High", value=f"{one_day_high} gold", inline=True)
+        embed.add_field(name="7 Day Low", value=f"{seven_day_low} gold", inline=True)
+        embed.add_field(name="7 Day High", value=f"{seven_day_high} gold", inline=True)
+        embed.add_field(name="30 Day Low", value=f"{thirty_day_low} gold", inline=True)
+        embed.add_field(name="30 Day High", value=f"{thirty_day_high} gold", inline=True)
         embed.set_footer(text=f"The Last Change time is in your local time.")
 
         # Send the embed message
