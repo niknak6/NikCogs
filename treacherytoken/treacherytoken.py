@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import time # Added for the try-except block
 from urllib3.util.retry import Retry # Added for the retry class
 from requests.adapters import HTTPAdapter # Added for the HTTPAdapter
+import datetime # Added for the time conversion
 
 class TreacheryToken(commands.Cog):
     """A cog that shows the current price of a wow token."""
@@ -45,6 +46,10 @@ class TreacheryToken(commands.Cog):
         price = "{:,}".format(price)
         # Find the p element with id="us-datetime" and get its text
         last_change = soup.find("p", id="us-datetime").text
+        # Parse the time string to a datetime object using strptime
+        last_change = datetime.datetime.strptime(last_change, "%I:%M %p")
+        # Convert the datetime object to an ISO 8601 string using isoformat
+        last_change = last_change.isoformat()
         # Create an embed with the price and a gold coin emoji
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0xffd700)
         embed.add_field(name="US Region", value=price)
