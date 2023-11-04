@@ -22,7 +22,7 @@ class TreacheryToken(commands.Cog):
 
         # Extract the relevant information
         price = data["us"]["current_price"]
-        time = data["us"]["time_of_last_change_utc_timezone"]
+        time = data["us"]["time_of_last_change_unix_epoch"]
 
         # Format the price with commas
         price = f"{price:,}"
@@ -30,7 +30,7 @@ class TreacheryToken(commands.Cog):
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
         embed.add_field(name="Current Price", value=f"{price} gold")
-        embed.set_footer(text=f"Last updated at {time}")
+        embed.set_footer(text=f"Last updated at <t:{time}:F>")
 
         # Send the embed message
         await ctx.send(embed=embed)
