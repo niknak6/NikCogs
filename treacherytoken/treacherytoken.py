@@ -1,11 +1,11 @@
 # Import the necessary modules
 import discord
-from discord.ext import commands
+from redbot.core import commands
 import requests
 
 # Define the cog class
 class TreacheryToken(commands.Cog):
-    """A cog that parses WoW token information from a JSON source."""
+    """A cog that shows the WoW token price"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -13,28 +13,24 @@ class TreacheryToken(commands.Cog):
     # Define the command
     @commands.command()
     async def wowtoken(self, ctx):
-        """Shows the current price and time of last change of the WoW token in US region."""
+        """Shows the WoW token price in US region"""
 
-        # Get the JSON data from the source
+        # Get the json data from the website
         url = "https://wowtokenprices.com/current_prices.json"
         response = requests.get(url)
         data = response.json()
 
-        # Extract the relevant data
+        # Extract the relevant information
         price = data["us"]["current_price"]
         time = data["us"]["time_of_last_change_utc_timezone"]
 
         # Format the price with commas
         price = f"{price:,}"
 
-        # Create an embed message
+        # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
         embed.add_field(name="Current Price", value=f"{price} gold")
-        embed.set_footer(text=f"Last updated: {time}")
+        embed.set_footer(text=f"Last updated at {time}")
 
         # Send the embed message
         await ctx.send(embed=embed)
-
-# Add the cog to the bot
-async def setup(bot):
-    await bot.add_cog(TreacheryToken(bot))
