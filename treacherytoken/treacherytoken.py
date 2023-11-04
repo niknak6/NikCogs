@@ -24,8 +24,14 @@ class TreacheryToken(commands.Cog):
         price = int(price.replace(",", "").replace("$", ""))
         # Format the price with commas
         price = "{:,}".format(price)
+        # Find the p element with id="us-datetime" and get its text
+        time = soup.find("p", id="us-datetime").text
+        # Format the time as you like
+        time = f"Last updated at {time}"
         # Create an embed with the price and a gold coin emoji
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0xffd700)
         embed.add_field(name="US Region", value=price)
+        # Add another field to the embed with the time and a clock emoji
+        embed.add_field(name="Update Time", value=f":clock1: {time}")
         # Edit the loading message with the embed
         await loading_message.edit(content=None, embed=embed)
