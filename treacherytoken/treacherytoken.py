@@ -23,7 +23,7 @@ class TreacheryToken(commands.Cog):
         # Extract the relevant information
         price = data["us"]["current_price"]
         time = data["us"]["time_of_last_change_unix_epoch"]
-        change = data["us"]["last_change"] # This is the line that passes the integer as a raw number
+        change = int(data["us"]["last_change"]) # This is the line that converts the string to an integer
         one_day_low = data["us"]["1_day_low"]
         one_day_high = data["us"]["1_day_high"]
         seven_day_low = data["us"]["7_day_low"]
@@ -33,7 +33,6 @@ class TreacheryToken(commands.Cog):
 
         # Convert the values to integers
         price = int(price)
-        change = int(change)
         one_day_low = int(one_day_low)
         one_day_high = int(one_day_high)
         seven_day_low = int(seven_day_low)
@@ -43,7 +42,6 @@ class TreacheryToken(commands.Cog):
 
         # Format the values with commas
         price = f"{price:,}"
-        change = "{:+,}".format(change)
         one_day_low = f"{one_day_low:,}"
         one_day_high = f"{one_day_high:,}"
         seven_day_low = f"{seven_day_low:,}"
@@ -61,19 +59,19 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name="", value=f"Updated {timestamp}") # This is the field without the small text
         embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
         one_day_low_emoji = "📈" if price > one_day_low else "📉" # This is the emoji for the 1 day low
-        embed.add_field(name="", value=f"1 Day Low {one_day_low_emoji}: {one_day_low} ({price - one_day_low})", inline=True) # This is the field with the emoji and the difference
+        embed.add_field(name="", value=f"1 Day Low {one_day_low_emoji}: {one_day_low}", inline=True) # This is the field with the emoji
         one_day_high_emoji = "📈" if price < one_day_high else "📉" # This is the emoji for the 1 day high
-        embed.add_field(name="", value=f"1 Day High {one_day_high_emoji}: {one_day_high} ({one_day_high - price})", inline=True) # This is the field with the emoji and the difference
+        embed.add_field(name="", value=f"1 Day High {one_day_high_emoji}: {one_day_high}", inline=True) # This is the field with the emoji
         embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
         seven_day_low_emoji = "📈" if price > seven_day_low else "📉" # This is the emoji for the 7 day low
-        embed.add_field(name="", value=f"7 Day Low {seven_day_low_emoji}: {seven_day_low} ({price - seven_day_low})", inline=True) # This is the field with the emoji and the difference
+        embed.add_field(name="", value=f"7 Day Low {seven_day_low_emoji}: {seven_day_low}", inline=True) # This is the field with the emoji
         seven_day_high_emoji = "📈" if price < seven_day_high else "📉" # This is the emoji for the 7 day high
-        embed.add_field(name="", value=f"7 Day High {seven_day_high_emoji}: {seven_day_high} ({seven_day_high - price})", inline=True) # This is the field with the emoji and the difference
+        embed.add_field(name="", value=f"7 Day High {seven_day_high_emoji}: {seven_day_high}", inline=True) # This is the field with the emoji
         embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
         thirty_day_low_emoji = "📈" if price > thirty_day_low else "📉" # This is the emoji for the 30 day low
-        embed.add_field(name="", value=f"30 Day Low {thirty_day_low_emoji}: {thirty_day_low} ({price - thirty_day_low})", inline=True) # This is the field with the emoji and the difference
+        embed.add_field(name="", value=f"30 Day Low {thirty_day_low_emoji}: {thirty_day_low}", inline=True) # This is the field with the emoji
         thirty_day_high_emoji = "📈" if price < thirty_day_high else "📉" # This is the emoji for the 30 day high
-        embed.add_field(name="", value=f"30 Day High {thirty_day_high_emoji}: {thirty_day_high} ({thirty_day_high - price})", inline=True) # This is the field with the emoji and the difference
+        embed.add_field(name="", value=f"30 Day High {thirty_day_high_emoji}: {thirty_day_high}", inline=True) # This is the field with the emoji
 
         # Send the embed message
         await ctx.send(embed=embed)
