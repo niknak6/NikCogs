@@ -24,8 +24,8 @@ class TreacheryToken(commands.Cog):
         price = int(price.replace(",", "").replace("$", ""))
         # Format the price with commas
         price = "{:,}".format(price)
-        # Find the p element with id="us-datetime" and get its text
-        time = soup.find("p", id="us-datetime").text
+        # Find the p element with id="us-datetime" using its CSS selector and get its text
+        time = soup.select_one("p#region-date").text
         # Format the time as you like
         time = f"Last updated at {time}"
         # Create an embed with the price and a gold coin emoji
