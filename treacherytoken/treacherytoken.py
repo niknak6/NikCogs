@@ -1,34 +1,40 @@
-# treacherytoken.py
-# A redbot 3.5 cog that parses information from wowtokenprices.com and returns the price of a wow token.
-
+# Import the necessary modules
 import discord
-from redbot.core import commands
+from discord.ext import commands
 import requests
-from bs4 import BeautifulSoup
 
+# Define the cog class
 class TreacheryToken(commands.Cog):
-    """A cog that shows the current price of a wow token."""
+    """A cog that parses WoW token information from a JSON source."""
 
     def __init__(self, bot):
         self.bot = bot
 
+    # Define the command
     @commands.command()
     async def wowtoken(self, ctx):
-        """Shows the current price of a wow token in US dollars."""
-        # Send a message to the context channel saying "Loading WoW Token Information..."
-        loading_message = await ctx.send("Loading WoW Token Information...")
-        # Get the HTML content from wowtokenprices.com
-        response = requests.get("https://wowtokenprices.com/")
-        # Parse the HTML content using BeautifulSoup
-        soup = BeautifulSoup(response.content, "html.parser")
-        # Find the span element with id="us-money-text" and get its text
-        price = soup.find("span", id="us-money-text").text
-        # Remove the comma and the dollar sign from the price and convert it to an integer
-        price = int(price.replace(",", "").replace("$", ""))
+        """Shows the current price and time of last change of the WoW token in US region."""
+
+        # Get the JSON data from the source
+        url = "https://wowtokenprices.com/current_prices.json"
+        response = requests.get(url)
+        data = response.json()
+
+        # Extract the relevant data
+        price = data["us"]["current_price"]
+        time = data["us"]["time_of_last_change_utc_timezone"]
+
         # Format the price with commas
-        price = "{:,}".format(price)
-        # Create an embed with the price and a gold coin emoji
-        embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0xffd700)
-        embed.add_field(name="US Region", value=price)
-        # Edit the loading message with the embed
-        await loading_message.edit(content=None, embed=embed)
+        price = f"{price:,}"
+
+        # Create an embed message
+        embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
+        embed.add_field(name="Current Price", value=f"{price} gold")
+        embed.set_footer(text=f"Last updated: {time}")
+
+        # Send the embed message
+        await ctx.send(embed=embed)
+
+# Add the cog to the bot
+def setup(bot):
+    bot.add_cog(TreacheryToken(bot))
