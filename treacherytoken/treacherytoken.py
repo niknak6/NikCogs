@@ -22,7 +22,7 @@ class TreacheryToken(commands.Cog):
         loading_message = await ctx.send("Loading WoW Token Information...")
         # Create a Session object and mount the adapter with the retry object
         session = requests.Session()
-        retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504], method_whitelist=["GET"])
+        retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504], allowed_methods=["GET"])
         adapter = HTTPAdapter(max_retries=retry)
         session.mount("https://", adapter)
         # Use a try-except block to catch the exception and retry the request after a delay
