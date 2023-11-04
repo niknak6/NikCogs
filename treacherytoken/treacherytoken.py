@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import time # Added for the try-except block
 from urllib3.util.retry import Retry # Added for the retry class
 from requests.adapters import HTTPAdapter # Added for the HTTPAdapter
+from requests_html import HTMLSession # Added for the requests_html module
 
 class TreacheryToken(commands.Cog):
     """A cog that shows the current price of a wow token."""
@@ -35,8 +36,10 @@ class TreacheryToken(commands.Cog):
             time.sleep(5)
             # Recursively retry the request
             return await self.wowtoken(ctx)
+        # Render the web page to execute JavaScript
+        response.html.render()
         # Parse the HTML content using BeautifulSoup
-        soup = BeautifulSoup(response.content, "html.parser")
+        soup = BeautifulSoup(response.html.html, "html.parser")
         # Find the span element with id="us-money-text" and get its text
         price = soup.find("span", id="us-money-text").text
         # Remove the comma and the dollar sign from the price and convert it to an integer
