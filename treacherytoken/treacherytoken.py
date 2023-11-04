@@ -2,13 +2,13 @@
 # A redbot 3.5 cog that parses information from wowtokenprices.com and returns the price of a wow token.
 
 import discord
-import requests
 from redbot.core import commands
 from bs4 import BeautifulSoup
 import time # Added for the try-except block
 from urllib3.util.retry import Retry # Added for the retry class
 from requests.adapters import HTTPAdapter # Added for the HTTPAdapter
-from requests_html import HTMLSession # Added for the requests_html module
+import requests # Added for the requests module
+from requests_html import AsyncHTMLSession # Added for the requests_html module
 
 class TreacheryToken(commands.Cog):
     """A cog that shows the current price of a wow token."""
@@ -29,7 +29,7 @@ class TreacheryToken(commands.Cog):
         # Use a try-except block to catch the exception and retry the request after a delay
         try:
             # Get the HTML content from wowtokenprices.com using the requests_html module
-            response = HTMLSession().get("https://wowtokenprices.com/")
+            response = await AsyncHTMLSession().get("https://wowtokenprices.com/")
         except requests.exceptions.ConnectionError as e:
             print("Connection error: {}".format(e))
             print("Retrying after 5 seconds...")
