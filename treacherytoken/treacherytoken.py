@@ -36,5 +36,5 @@ class TreacheryToken(commands.Cog):
         await ctx.send(embed=embed)
 
 # Add the cog to the bot
-def setup(bot):
-    bot.add_cog(TreacheryToken(bot))
+async def setup(bot):
+    await bot.add_cog(TreacheryToken(bot))
