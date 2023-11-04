@@ -31,8 +31,19 @@ class TreacheryToken(commands.Cog):
         thirty_day_low = data["us"]["30_day_low"]
         thirty_day_high = data["us"]["30_day_high"]
 
+        # Convert the values to integers
+        price = int(price)
+        change = int(change)
+        one_day_low = int(one_day_low)
+        one_day_high = int(one_day_high)
+        seven_day_low = int(seven_day_low)
+        seven_day_high = int(seven_day_high)
+        thirty_day_low = int(thirty_day_low)
+        thirty_day_high = int(thirty_day_high)
+
         # Format the values with commas
         price = f"{price:,}"
+        change = "{:+,}".format(change)
         one_day_low = f"{one_day_low:,}"
         one_day_high = f"{one_day_high:,}"
         seven_day_low = f"{seven_day_low:,}"
