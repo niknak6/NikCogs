@@ -46,19 +46,18 @@ class TreacheryToken(commands.Cog):
 
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
-        embed.add_field(name="Current Price", value=f"📈 {price}\n")
-        embed.add_field(name="Last Change", value=f"{change}\n")
-        embed.add_field(name="Updated", value=timestamp)
+        embed.add_field(name="", value=f"Current Price 📈 {price}\n")
+        embed.add_field(name="", value=f"Last Change {change}\n")
+        embed.add_field(name="", value=f"Updated {timestamp}")
         embed.add_field(name="", value="", inline=True) # This is the blank field to create a line break
-        embed.add_field(name=" • 1 Day Low", value=f"📉 {one_day_low}", inline=True) # This is the field with a space before the bullet point
-        embed.add_field(name=" • 1 Day High", value=f"📈 {one_day_high}", inline=True) # This is the field with a space before the bullet point
-        # embed.add_field(name="", value="", inline=True) # This is the blank field to create a line break
-        embed.add_field(name="• 7 Day Low", value=f"📉 {seven_day_low}", inline=True)
-        embed.add_field(name="• 7 Day High", value=f"📈 {seven_day_high}", inline=True)
+        embed.add_field(name="", value=f"• 1 Day Low 📉 {one_day_low}", inline=True) # This is the field with the value argument
+        embed.add_field(name="", value=f"• 1 Day High 📈 {one_day_high}", inline=True) # This is the field with the value argument
         embed.add_field(name="", value="", inline=True) # This is the blank field to create a line break
+        embed.add_field(name="", value=f"• 7 Day Low 📉 {seven_day_low}", inline=True) # This is the field with the value argument
+        embed.add_field(name="", value=f"• 7 Day High 📈 {seven_day_high}", inline=True) # This is the field with the value argument
         embed.add_field(name="", value="", inline=True) # This is the blank field to create a line break
-        embed.add_field(name="• 30 Day Low", value=f"📉 {thirty_day_low}", inline=True)
-        embed.add_field(name="• 30 Day High", value=f"📈 {thirty_day_high}", inline=True)
+        embed.add_field(name="", value=f"• 30 Day Low 📉 {thirty_day_low}", inline=True) # This is the field with the value argument
+        embed.add_field(name="", value=f"• 30 Day High 📈 {thirty_day_high}", inline=True) # This is the field with the value argument
 
         # Send the embed message
         await ctx.send(embed=embed)
