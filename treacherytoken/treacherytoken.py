@@ -30,7 +30,7 @@ class TreacheryToken(commands.Cog):
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
         embed.add_field(name="Current Price", value=f"{price} gold")
-        embed.set_footer(text=f"Last updated at <t:{time}:F>")
+        embed.set_footer(text=f"Last updated at <t{time}:F>")
 
         # Send the embed message
         await ctx.send(embed=embed)
