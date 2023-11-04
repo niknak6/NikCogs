@@ -33,7 +33,7 @@ class TreacheryToken(commands.Cog):
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
         embed.add_field(name="Current Price", value=f"{price} gold")
-        embed.set_footer(text=f"Last updated at {timestamp}") # This is the change I made to use the dynamic timestamp in the embed footer
+        embed.add_field(name="Last updated", value=timestamp) # This is the change I made to move the dynamic timestamp from the embed footer to another field in the embed
 
         # Send the embed message
         await ctx.send(embed=embed)
