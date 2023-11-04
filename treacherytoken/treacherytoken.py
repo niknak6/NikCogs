@@ -36,12 +36,9 @@ class TreacheryToken(commands.Cog):
 
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
-        embed.add_field(name="Current Price", value=f"{price} gold", inline=True)
-        embed.add_field(name="Last Change: " + change, value=timestamp, inline=True) # This is the change I made to move the dynamic timestamp from the embed footer to another field in the embed and show the last_change value
-        embed.add_field(name="", value="\u200b", inline=True) # This is a blank field that acts as a spacer
-        embed.add_field(name="Daily Range", value=f"{data['us']['1_day_low']:,} - {data['us']['1_day_high']:,} gold", inline=True)
-        embed.add_field(name="", value="\u200b", inline=True) # This is another blank field that acts as a spacer
-        embed.add_field(name="Weekly Range", value=f"{data['us']['7_day_low']:,} - {data['us']['7_day_high']:,} gold", inline=True)
-        embed.add_field(name="", value="\u200b", inline=True) # This is another blank field that acts as a spacer
-        embed.add_field(name="Monthly Range", value=f"{data['us']['30_day_low']:,} - {data['us']['30_day_high']:,} gold", inline=True)
+        embed.add_field(name="Current Price", value=f"{price} gold")
+        embed.add_field(name="Last Change: " + change, value=timestamp) # This is the change I made to move the dynamic timestamp from the embed footer to another field in the embed and show the last_change value
         embed.set_footer(text=f"The Last Change time is in your local time.")
+
+        # Send the embed message
+        await ctx.send(embed=embed)
