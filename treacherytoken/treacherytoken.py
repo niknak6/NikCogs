@@ -2,7 +2,6 @@
 import discord
 from redbot.core import commands
 import requests
-from datetime import datetime
 
 # Define the cog class
 class TreacheryToken(commands.Cog):
@@ -28,10 +27,13 @@ class TreacheryToken(commands.Cog):
         # Format the price with commas
         price = f"{price:,}"
 
+        # Create the dynamic timestamp syntax
+        timestamp = f"<t:{time}:F>"
+
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
         embed.add_field(name="Current Price", value=f"{price} gold")
-        embed.timestamp = datetime.fromtimestamp(time) # This is the change I made to use the dynamic timestamp in the embed footer
+        embed.set_footer(text=f"Last updated at {timestamp}") # This is the change I made to use the dynamic timestamp in the embed footer
 
         # Send the embed message
         await ctx.send(embed=embed)
