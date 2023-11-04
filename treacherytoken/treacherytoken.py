@@ -33,7 +33,7 @@ class TreacheryToken(commands.Cog):
 
         # Format the values with commas
         price = f"{price:,}"
-        change = "{:+,}".format(change)
+        change_str = "{:+,}".format(str(change)) # This is the line that converts the integer to a string and formats it with commas
         one_day_low = f"{one_day_low:,}"
         one_day_high = f"{one_day_high:,}"
         seven_day_low = f"{seven_day_low:,}"
@@ -47,7 +47,7 @@ class TreacheryToken(commands.Cog):
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
         change_emoji = "📈" if change > 0 else "📉" # This is the emoji for the last change
-        embed.add_field(name="", value=f"Current Price 📈 {price} ({change_emoji} {change})") # This is the merged field with the emoji
+        embed.add_field(name="", value=f"Current Price 📈 {price} ({change_emoji} {change_str})") # This is the merged field with the emoji
         embed.add_field(name="", value=f"Updated {timestamp}") # This is the field without the small text
         embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
         embed.add_field(name="", value=f"1 Day Low 📉 {one_day_low}", inline=True) # This is the field without the small text
