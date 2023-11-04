@@ -46,18 +46,18 @@ class TreacheryToken(commands.Cog):
 
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
-        embed.add_field(name="", value=f"Current Price 📈 {price}")
-        embed.add_field(name="", value=f"Last Change {change}")
-        embed.add_field(name="", value=f"Updated {timestamp}")
-        embed.add_field(name="", value="\u200b", inline=False) # This is the line break using the zero-width space character
-        embed.add_field(name="", value=f"1 Day Low 📉 {one_day_low}", inline=True) # This is the field without the bullet point
-        embed.add_field(name="", value=f"1 Day High 📈 {one_day_high}", inline=True) # This is the field without the bullet point
-        embed.add_field(name="", value="\u200b", inline=False) # This is the line break using the zero-width space character
-        embed.add_field(name="", value=f"7 Day Low 📉 {seven_day_low}", inline=True) # This is the field without the bullet point
-        embed.add_field(name="", value=f"7 Day High 📈 {seven_day_high}", inline=True) # This is the field without the bullet point
-        embed.add_field(name="", value="\u200b", inline=False) # This is the line break using the zero-width space character
-        embed.add_field(name="", value=f"30 Day Low 📉 {thirty_day_low}", inline=True) # This is the field without the bullet point
-        embed.add_field(name="", value=f"30 Day High 📈 {thirty_day_high}", inline=True) # This is the field without the bullet point
+        embed.add_field(name="", value=f"<sub>Current Price 📈 {price}</sub>") # This is the field with the small text
+        embed.add_field(name="", value=f"<sub>Last Change {change}</sub>") # This is the field with the small text
+        embed.add_field(name="", value=f"<sub>Updated {timestamp}</sub>") # This is the field with the small text
+        embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
+        embed.add_field(name="", value=f"<sub>1 Day Low 📉 {one_day_low}</sub>", inline=True) # This is the field with the small text
+        embed.add_field(name="", value=f"<sub>1 Day High 📈 {one_day_high}</sub>", inline=True) # This is the field with the small text
+        embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
+        embed.add_field(name="", value=f"<sub>7 Day Low 📉 {seven_day_low}</sub>", inline=True) # This is the field with the small text
+        embed.add_field(name="", value=f"<sub>7 Day High 📈 {seven_day_high}</sub>", inline=True) # This is the field with the small text
+        embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
+        embed.add_field(name="", value=f"<sub>30 Day Low 📉 {thirty_day_low}</sub>", inline=True) # This is the field with the small text
+        embed.add_field(name="", value=f"<sub>30 Day High 📈 {thirty_day_high}</sub>", inline=True) # This is the field with the small text
 
         # Send the embed message
         await ctx.send(embed=embed)
