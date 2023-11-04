@@ -46,15 +46,16 @@ class TreacheryToken(commands.Cog):
 
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
-        embed.add_field(name="Current Price", value=f"{price} gold")
-        embed.add_field(name="Last Change: " + change, value=timestamp) # This is the change I made to move the dynamic timestamp from the embed footer to another field in the embed and show the last_change value
-        embed.add_field(name="1 Day Low", value=f"{one_day_low} gold", inline=True)
-        embed.add_field(name="1 Day High", value=f"{one_day_high} gold", inline=True)
-        embed.add_field(name="7 Day Low", value=f"{seven_day_low} gold", inline=True)
-        embed.add_field(name="7 Day High", value=f"{seven_day_high} gold", inline=True)
-        embed.add_field(name="30 Day Low", value=f"{thirty_day_low} gold", inline=True)
-        embed.add_field(name="30 Day High", value=f"{thirty_day_high} gold", inline=True)
-        embed.set_footer(text=f"The Last Change time is in your local time.")
+        embed.add_field(name="Current Price", value=f"📈 {price}\n", align="center")
+        embed.add_field(name="Last Change", value=f"{change}\n", align="center")
+        embed.add_field(name="Updated", value=timestamp, align="center")
+        embed.add_field(name="• 1 Day Low", value=f"📉 {one_day_low}", inline=True)
+        embed.add_field(name="• 1 Day High", value=f"📈 {one_day_high}", inline=True)
+        embed.add_field(name="• 7 Day Low", value=f"📉 {seven_day_low}", inline=True)
+        embed.add_field(name="• 7 Day High", value=f"📈 {seven_day_high}", inline=True)
+        embed.add_field(name="• 30 Day Low", value=f"📉 {thirty_day_low}", inline=True)
+        embed.add_field(name="• 30 Day High", value=f"📈 {thirty_day_high}", inline=True)
+        embed.set_footer(text=f"Data from [wowtokenprices.com] | How to [buy] or [sell] WoW tokens")
 
         # Send the embed message
         await ctx.send(embed=embed)
