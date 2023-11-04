@@ -50,14 +50,14 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name="", value=f"Last Change {change}")
         embed.add_field(name="", value=f"Updated {timestamp}")
         embed.add_field(name="", value="\u200b", inline=False) # This is the line break using the zero-width space character
-        embed.add_field(name="", value=f"• 1 Day Low 📉 {one_day_low}", inline=True)
-        embed.add_field(name="", value=f"• 1 Day High 📈 {one_day_high}", inline=True)
+        embed.add_field(name="", value=f"1 Day Low 📉 {one_day_low}", inline=True) # This is the field without the bullet point
+        embed.add_field(name="", value=f"1 Day High 📈 {one_day_high}", inline=True) # This is the field without the bullet point
         embed.add_field(name="", value="\u200b", inline=False) # This is the line break using the zero-width space character
-        embed.add_field(name="", value=f"• 7 Day Low 📉 {seven_day_low}", inline=True)
-        embed.add_field(name="", value=f"• 7 Day High 📈 {seven_day_high}", inline=True)
+        embed.add_field(name="", value=f"7 Day Low 📉 {seven_day_low}", inline=True) # This is the field without the bullet point
+        embed.add_field(name="", value=f"7 Day High 📈 {seven_day_high}", inline=True) # This is the field without the bullet point
         embed.add_field(name="", value="\u200b", inline=False) # This is the line break using the zero-width space character
-        embed.add_field(name="", value=f"• 30 Day Low 📉 {thirty_day_low}", inline=True)
-        embed.add_field(name="", value=f"• 30 Day High 📈 {thirty_day_high}", inline=True)
+        embed.add_field(name="", value=f"30 Day Low 📉 {thirty_day_low}", inline=True) # This is the field without the bullet point
+        embed.add_field(name="", value=f"30 Day High 📈 {thirty_day_high}", inline=True) # This is the field without the bullet point
 
         # Send the embed message
         await ctx.send(embed=embed)
