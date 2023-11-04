@@ -23,7 +23,7 @@ class TreacheryToken(commands.Cog):
         # Extract the relevant information
         price = data["us"]["current_price"]
         time = data["us"]["time_of_last_change_unix_epoch"]
-        change = data["us"]["last_change"]
+        change = int(data["us"]["last_change"].replace(",", "")) # This is the line that converts the string to an integer
         one_day_low = data["us"]["1_day_low"]
         one_day_high = data["us"]["1_day_high"]
         seven_day_low = data["us"]["7_day_low"]
