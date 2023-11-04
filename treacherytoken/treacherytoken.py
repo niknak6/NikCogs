@@ -1,7 +1,6 @@
 import discord
 from redbot.core import commands
-import selenium
-from selenium import webdriver
+from requests_html import HTMLSession
 from bs4 import BeautifulSoup
 
 class TreacheryToken(commands.Cog):
@@ -15,18 +14,14 @@ class TreacheryToken(commands.Cog):
         """Shows the current price of a wow token in US dollars."""
         # Send a message to the context channel saying "Loading WoW Token Information..."
         loading_message = await ctx.send("Loading WoW Token Information...")
-        # Create a webdriver object that can control Chrome
-        driver = webdriver.Chrome()
-        # Open the website
-        driver.get("https://wowtokenprices.com/")
-        # Wait for the page to load
-        driver.implicitly_wait(10)
-        # Get the HTML source code
-        html = driver.page_source
-        # Close the browser
-        driver.quit()
-        # Parse the HTML source code using BeautifulSoup
-        soup = BeautifulSoup(html, "html.parser")
+        # Create a HTMLSession object
+        session = HTMLSession()
+        # Get the response from the website
+        response = session.get("https://wowtokenprices.com/")
+        # Render the JavaScript and HTML content
+        response.html.render()
+        # Parse the HTML content using BeautifulSoup
+        soup = BeautifulSoup(response.html.html, "html.parser")
         # Find the span element with id="us-money-text" and get its text
         price = soup.find("span", id="us-money-text").text
         # Remove the comma and the dollar sign from the price and convert it to an integer
@@ -44,3 +39,5 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name="Update Time", value=f":clock1: {time}")
         # Edit the loading message with the embed
         await loading_message.edit(content=None, embed=embed)
+        # Close the session
+        session.close()
