@@ -28,7 +28,7 @@ class TreacheryToken(commands.Cog):
         price = f"{price:,}"
 
         # Create the dynamic timestamp syntax
-        timestamp = f"<t{time}:F>"
+        timestamp = f"<t:{time}:F>"
 
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
