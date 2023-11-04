@@ -2,6 +2,7 @@
 # A redbot 3.5 cog that parses information from wowtokenprices.com and returns the price of a wow token.
 
 import discord
+import requests
 from redbot.core import commands
 from bs4 import BeautifulSoup
 import time # Added for the try-except block
