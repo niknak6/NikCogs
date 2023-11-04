@@ -46,17 +46,17 @@ class TreacheryToken(commands.Cog):
         # Create the embed message
         embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
         change_emoji = "📈" if change > 0 else "📉" # This is the emoji for the last change
-        embed.add_field(name="", value=f"Current Price 📈 {price} ({change_emoji} {change})") # This is the merged field with the emoji
+        embed.add_field(name="", value=f"Current Price: {price} ({change_emoji} {change})") # This is the merged field with the emoji
         embed.add_field(name="", value=f"Updated {timestamp}") # This is the field without the small text
         embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
-        embed.add_field(name="", value=f"1 Day Low 📉 {one_day_low}", inline=True) # This is the field without the small text
-        embed.add_field(name="", value=f"1 Day High 📈 {one_day_high}", inline=True) # This is the field without the small text
+        embed.add_field(name="", value=f"1 Day Low: {one_day_low}", inline=True) # This is the field without the small text
+        embed.add_field(name="", value=f"1 Day High: {one_day_high}", inline=True) # This is the field without the small text
         embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
-        embed.add_field(name="", value=f"7 Day Low 📉 {seven_day_low}", inline=True) # This is the field without the small text
-        embed.add_field(name="", value=f"7 Day High 📈 {seven_day_high}", inline=True) # This is the field without the small text
+        embed.add_field(name="", value=f"7 Day Low: {seven_day_low}", inline=True) # This is the field without the small text
+        embed.add_field(name="", value=f"7 Day High: {seven_day_high}", inline=True) # This is the field without the small text
         embed.add_field(name="", value="\n", inline=False) # This is the line break using the newline character
-        embed.add_field(name="", value=f"30 Day Low 📉 {thirty_day_low}", inline=True) # This is the field without the small text
-        embed.add_field(name="", value=f"30 Day High 📈 {thirty_day_high}", inline=True) # This is the field without the small text
+        embed.add_field(name="", value=f"30 Day Low: {thirty_day_low}", inline=True) # This is the field without the small text
+        embed.add_field(name="", value=f"30 Day High: {thirty_day_high}", inline=True) # This is the field without the small text
 
         # Send the embed message
         await ctx.send(embed=embed)
