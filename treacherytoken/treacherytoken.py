@@ -49,12 +49,18 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name="Current Price", value=f"📈 {price}\n")
         embed.add_field(name="Last Change", value=f"{change}\n")
         embed.add_field(name="Updated", value=timestamp)
+        embed.add_field(name="", value="", inline=True) # This is the blank field to create a line break
         embed.add_field(name="• 1 Day Low", value=f"📉 {one_day_low}", inline=True)
         embed.add_field(name="• 1 Day High", value=f"📈 {one_day_high}", inline=True)
+        embed.add_field(name="", value="", inline=True) # This is the blank field to create a line break
+        embed.add_field(name="", value="", inline=True) # This is the blank field to create a line break
         embed.add_field(name="• 7 Day Low", value=f"📉 {seven_day_low}", inline=True)
         embed.add_field(name="• 7 Day High", value=f"📈 {seven_day_high}", inline=True)
+        embed.add_field(name="", value="", inline=True) # This is the blank field to create a line break
+        embed.add_field(name="", value="", inline=True) # This is the blank field to create a line break
         embed.add_field(name="• 30 Day Low", value=f"📉 {thirty_day_low}", inline=True)
         embed.add_field(name="• 30 Day High", value=f"📈 {thirty_day_high}", inline=True)
+        embed.set_footer(text=f"Data from [wowtokenprices.com] | How to [buy] or [sell] WoW tokens")
 
         # Send the embed message
         await ctx.send(embed=embed)
