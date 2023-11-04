@@ -3,7 +3,6 @@
 
 import discord
 from redbot.core import commands
-import requests
 from bs4 import BeautifulSoup
 import time # Added for the try-except block
 from urllib3.util.retry import Retry # Added for the retry class
@@ -28,8 +27,8 @@ class TreacheryToken(commands.Cog):
         session.mount("https://", adapter)
         # Use a try-except block to catch the exception and retry the request after a delay
         try:
-            # Get the HTML content from wowtokenprices.com using the session object
-            response = session.get("https://wowtokenprices.com/")
+            # Get the HTML content from wowtokenprices.com using the requests_html module
+            response = HTMLSession().get("https://wowtokenprices.com/")
         except requests.exceptions.ConnectionError as e:
             print("Connection error: {}".format(e))
             print("Retrying after 5 seconds...")
