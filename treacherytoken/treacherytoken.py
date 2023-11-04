@@ -1,6 +1,3 @@
-# treacherytoken.py
-# A redbot 3.5 cog that parses information from wowtokenprices.com and returns the price of a wow token.
-
 import discord
 from redbot.core import commands
 import requests
