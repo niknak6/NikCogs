@@ -60,7 +60,7 @@ class TreacheryToken(commands.Cog):
 
             # Convert the values to integers or strings
             price = self.convert_value(price)
-            change = self.convert_value(change)
+            change = self.convert_value(change)  # Convert the change variable to an integer
             for days in intervals:
                 low_high[days] = tuple(self.convert_value(v) for v in low_high[days])
 
