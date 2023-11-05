@@ -31,17 +31,18 @@ class TreacheryToken(commands.Cog):
         # Resample the dataframe to find the high and low prices for each period
         # W = weekly, M = monthly, 6M = 6 month, Y = year
         # max and min are the aggregation functions to find the high and low prices
-        resampled = df.resample({"W": "max", "M": "max", "6M": "max", "Y": "max"}, {"W": "min", "M": "min", "6M": "min", "Y": "min"})
-
-        # Get the high and low prices for each period from the resampled dataframe
-        high_w = resampled["W"]["max"].iloc[-1]
-        low_w = resampled["W"]["min"].iloc[-1]
-        high_m = resampled["M"]["max"].iloc[-1]
-        low_m = resampled["M"]["min"].iloc[-1]
-        high_6m = resampled["6M"]["max"].iloc[-1]
-        low_6m = resampled["6M"]["min"].iloc[-1]
-        high_y = resampled["Y"]["max"].iloc[-1]
-        low_y = resampled["Y"]["min"].iloc[-1]
+        resampled = df.resample("W").agg({"value": ["max", "min"]}) # Resample by week
+        high_w = resampled.iloc[-1]["value"]["max"] # Get the weekly high price
+        low_w = resampled.iloc[-1]["value"]["min"] # Get the weekly low price
+        resampled = df.resample("M").agg({"value": ["max", "min"]}) # Resample by month
+        high_m = resampled.iloc[-1]["value"]["max"] # Get the monthly high price
+        low_m = resampled.iloc[-1]["value"]["min"] # Get the monthly low price
+        resampled = df.resample("6M").agg({"value": ["max", "min"]}) # Resample by 6 month
+        high_6m = resampled.iloc[-1]["value"]["max"] # Get the 6 month high price
+        low_6m = resampled.iloc[-1]["value"]["min"] # Get the 6 month low price
+        resampled = df.resample("Y").agg({"value": ["max", "min"]}) # Resample by year
+        high_y = resampled.iloc[-1]["value"]["max"] # Get the 1 year high price
+        low_y = resampled.iloc[-1]["value"]["min"] # Get the 1 year low price
 
         # Format the prices with commas
         current = f"{current:,}"
