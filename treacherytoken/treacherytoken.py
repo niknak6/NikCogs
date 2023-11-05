@@ -3,6 +3,7 @@ import discord
 from redbot.core import commands
 import aiohttp # Use aiohttp instead of requests
 import humanize # Use humanize to format the values and the timestamp
+import json # Import the json module
 
 # Define the cog class
 class TreacheryToken(commands.Cog):
