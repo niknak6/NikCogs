@@ -59,7 +59,7 @@ class TreacheryToken(commands.Cog):
         # Create an embed object with the discord.Embed class
         embed = discord.Embed(
             color = discord.Color.blue(), # set the color of the embed
-            title = "WoW Token Price", # set the title of the embed
+            title = "Wow Token Price", # set the title of the embed
             description = "Some information about the WoW Token." # set the description of the embed
         )
 
@@ -77,8 +77,8 @@ class TreacheryToken(commands.Cog):
         # Set the author of the embed with the set_author method
         embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar.url) # use the bot's name and avatar as the author
 
-        # Set the timestamp of the embed with the set_timestamp method
-        embed.set_timestamp() # use the current time as the timestamp
+        # Set the timestamp of the embed with the timestamp attribute
+        embed.timestamp = datetime.now() # use the current time as the timestamp
 
         # Send the embed message with the send method
         await ctx.send(embed = embed) # send the embed as the message
