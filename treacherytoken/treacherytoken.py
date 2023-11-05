@@ -12,8 +12,14 @@ class TreacheryToken(commands.Cog):
 
     # Define the command
     @commands.command()
-    async def wowtoken(self, ctx):
-        """Shows the WoW token price in US region"""
+    async def wowtoken(self, ctx, region: str = "us"):
+        """Shows the WoW token price in a specified region"""
+
+        # Validate the region argument
+        valid_regions = ["us", "eu", "cn", "tw", "kr"]
+        if region.lower() not in valid_regions:
+            await ctx.send(f"Invalid region: {region}. Please choose one of these: {', '.join(valid_regions)}.")
+            return
 
         # Get the json data from the website
         url = "https://wowtokenprices.com/current_prices.json"
@@ -21,15 +27,15 @@ class TreacheryToken(commands.Cog):
         data = response.json()
 
         # Extract the relevant information
-        price = data["us"]["current_price"]
-        time = data["us"]["time_of_last_change_unix_epoch"]
-        change = int(data["us"]["last_change"]) # This is the line that converts the string to an integer
-        one_day_low = data["us"]["1_day_low"]
-        one_day_high = data["us"]["1_day_high"]
-        seven_day_low = data["us"]["7_day_low"]
-        seven_day_high = data["us"]["7_day_high"]
-        thirty_day_low = data["us"]["30_day_low"]
-        thirty_day_high = data["us"]["30_day_high"]
+        price = data[region.lower()]["current_price"]
+        time = data[region.lower()]["time_of_last_change_unix_epoch"]
+        change = int(data[region.lower()]["last_change"]) # This is the line that converts the string to an integer
+        one_day_low = data[region.lower()]["1_day_low"]
+        one_day_high = data[region.lower()]["1_day_high"]
+        seven_day_low = data[region.lower()]["7_day_low"]
+        seven_day_high = data[region.lower()]["7_day_high"]
+        thirty_day_low = data[region.lower()]["30_day_low"]
+        thirty_day_high = data[region.lower()]["30_day_high"]
 
         # Convert the values to integers
         price = int(price)
@@ -53,7 +59,7 @@ class TreacheryToken(commands.Cog):
         timestamp = f"<t:{time}:f>"
 
         # Create the embed message
-        embed = discord.Embed(title=":coin: WoW Token Price :coin:", color=0x00ff00)
+        embed = discord.Embed(title=f":coin: WoW Token Price in {region.upper()} :coin:", color=0x00ff00)
         change_emoji = "📈" if change > 0 else "📉" # This is the emoji for the last change
         embed.add_field(name="", value=f"Current Price: {price} ({change_emoji} {change})") # This is the merged field with the emoji
         embed.add_field(name="", value=f"Updated {timestamp}") # This is the field without the small text
