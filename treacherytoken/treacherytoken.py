@@ -57,100 +57,30 @@ class TreacheryToken(commands.Cog):
         high_y = f"{high_y:,}"
         low_y = f"{low_y:,}"
 
-        # Create an array of embed objects
-        embeds = []
-
-        # Create an embed object for the current price
-        current_embed = discord.Embed(
+        # Create a single embed object
+        embed = discord.Embed(
             color = discord.Color.blue(), # set the color of the embed
-            title = "Current Price", # set the title of the embed
-            description = f"The current price of the wow token in US region is {current} gold." # set the description of the embed
+            title = "Wow Token Price", # set the title of the embed
         )
 
         # Set the author of the embed with the set_author method
-        current_embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar.url) # use the bot's name and avatar as the author
+        embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar.url) # use the bot's name and avatar as the author
 
         # Set the timestamp of the embed with the timestamp attribute
-        current_embed.timestamp = datetime.now() # use the current time as the timestamp
+        embed.timestamp = datetime.now() # use the current time as the timestamp
 
-        # Append the current embed to the embeds array
-        embeds.append(current_embed)
+        # Add the current price as the first field of the embed, and set inline to False
+        embed.add_field(name = "Current Price", value = f"{current} gold", inline = False)
 
-        # Create an embed object for the weekly price
-        weekly_embed = discord.Embed(
-            color = discord.Color.blue(), # set the color of the embed
-            title = "Weekly Price", # set the title of the embed
-        )
-
-        # Add fields to the embed with the add_field method
-        weekly_embed.add_field(name = "High Price", value = f"{high_w} gold", inline = True) # add the weekly high price field and set inline to True
-        weekly_embed.add_field(name = "Low Price", value = f"{low_w} gold", inline = True) # add the weekly low price field and set inline to True
-
-        # Set the author of the embed with the set_author method
-        weekly_embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar.url) # use the bot's name and avatar as the author
-
-        # Set the timestamp of the embed with the timestamp attribute
-        weekly_embed.timestamp = datetime.now() # use the current time as the timestamp
-
-        # Append the weekly embed to the embeds array
-        embeds.append(weekly_embed)
-
-        # Create an embed object for the monthly price
-        monthly_embed = discord.Embed(
-            color = discord.Color.blue(), # set the color of the embed
-            title = "Monthly Price", # set the title of the embed
-        )
-
-        # Add fields to the embed with the add_field method
-        monthly_embed.add_field(name = "High Price", value = f"{high_m} gold", inline = True) # add the monthly high price field and set inline to True
-        monthly_embed.add_field(name = "Low Price", value = f"{low_m} gold", inline = True) # add the monthly low price field and set inline to True
-
-        # Set the author of the embed with the set_author method
-        monthly_embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar.url) # use the bot's name and avatar as the author
-
-        # Set the timestamp of the embed with the timestamp attribute
-        monthly_embed.timestamp = datetime.now() # use the current time as the timestamp
-
-        # Append the monthly embed to the embeds array
-        embeds.append(monthly_embed)
-
-        # Create an embed object for the 6 month price
-        six_month_embed = discord.Embed(
-            color = discord.Color.blue(), # set the color of the embed
-            title = "6 Month Price", # set the title of the embed
-        )
-
-        # Add fields to the embed with the add_field method
-        six_month_embed.add_field(name = "High Price", value = f"{high_6m} gold", inline = True) # add the 6 month high price field and set inline to True
-        six_month_embed.add_field(name = "Low Price", value = f"{low_6m} gold", inline = True) # add the 6 month low price field and set inline to True
-
-        # Set the author of the embed with the set_author method
-        six_month_embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar.url) # use the bot's name and avatar as the author
-
-        # Set the timestamp of the embed with the timestamp attribute
-        six_month_embed.timestamp = datetime.now() # use the current time as the timestamp
-
-        # Append the 6 month embed to the embeds array
-        embeds.append(six_month_embed)
-
-        # Create an embed object for the 1 year price
-        one_year_embed = discord.Embed(
-            color = discord.Color.blue(), # set the color of the embed
-            title = "1 Year Price", # set the title of the embed
-        )
-
-        # Add fields to the embed with the add_field method
-        one_year_embed.add_field(name = "High Price", value = f"{high_y} gold", inline = True) # add the 1 year high price field and set inline to True
-        one_year_embed.add_field(name = "Low Price", value = f"{low_y} gold", inline = True) # add the 1 year low price field and set inline to True
-
-        # Set the author of the embed with the set_author method
-        one_year_embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar.url) # use the bot's name and avatar as the author
-
-        # Set the timestamp of the embed with the timestamp attribute
-        one_year_embed.timestamp = datetime.now() # use the current time as the timestamp
-
-        # Append the 1 year embed to the embeds array
-        embeds.append(one_year_embed)
+        # Add the rest of the pairings as fields of the embed, and set inline to True for each pair
+        embed.add_field(name = "Weekly High Price", value = f"{high_w} gold", inline = True)
+        embed.add_field(name = "Weekly Low Price", value = f"{low_w} gold", inline = True)
+        embed.add_field(name = "Monthly High Price", value = f"{high_m} gold", inline = True)
+        embed.add_field(name = "Monthly Low Price", value = f"{low_m} gold", inline = True)
+        embed.add_field(name = "6 Month High Price", value = f"{high_6m} gold", inline = True)
+        embed.add_field(name = "6 Month Low Price", value = f"{low_6m} gold", inline = True)
+        embed.add_field(name = "1 Year High Price", value = f"{high_y} gold", inline = True)
+        embed.add_field(name = "1 Year Low Price", value = f"{low_y} gold", inline = True)
 
         # Send the embed message with the send method
-        await ctx.send(embeds = embeds) # send the embeds array as the message
+        await ctx.send(embed = embed) # send the embed as the message
