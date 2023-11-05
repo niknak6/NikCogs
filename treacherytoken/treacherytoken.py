@@ -61,7 +61,7 @@ class TreacheryToken(commands.Cog):
             color = discord.Color.blue(), # set the color of the embed
             title = "Wow Token Price", # set the title of the embed
             url = "https://wowtoken.info/", # set the URL of the embed
-            description = "The current price of the [wow token] in US region." # set the description of the embed
+            description = "The current price of the [wow token](https://www.youtube.com/watch?v=VMLJjdrf6tQ) in US region." # set the description of the embed
         )
 
         # Add fields to the embed with the add_field method
@@ -76,7 +76,7 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name = "1 Year Low Price", value = f"{low_y} gold", inline = True) # add the 1 year low price field
 
         # Set the author of the embed with the set_author method
-        embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar_url) # use the bot's name and avatar as the author
+        embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar.url) # use the bot's name and avatar as the author
 
         # Set the timestamp of the embed with the set_timestamp method
         embed.set_timestamp() # use the current time as the timestamp
