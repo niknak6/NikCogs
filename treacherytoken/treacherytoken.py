@@ -70,11 +70,11 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name = "Current Price", value = f"{current} gold", inline = False)
 
         # Add the rest of the pairings as fields of the embed, and set inline to True for each pair
-        embed.add_field(name = "Weekly Price", value = f"High: {high_w} gold\nLow: {low_w} gold", inline = True)
-        embed.add_field(name = "Monthly Price", value = f"High: {high_m} gold\nLow: {low_m} gold", inline = True)
+        embed.add_field(name = "Weekly Price", value = f"```High: {high_w} gold\nLow : {low_w} gold```", inline = True)
+        embed.add_field(name = "Monthly Price", value = f"```High: {high_m} gold\nLow : {low_m} gold```", inline = True)
         embed.add_field(name = "\u200b", value = "\u200b", inline = False) # blank field
-        embed.add_field(name = "6 Month Price", value = f"High: {high_6m} gold\nLow: {low_6m} gold", inline = True)
-        embed.add_field(name = "1 Year Price", value = f"High: {high_y} gold\nLow: {low_y} gold", inline = True)
+        embed.add_field(name = "6 Month Price", value = f"```High: {high_6m} gold\nLow : {low_6m} gold```", inline = True)
+        embed.add_field(name = "1 Year Price", value = f"```High: {high_y} gold\nLow : {low_y} gold```", inline = True)
 
         # Send the embed message with the send method
         await ctx.send(embed = embed) # send the embed as the message
