@@ -2,6 +2,7 @@ from redbot.core import commands
 import requests
 import pandas as pd
 import discord # import the discord library
+from datetime import datetime # import the datetime class from the datetime module
 
 class TreacheryToken(commands.Cog):
     """A cog that shows the price of the wow token"""
