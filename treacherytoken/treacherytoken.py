@@ -1,6 +1,7 @@
 from redbot.core import commands
 import requests
 import pandas as pd
+import discord # import the discord library
 
 class TreacheryToken(commands.Cog):
     """A cog that shows the price of the wow token"""
@@ -55,5 +56,30 @@ class TreacheryToken(commands.Cog):
         high_y = f"{high_y:,}"
         low_y = f"{low_y:,}"
 
-        # Send the message with the prices
-        await ctx.send(f"The current price of the wow token is {current}.\nThe weekly high price is {high_w} and the weekly low price is {low_w}.\nThe monthly high price is {high_m} and the monthly low price is {low_m}.\nThe 6 month high price is {high_6m} and the 6 month low price is {low_6m}.\nThe 1 year high price is {high_y} and the 1 year low price is {low_y}.")
+        # Create an embed object with the discord.Embed class
+        embed = discord.Embed(
+            color = discord.Color.blue(), # set the color of the embed
+            title = "Wow Token Price", # set the title of the embed
+            url = "https://wowtoken.info/", # set the URL of the embed
+            description = "The current price of the [wow token] in US region." # set the description of the embed
+        )
+
+        # Add fields to the embed with the add_field method
+        embed.add_field(name = "Current Price", value = f"{current} gold", inline = False) # add the current price field
+        embed.add_field(name = "Weekly High Price", value = f"{high_w} gold", inline = True) # add the weekly high price field
+        embed.add_field(name = "Weekly Low Price", value = f"{low_w} gold", inline = True) # add the weekly low price field
+        embed.add_field(name = "Monthly High Price", value = f"{high_m} gold", inline = True) # add the monthly high price field
+        embed.add_field(name = "Monthly Low Price", value = f"{low_m} gold", inline = True) # add the monthly low price field
+        embed.add_field(name = "6 Month High Price", value = f"{high_6m} gold", inline = True) # add the 6 month high price field
+        embed.add_field(name = "6 Month Low Price", value = f"{low_6m} gold", inline = True) # add the 6 month low price field
+        embed.add_field(name = "1 Year High Price", value = f"{high_y} gold", inline = True) # add the 1 year high price field
+        embed.add_field(name = "1 Year Low Price", value = f"{low_y} gold", inline = True) # add the 1 year low price field
+
+        # Set the author of the embed with the set_author method
+        embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar_url) # use the bot's name and avatar as the author
+
+        # Set the timestamp of the embed with the set_timestamp method
+        embed.set_timestamp() # use the current time as the timestamp
+
+        # Send the embed message with the send method
+        await ctx.send(embed = embed) # send the embed as the message
