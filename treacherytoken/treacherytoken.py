@@ -60,23 +60,16 @@ class TreacheryToken(commands.Cog):
         # Create an embed object with the discord.Embed class
         embed = discord.Embed(
             color = discord.Color.blue(), # set the color of the embed
-            title = "Wow Token Price", # set the title of the embed
-            description = "Some information about the WoW Token." # set the description of the embed
+            title = "WoW Token Price", # set the title of the embed
+            description = "The current price of the wow token in US region." # set the description of the embed
         )
 
         # Add fields to the embed with the add_field method
         embed.add_field(name = "Current Price", value = f"{current} gold", inline = False) # add the current price field
-        embed.add_field(name = "Weekly High Price", value = f"{high_w} gold", inline = True) # add the weekly high price field
-        embed.add_field(name = "Weekly Low Price", value = f"{low_w} gold", inline = True) # add the weekly low price field
-        embed.add_field(name = "Monthly High Price", value = f"{high_m} gold", inline = True) # add the monthly high price field
-        embed.add_field(name = "Monthly Low Price", value = f"{low_m} gold", inline = True) # add the monthly low price field
-        embed.add_field(name = "6 Month High Price", value = f"{high_6m} gold", inline = True) # add the 6 month high price field
-        embed.add_field(name = "6 Month Low Price", value = f"{low_6m} gold", inline = True) # add the 6 month low price field
-        embed.add_field(name = "1 Year High Price", value = f"{high_y} gold", inline = True) # add the 1 year high price field
-        embed.add_field(name = "1 Year Low Price", value = f"{low_y} gold", inline = True) # add the 1 year low price field
-
-        # Set the author of the embed with the set_author method
-        embed.set_author(name = "TreacheryToken", icon_url = self.bot.user.avatar.url) # use the bot's name and avatar as the author
+        embed.add_field(name = "Weekly High/Low", value = f"{high_w}/{low_w} gold", inline = False) # add the weekly high/low field and set inline to False
+        embed.add_field(name = "Monthly High/Low", value = f"{high_m}/{low_m} gold", inline = False) # add the monthly high/low field and set inline to False
+        embed.add_field(name = "6 Month High/Low", value = f"{high_6m}/{low_6m} gold", inline = False) # add the 6 month high/low field and set inline to False
+        embed.add_field(name = "1 Year High/Low", value = f"{high_y}/{low_y} gold", inline = False) # add the 1 year high/low field and set inline to False
 
         # Set the timestamp of the embed with the timestamp attribute
         embed.timestamp = datetime.now() # use the current time as the timestamp
