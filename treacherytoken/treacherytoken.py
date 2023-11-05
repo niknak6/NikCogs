@@ -73,14 +73,11 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name = "Current Price", value = f"{current} gold", inline = False)
 
         # Add the rest of the pairings as fields of the embed, and set inline to True for each pair
-        embed.add_field(name = "Weekly High Price", value = f"{high_w} gold", inline = True)
-        embed.add_field(name = "Weekly Low Price", value = f"{low_w} gold", inline = True)
-        embed.add_field(name = "Monthly High Price", value = f"{high_m} gold", inline = True)
-        embed.add_field(name = "Monthly Low Price", value = f"{low_m} gold", inline = True)
-        embed.add_field(name = "6 Month High Price", value = f"{high_6m} gold", inline = True)
-        embed.add_field(name = "6 Month Low Price", value = f"{low_6m} gold", inline = True)
-        embed.add_field(name = "1 Year High Price", value = f"{high_y} gold", inline = True)
-        embed.add_field(name = "1 Year Low Price", value = f"{low_y} gold", inline = True)
+        # Use the zero-width space character before and after each pair to create a line break
+        embed.add_field(name = "Weekly Price", value = f"\\u200B\\nHigh: {high_w} gold\\nLow: {low_w} gold\\n\\u200B", inline = True)
+        embed.add_field(name = "Monthly Price", value = f"\\u200B\\nHigh: {high_m} gold\\nLow: {low_m} gold\\n\\u200B", inline = True)
+        embed.add_field(name = "6 Month Price", value = f"\\u200B\\nHigh: {high_6m} gold\\nLow: {low_6m} gold\\n\\u200B", inline = True)
+        embed.add_field(name = "1 Year Price", value = f"\\u200B\\nHigh: {high_y} gold\\nLow: {low_y} gold\\n\\u200B", inline = True)
 
         # Send the embed message with the send method
         await ctx.send(embed = embed) # send the embed as the message
