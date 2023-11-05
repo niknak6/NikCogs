@@ -67,7 +67,7 @@ class TreacheryToken(commands.Cog):
         embed.timestamp = datetime.now() # use the current time as the timestamp
 
         # Add the current price as the first field of the embed, and set inline to False
-        embed.add_field(name = "Current Price", value = f"{current} gold", inline = False)
+        embed.add_field(name = "Current Price", value = f"```{current} gold```", inline = False)
 
         # Add the rest of the pairings as fields of the embed, and set inline to True for each pair
         embed.add_field(name = "Weekly Price", value = f"```High: {high_w} gold\nLow : {low_w} gold```", inline = True)
