@@ -32,9 +32,30 @@ class TreacheryToken(commands.Cog):
             price = data[-1]["value"]  # Get the current price from the last element of the list
             time = data[-1]["time"]  # Get the time of last change from the last element of the list
             change = data[-1]["value"] - data[-2]["value"]  # Get the last change from the difference between the last two elements of the list
-            one_day_low, one_day_high = self.get_low_high(data, days=1)  # Get the 1 day low and high values by calling the get_low_high method with 1 day as the argument
-            seven_day_low, seven_day_high = self.get_low_high(data, days=7)  # Get the 7 day low and high values by calling the get_low_high method with 7 days as the argument
-            thirty_day_low, thirty_day_high = self.get_low_high(data, days=30)  # Get the 30 day low and high values by calling the get_low_high method with 30 days as the argument
+            # Use a try-except block to get the 1 day low and high values by calling the get_low_high method with 1 day as the argument
+            try:
+                one_day_low, one_day_high = self.get_low_high(data, days=1)
+            except TypeError:
+                await ctx.send(
+                    "Sorry, I could not get the 1 day low and high values for the WoW token price. Please try again later."
+                )
+                return
+            # Use a try-except block to get the 7 day low and high values by calling the get_low_high method with 7 days as the argument
+            try:
+                seven_day_low, seven_day_high = self.get_low_high(data, days=7)
+            except TypeError:
+                await ctx.send(
+                    "Sorry, I could not get the 7 day low and high values for the WoW token price. Please try again later."
+                )
+                return
+            # Use a try-except block to get the 30 day low and high values by calling the get_low_high method with 30 days as the argument
+            try:
+                thirty_day_low, thirty_day_high = self.get_low_high(data, days=30)
+            except TypeError:
+                await ctx.send(
+                    "Sorry, I could not get the 30 day low and high values for the WoW token price. Please try again later."
+                )
+                return
 
             # Convert the values to integers
             try:
@@ -119,21 +140,4 @@ class TreacheryToken(commands.Cog):
         """Returns the low and high values for a given time interval from the data list"""
         # Get the datetime object for the start of the time interval
         start = datetime.now() - timedelta(days=days)
-        # Convert the datetime object to a ISO 8601 string
-        start = start.isoformat()
-        # Initialize the low and high values
-        low = None
-        high = None
-        # Loop through the data list
-        for item in data:
-            # Check if the item's time is within the time interval
-            if item["time"] >= start:
-                # Check if the item's value is lower than the current low value
-                if low is None or item["value"] < low:
-                    # Update the low value
-                    low = item["value"]
-                # Check if the item's value is higher than the current high value
-                if high is None or item["value"] > high:
-                    # Update the high value
-                    high = item["value"]
-        # Return the low and high values
+        # Convert the datetime object to a
