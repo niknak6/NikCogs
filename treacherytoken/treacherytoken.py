@@ -60,7 +60,7 @@ class TreacheryToken(commands.Cog):
         # Create a single embed object
         embed = discord.Embed(
             color = discord.Color.blue(), # set the color of the embed
-            title = "Wow Token Price", # set the title of the embed
+            title = "WoW Token Price", # set the title of the embed
         )
 
         # Set the timestamp of the embed with the timestamp attribute
