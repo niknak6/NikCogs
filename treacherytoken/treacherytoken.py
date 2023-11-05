@@ -59,9 +59,8 @@ class TreacheryToken(commands.Cog):
         # Create an embed object with the discord.Embed class
         embed = discord.Embed(
             color = discord.Color.blue(), # set the color of the embed
-            title = "Wow Token Price", # set the title of the embed
-            url = "https://wowtoken.info/", # set the URL of the embed
-            description = "The current price of the [wow token](https://www.youtube.com/watch?v=VMLJjdrf6tQ) in US region." # set the description of the embed
+            title = "WoW Token Price", # set the title of the embed
+            description = "Some information about the WoW Token." # set the description of the embed
         )
 
         # Add fields to the embed with the add_field method
