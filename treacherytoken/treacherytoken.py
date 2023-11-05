@@ -5,7 +5,10 @@ import aiohttp  # Use aiohttp instead of requests
 import humanize  # Use humanize to format the values and the timestamp
 import json  # Import the json module
 from datetime import datetime, timezone, timedelta  # Import the datetime module
+import logging  # Import the logging module
 
+# Get the logger object
+logger = logging.getLogger("red.treacherytoken")
 
 # Define the cog class
 class TreacheryToken(commands.Cog):
@@ -32,76 +35,40 @@ class TreacheryToken(commands.Cog):
             price = data[-1]["value"]  # Get the current price from the last element of the list
             time = data[-1]["time"]  # Get the time of last change from the last element of the list
             change = data[-1]["value"] - data[-2]["value"]  # Get the last change from the difference between the last two elements of the list
-            # Use a try-except block to get the 1 day low and high values by calling the get_low_high method with 1 day as the argument
-            try:
-                one_day_low, one_day_high = self.get_low_high(data, days=1)
-            except TypeError:
-                await ctx.send(
-                    "Sorry, I could not get the 1 day low and high values for the WoW token price. Please try again later."
-                )
-                return
-            # Use a try-except block to get the 7 day low and high values by calling the get_low_high method with 7 days as the argument
-            try:
-                seven_day_low, seven_day_high = self.get_low_high(data, days=7)
-            except TypeError:
-                await ctx.send(
-                    "Sorry, I could not get the 7 day low and high values for the WoW token price. Please try again later."
-                )
-                return
-            # Use a try-except block to get the 30 day low and high values by calling the get_low_high method with 30 days as the argument
-            try:
-                thirty_day_low, thirty_day_high = self.get_low_high(data, days=30)
-            except TypeError:
-                await ctx.send(
-                    "Sorry, I could not get the 30 day low and high values for the WoW token price. Please try again later."
-                )
-                return
+            # Define a list of time intervals in days
+            intervals = [1, 7, 30]
+            # Initialize a dictionary to store the low and high values for each time interval
+            low_high = {}
+            # Loop through the time intervals
+            for days in intervals:
+                # Use a try-except block to get the low and high values by calling the get_low_high method with the days as the argument
+                try:
+                    low_high[days] = self.get_low_high(data, days)
+                except TypeError as e:
+                    # Print the data list and the start time to the console
+                    logger.debug(f"data: {data}")
+                    start = datetime.now() - timedelta(days=days)
+                    logger.debug(f"start: {start}")
+                    # Print the type and value of the exception to the console
+                    logger.debug(f"exception type: {type(e)}")
+                    logger.debug(f"exception value: {e}")
+                    # Send an error message to the user
+                    await ctx.send(
+                        f"Sorry, I could not get the {days} day low and high values for the WoW token price. Please try again later."
+                    )
+                    return
 
-            # Convert the values to integers
-            try:
-                price = int(price)
-            except ValueError:
-                price = "No Data"
-            try:
-                one_day_low = int(one_day_low)
-            except ValueError:
-                one_day_low = "No Data"
-            try:
-                one_day_high = int(one_day_high)
-            except ValueError:
-                one_day_high = "No Data"
-            try:
-                seven_day_low = int(seven_day_low)
-            except ValueError:
-                seven_day_low = "No Data"
-            try:
-                seven_day_high = int(seven_day_high)
-            except ValueError:
-                seven_day_high = "No Data"
-            try:
-                thirty_day_low = int(thirty_day_low)
-            except ValueError:
-                thirty_day_low = "No Data"
-            try:
-                thirty_day_high = int(thirty_day_high)
-            except ValueError:
-                thirty_day_high = "No Data"
+            # Convert the values to integers or strings
+            price = self.convert_value(price)
+            change = self.convert_value(change)
+            for days in intervals:
+                low_high[days] = tuple(self.convert_value(v) for v in low_high[days])
 
             # Format the values with commas
-            if price != "No Data":
-                price = humanize.intcomma(price)  # Use humanize.intcomma to add commas to the integers
-            if one_day_low != "No Data":
-                one_day_low = humanize.intcomma(one_day_low)
-            if one_day_high != "No Data":
-                one_day_high = humanize.intcomma(one_day_high)
-            if seven_day_low != "No Data":
-                seven_day_low = humanize.intcomma(seven_day_low)
-            if seven_day_high != "No Data":
-                seven_day_high = humanize.intcomma(seven_day_high)
-            if thirty_day_low != "No Data":
-                thirty_day_low = humanize.intcomma(thirty_day_low)
-            if thirty_day_high != "No Data":
-                thirty_day_high = humanize.intcomma(thirty_day_high)
+            price = self.format_value(price)
+            change = self.format_value(change)
+            for days in intervals:
+                low_high[days] = tuple(self.format_value(v) for v in low_high[days])
 
             # Format the timestamp with a human-readable format
             dt = datetime.fromisoformat(time)  # Convert the time string to a datetime object
@@ -114,20 +81,18 @@ class TreacheryToken(commands.Cog):
             embed.add_field(name=discord.Embed.Empty, value=f"Current Price: {price} ({change_emoji} {change})")  # This is the merged field with the emoji
             embed.add_field(name=discord.Embed.Empty, value=f"Updated {timestamp}")  # This is the field without the small text
             embed.add_field(name=discord.Embed.Empty, value="\n", inline=False)  # This is the line break using the newline character
-            one_day_low_emoji = "📈" if price > one_day_low else "📉"  # This is the emoji for the 1 day low
-            embed.add_field(name=discord.Embed.Empty, value=f"1 Day Low {one_day_low_emoji}: {one_day_low}", inline=True)  # This is the field with the emoji
-            one_day_high_emoji = "📈" if price < one_day_high else "📉"  # This is the emoji for the 1 day high
-            embed.add_field(name=discord.Embed.Empty, value=f"1 Day High {one_day_high_emoji}: {one_day_high}", inline=True)  # This is the field with the emoji
-            embed.add_field(name=discord.Embed.Empty, value="\n", inline=False)  # This is the line break using the newline character
-            seven_day_low_emoji = "📈" if price > seven_day_low else "📉"  # This is the emoji for the 7 day low
-            embed.add_field(name=discord.Embed.Empty, value=f"7 Day Low {seven_day_low_emoji}: {seven_day_low}", inline=True)  # This is the field with the emoji
-            seven_day_high_emoji = "📈" if price < seven_day_high else "📉"  # This is the emoji for the 7 day high
-            embed.add_field(name=discord.Embed.Empty, value=f"7 Day High {seven_day_high_emoji}: {seven_day_high}", inline=True)  # This is the field with the emoji
-            embed.add_field(name=discord.Embed.Empty, value="\n", inline=False)  # This is the line break using the newline character
-            thirty_day_low_emoji = "📈" if price > thirty_day_low else "📉"  # This is the emoji for the 30 day low
-            embed.add_field(name=discord.Embed.Empty, value=f"30 Day Low {thirty_day_low_emoji}: {thirty_day_low}", inline=True)  # This is the field with the emoji
-            thirty_day_high_emoji = "📈" if price < thirty_day_high else "📉"  # This is the emoji for the 30 day high
-            embed.add_field(name=discord.Embed.Empty, value=f"30 Day High {thirty_day_high_emoji}: {thirty_day_high}", inline=True)  # This is the field with the emoji
+            # Loop through the time intervals
+            for days in intervals:
+                # Get the low and high values for the current time interval
+                low, high = low_high[days]
+                # Get the emojis for the low and high values
+                low_emoji = "📈" if price > low else "📉"  # This is the emoji for the low value
+                high_emoji = "📈" if price < high else "📉"  # This is the emoji for the high value
+                # Add the fields with the emojis
+                embed.add_field(name=discord.Embed.Empty, value=f"{days} Day Low {low_emoji}: {low}", inline=True)  # This is the field with the emoji
+                embed.add_field(name=discord.Embed.Empty, value=f"{days} Day High {high_emoji}: {high}", inline=True)  # This is the field with the emoji
+                # Add the line break using the newline character
+                embed.add_field(name=discord.Embed.Empty, value="\n", inline=False)
 
             # Send the embed message
             await ctx.send(embed=embed)
@@ -140,4 +105,44 @@ class TreacheryToken(commands.Cog):
         """Returns the low and high values for a given time interval from the data list"""
         # Get the datetime object for the start of the time interval
         start = datetime.now() - timedelta(days=days)
-        # Convert the datetime object to a
+        # Convert the datetime object to a ISO 8601 string
+        start = start.isoformat()
+        # Initialize the low and high values
+        low = None
+        high = None
+        # Loop through the data list
+        for item in data:
+            # Check if the item's time is within the time interval
+            if item["time"] >= start:
+                # Check if the item's value is lower than the current low value
+                if low is None or item["value"] < low:
+                    # Update the low value
+                    low = item["value"]
+                # Check if the item's value is higher than the current high value
+                if high is None or item["value"] > high:
+                    # Update the high value
+                    high = item["value"]
+        # Return the low and high values as a tuple
+        return (low, high)
+
+    # Define a helper method to convert the values to integers or strings
+    def convert_value(self, value):
+        """Returns the value as an integer or a string"""
+        # Try to convert the value to an integer
+        try:
+            value = int(value)
+        except ValueError:
+            # If the conversion fails, use "No Data" as the default value
+            value = "No Data"
+        # Return the converted value
+        return value
+
+    # Define a helper method to format the values with commas
+    def format_value(self, value):
+        """Returns the value as a formatted string with commas"""
+        # Check if the value is an integer
+        if isinstance(value, int):
+            # Use humanize.intcomma to add commas to the integer
+            value = humanize.intcomma(value)
+        # Return the formatted value
+        return value
