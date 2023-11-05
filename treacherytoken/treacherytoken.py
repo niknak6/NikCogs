@@ -32,9 +32,22 @@ class TreacheryToken(commands.Cog):
         # Check if the data variable is not None
         if data is not None:
             # Extract the relevant information
-            price = data[-1]["value"]  # Get the current price from the last element of the list
+            price_data = data[-1]["value"]  # Get the current price from the last element of the list
             time = data[-1]["time"]  # Get the time of last change from the last element of the list
-            change = data[-1]["value"] - data[-2]["value"]  # Get the last change from the difference between the last two elements of the list
+            change_data = data[-1]["value"] - data[-2]["value"]  # Get the last change from the difference between the last two elements of the list
+
+            # Convert the values to integers or strings
+            price = self.convert_value(price_data)
+            change = self.convert_value(change_data)  # Convert the change variable to an integer
+
+            # Format the values with commas
+            price_formatted = self.format_value(price)
+            change_formatted = self.format_value(change)
+
+            # Assign the emoji for the last change
+            # If 'change' is 'No Data', no comparison is made, and no emoji is assigned
+            change_emoji = "" if change == "No Data" else ("📈" if change > 0 else "📉")
+
             # Define a list of time intervals in days
             intervals = [1, 7, 30]
             # Initialize a dictionary to store the low and high values for each time interval
@@ -59,14 +72,10 @@ class TreacheryToken(commands.Cog):
                     return
 
             # Convert the values to integers or strings
-            price = self.convert_value(price)
-            change = self.convert_value(change)  # Convert the change variable to an integer
             for days in intervals:
                 low_high[days] = tuple(self.convert_value(v) for v in low_high[days])
 
             # Format the values with commas
-            price = self.format_value(price)
-            change = self.format_value(change)
             for days in intervals:
                 low_high[days] = tuple(self.format_value(v) for v in low_high[days])
 
@@ -77,8 +86,7 @@ class TreacheryToken(commands.Cog):
 
             # Create the embed message
             embed = discord.Embed(title=":coin: WoW Token Price in US :coin:", color=0x00ff00)
-            change_emoji = "📈" if change > 0 else "📉"  # This is the emoji for the last change
-            embed.add_field(name=discord.Embed.Empty, value=f"Current Price: {price} ({change_emoji} {change})")  # This is the merged field with the emoji
+            embed.add_field(name=discord.Embed.Empty, value=f"Current Price: {price_formatted} ({change_emoji} {change_formatted})")  # This is the merged field with the emoji
             embed.add_field(name=discord.Embed.Empty, value=f"Updated {timestamp}")  # This is the field without the small text
             embed.add_field(name=discord.Embed.Empty, value="\n", inline=False)  # This is the line break using the newline character
             # Loop through the time intervals
