@@ -22,8 +22,15 @@ class TreacheryToken(commands.Cog):
 
         # Check if the web request was successful
         if response.status_code == 200: # CHANGE: add an if statement to check the status code
+            # Preprocess the json data and unify the key names for the nested records
+            for item in data: # CHANGE: loop over the json data
+                if 'data' in item: # CHANGE: check if the key 'data' exists
+                    item['records'] = item.pop('data') # CHANGE: rename the key 'data' to 'records'
+                elif 'content' in item: # CHANGE: check if the key 'content' exists
+                    item['records'] = item.pop('content') # CHANGE: rename the key 'content' to 'records'
+            
             # Create a dataframe from the json data and flatten it
-            df = pd.json_normalize(data, record_path='content') # CHANGE: use 'content' instead of 'data' as the record_path
+            df = pd.json_normalize(data, record_path='records') # CHANGE: use 'records' as the record_path
 
             # Convert the time column to datetime format
             df["time"] = pd.to_datetime(df["time"])
