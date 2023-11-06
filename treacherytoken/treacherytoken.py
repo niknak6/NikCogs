@@ -1,8 +1,8 @@
 from redbot.core import commands
 import requests
 import pandas as pd
-import discord # import the discord library
-from datetime import datetime # import the datetime class from the datetime module
+import discord
+from datetime import datetime, timedelta # CHANGE: added timedelta
 
 class TreacheryToken(commands.Cog):
     """A cog that shows the price of the wow token"""
@@ -27,33 +27,39 @@ class TreacheryToken(commands.Cog):
         # Set the time column as the index
         df = df.set_index("time")
 
-        # Get the current price from the last entry
-        current = df.iloc[-1]["value"]
+        # Define the end date as the most recent date in the dataframe
+        end_date = df.index.max()
 
-        # Resample the dataframe to find the high and low prices for each period
-        # W = weekly, M = monthly, 6M = 6 month, Y = year
-        # max and min are the aggregation functions to find the high and low prices
-        resampled = df.resample("W").agg({"value": ["max", "min"]}) # Resample by week
-        high_w = resampled.iloc[-1]["value"]["max"] # Get the weekly high price
-        low_w = resampled.iloc[-1]["value"]["min"] # Get the weekly low price
-        resampled = df.resample("M").agg({"value": ["max", "min"]}) # Resample by month
-        high_m = resampled.iloc[-1]["value"]["max"] # Get the monthly high price
-        low_m = resampled.iloc[-1]["value"]["min"] # Get the monthly low price
-        resampled = df.resample("6M").agg({"value": ["max", "min"]}) # Resample by 6 month
-        high_6m = resampled.iloc[-1]["value"]["max"] # Get the 6 month high price
-        low_6m = resampled.iloc[-1]["value"]["min"] # Get the 6 month low price
-        resampled = df.resample("Y").agg({"value": ["max", "min"]}) # Resample by year
-        high_y = resampled.iloc[-1]["value"]["max"] # Get the 1 year high price
-        low_y = resampled.iloc[-1]["value"]["min"] # Get the 1 year low price
+        # Define the start dates for weekly, monthly, 6 month, and yearly timeframes
+        start_date_weekly = end_date - timedelta(days=7) # CHANGE: subtract 7 days from end date
+        start_date_monthly = end_date - timedelta(days=30) # CHANGE: subtract 30 days from end date
+        start_date_6month = end_date - timedelta(days=182) # CHANGE: subtract 182 days from end date
+        start_date_yearly = end_date - timedelta(days=365) # CHANGE: subtract 365 days from end date
+
+        # Filter the dataframe for the defined timeframes
+        df_weekly = df.loc[start_date_weekly:end_date] # CHANGE: use start_date_weekly as lower bound
+        df_monthly = df.loc[start_date_monthly:end_date] # CHANGE: use start_date_monthly as lower bound
+        df_6month = df.loc[start_date_6month:end_date] # CHANGE: use start_date_6month as lower bound
+        df_yearly = df.loc[start_date_yearly:end_date] # CHANGE: use start_date_yearly as lower bound
+
+        # Get the high and low prices for each timeframe
+        high_w = df_weekly["value"].max()
+        low_w = df_weekly["value"].min()
+        high_m = df_monthly["value"].max()
+        low_m = df_monthly["value"].min()
+        high_6m = df_6month["value"].max() # CHANGE: get the 6 month high price
+        low_6m = df_6month["value"].min() # CHANGE: get the 6 month low price
+        high_y = df_yearly["value"].max()
+        low_y = df_yearly["value"].min()
 
         # Format the prices with commas
-        current = f"{current:,}"
+        current = f"{df.iloc[-1]['value']:,}"
         high_w = f"{high_w:,}"
         low_w = f"{low_w:,}"
         high_m = f"{high_m:,}"
         low_m = f"{low_m:,}"
-        high_6m = f"{high_6m:,}"
-        low_6m = f"{low_6m:,}"
+        high_6m = f"{high_6m:,}" # CHANGE: format the 6 month high price
+        low_6m = f"{low_6m:,}" # CHANGE: format the 6 month low price
         high_y = f"{high_y:,}"
         low_y = f"{low_y:,}"
 
@@ -73,8 +79,8 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name = "Weekly Price", value = f"```High: {high_w} gold\nLow : {low_w} gold```", inline = True)
         embed.add_field(name = "Monthly Price", value = f"```High: {high_m} gold\nLow : {low_m} gold```", inline = True)
         embed.add_field(name = "\u200b", value = "\u200b", inline = False) # blank field
-        embed.add_field(name = "6 Month Price", value = f"```High: {high_6m} gold\nLow : {low_6m} gold```", inline = True)
+        embed.add_field(name = "6 Month Price", value = f"```High: {high_6m} gold\nLow : {low_6m} gold```", inline = True) # CHANGE: add the 6 month price field
         embed.add_field(name = "1 Year Price", value = f"```High: {high_y} gold\nLow : {low_y} gold```", inline = True)
 
         # Send the embed message with the send method
-        await ctx.send(embed = embed) # send the embed as the message
+        await ctx.send(embed=embed) # send the embed as the message
