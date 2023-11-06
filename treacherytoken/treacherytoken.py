@@ -30,7 +30,11 @@ class TreacheryToken(commands.Cog):
                     item['records'] = item.pop('content') # CHANGE: rename the key 'content' to 'records'
             
             # Create a dataframe from the json data and flatten it
-            df = pd.json_normalize(data, record_path='records') # CHANGE: use 'records' as the record_path
+            try: # CHANGE: add a try block to catch the KeyError exception
+                df = pd.json_normalize(data, record_path='records') # CHANGE: use 'records' as the record_path
+            except KeyError: # CHANGE: add an except block to handle the KeyError exception
+                await ctx.send("Sorry, the json data does not have the 'records' key for some elements. Please check the data source.") # CHANGE: send an error message to the user
+                return # CHANGE: return from the function to avoid further errors
 
             # Convert the time column to datetime format
             df["time"] = pd.to_datetime(df["time"])
