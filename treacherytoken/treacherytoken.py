@@ -32,7 +32,7 @@ class TreacheryToken(commands.Cog):
         end_time = time.time()
 
         # Calculate the duration of getting the json data
-        network_time = end_time - start_time
+        network_time = round(end_time - start_time, 2)
 
         # Get the start time of creating the dataframe
         start_time = time.time()
@@ -59,7 +59,7 @@ class TreacheryToken(commands.Cog):
         end_time = time.time()
 
         # Calculate the duration of creating the dataframe
-        dataframe_time = end_time - start_time
+        dataframe_time = round(end_time - start_time, 2)
 
         # Get the start time of filtering the data
         start_time = time.time()
@@ -74,7 +74,7 @@ class TreacheryToken(commands.Cog):
         end_time = time.time()
 
         # Calculate the duration of filtering the data
-        filter_time = end_time - start_time
+        filter_time = round(end_time - start_time, 2)
 
         # Get the start time of getting the high and low prices
         start_time = time.time()
@@ -93,7 +93,7 @@ class TreacheryToken(commands.Cog):
         end_time = time.time()
 
         # Calculate the duration of getting the high and low prices
-        price_time = end_time - start_time
+        price_time = round(end_time - start_time, 2)
 
         # Get the start time of formatting the prices
         start_time = time.time()
@@ -113,10 +113,10 @@ class TreacheryToken(commands.Cog):
         end_time = time.time()
 
         # Calculate the duration of formatting the prices
-        format_time = end_time - start_time
+        format_time = round(end_time - start_time, 2)
 
         # Calculate the total processing time
-        processing_time = dataframe_time + filter_time + price_time + format_time
+        processing_time = round(dataframe_time + filter_time + price_time + format_time, 2)
 
         # Create a single embed object
         embed = discord.Embed(
@@ -141,7 +141,7 @@ class TreacheryToken(commands.Cog):
         start_time = time.time()
 
         # Calculate the duration of sending the message
-        render_time = end_time - start_time
+        render_time = round(end_time - start_time, 2)
 
         # Append the metrics to the description of the embed
         embed.description = f"network: {network_time} | processing: {processing_time} | render: {render_time}"
