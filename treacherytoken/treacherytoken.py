@@ -14,8 +14,8 @@ import orjson as json
 # Import requests-cache
 import requests_cache
 
-# Create a session object with no cache
-session = requests_cache.disabled()
+# Create a requests session object
+session = requests.Session()
 
 class TreacheryToken(commands.Cog):
     """A cog that shows the price of the wow token"""
@@ -34,8 +34,10 @@ class TreacheryToken(commands.Cog):
 
         # Get the json data from the url
         url = "https://data.wowtoken.app/token/history/us/1y.json"
-        # Use the session object to make the request
-        response = session.get(url)
+        # Use the requests-cache context manager to disable caching
+        with requests_cache.disabled(session): # pass the session object as an argument
+            # Use the session object to make the request
+            response = session.get(url)
         # Use orjson to decode the json data
         data = json.loads(response.content)
 
