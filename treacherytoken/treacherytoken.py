@@ -54,7 +54,8 @@ class TreacheryToken(commands.Cog):
         df = pd.DataFrame(data)
 
         # Convert the time column to datetime format
-        df["time"] = pd.to_datetime(df["time"])
+        # Use the pd.to_datetime() function and pass the format argument
+        df["time"] = pd.to_datetime(df["time"], format="%Y-%m-%dT%H:%M:%S%z")
 
         # Set the time column as the index
         df = df.set_index("time")
@@ -63,6 +64,7 @@ class TreacheryToken(commands.Cog):
         df = df.sort_index(ascending=True)
 
         # Define the end date as the most recent date in the dataframe
+        # Use the max() method on the datetime column
         end_date = df.index.max()
 
         # Define the start dates for weekly, monthly, 6 month, and yearly timeframes
