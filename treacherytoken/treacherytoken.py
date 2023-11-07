@@ -8,6 +8,9 @@ import pandas as pd
 import discord
 from datetime import datetime, timedelta
 
+# Import orjson as json
+import orjson as json
+
 class TreacheryToken(commands.Cog):
     """A cog that shows the price of the wow token"""
 
@@ -26,7 +29,8 @@ class TreacheryToken(commands.Cog):
         # Get the json data from the url
         url = "https://data.wowtoken.app/token/history/us/1y.json"
         response = requests.get(url)
-        data = response.json()
+        # Use orjson to decode the json data
+        data = json.loads(response.content)
 
         # Get the end time of getting the json data
         end_time = time.time()
