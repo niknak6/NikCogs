@@ -158,3 +158,7 @@ class TreacheryToken(commands.Cog):
 
         # Send the embed message with the send method
         await ctx.send(embed=embed)
+
+        # Print the end date and the current time
+        print(f"End date: {end_date}")
+        print(f"Current time: {datetime.now()}")
