@@ -29,10 +29,10 @@ class TreacheryToken(commands.Cog):
         end_time = time.time()
 
         # Calculate the duration of getting the json data
-        duration = end_time - start_time
+        network_time = end_time - start_time
 
-        # Print the duration of getting the json data
-        print(f"Getting the json data took {duration} seconds.")
+        # Get the start time of creating the dataframe
+        start_time = time.time()
 
         # Create a dataframe from the json data
         df = pd.DataFrame(data)
@@ -52,11 +52,29 @@ class TreacheryToken(commands.Cog):
         start_date_6month = end_date - timedelta(days=182)
         start_date_yearly = end_date - timedelta(days=365)
 
+        # Get the end time of creating the dataframe
+        end_time = time.time()
+
+        # Calculate the duration of creating the dataframe
+        dataframe_time = end_time - start_time
+
+        # Get the start time of filtering the data
+        start_time = time.time()
+
         # Filter the dataframe for the defined timeframes
         df_weekly = df.loc[start_date_weekly:end_date]
         df_monthly = df.loc[start_date_monthly:end_date]
         df_6month = df.loc[start_date_6month:end_date]
         df_yearly = df.loc[start_date_yearly:end_date]
+
+        # Get the end time of filtering the data
+        end_time = time.time()
+
+        # Calculate the duration of filtering the data
+        filter_time = end_time - start_time
+
+        # Get the start time of getting the high and low prices
+        start_time = time.time()
 
         # Get the high and low prices for each timeframe
         high_w = df_weekly["value"].max()
@@ -68,6 +86,15 @@ class TreacheryToken(commands.Cog):
         high_y = df_yearly["value"].max()
         low_y = df_yearly["value"].min()
 
+        # Get the end time of getting the high and low prices
+        end_time = time.time()
+
+        # Calculate the duration of getting the high and low prices
+        price_time = end_time - start_time
+
+        # Get the start time of formatting the prices
+        start_time = time.time()
+
         # Format the prices with commas
         current = f"{df.iloc[-1]['value']:,}"
         high_w = f"{high_w:,}"
@@ -78,6 +105,12 @@ class TreacheryToken(commands.Cog):
         low_6m = f"{low_6m:,}"
         high_y = f"{high_y:,}"
         low_y = f"{low_y:,}"
+
+        # Get the end time of formatting the prices
+        end_time = time.time()
+
+        # Calculate the duration of formatting the prices
+        format_time = end_time - start_time
 
         # Create a single embed object
         embed = discord.Embed(
@@ -108,7 +141,10 @@ class TreacheryToken(commands.Cog):
         end_time = time.time()
 
         # Calculate the duration of sending the message
-        duration = end_time - start_time
+        render_time = end_time - start_time
 
-        # Print the duration of sending the message
-        print(f"Sending the message took {duration} seconds.")
+        # Calculate the total processing time
+        processing_time = dataframe_time + filter_time + price_time + format_time
+
+        # Set the footer of the embed with the data
+        embed.set_footer(text=f"network: {network_time} | processing: {processing_time} | render: {render_time}")
