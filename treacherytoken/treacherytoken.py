@@ -48,7 +48,7 @@ class TreacheryToken(commands.Cog):
         # Calculate the duration of getting the json data
         network_time = round(end_time - start_time, 2)
 
-        # Get the start time of creating the dataframe
+        # Get the start time of processing the data
         start_time = time.perf_counter() # use time.perf_counter()
 
         # Create a dataframe from the json data
