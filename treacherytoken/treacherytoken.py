@@ -137,9 +137,6 @@ class TreacheryToken(commands.Cog):
         # Calculate the total processing time
         processing_time = dataframe_time + filter_time + price_time + format_time
 
-        # Set the footer of the embed with the data
-        embed.set_footer(text=f"network: {network_time} | processing: {processing_time} | render: {render_time}")
-
         # Get the start time of sending the message
         start_time = time.time()
 
@@ -151,3 +148,6 @@ class TreacheryToken(commands.Cog):
 
         # Calculate the duration of sending the message
         render_time = end_time - start_time
+
+        # Set the footer of the embed with the data
+        embed.set_footer(text=f"network: {network_time} | processing: {processing_time} | render: {render_time}")
