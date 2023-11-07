@@ -17,6 +17,9 @@ class TreacheryToken(commands.Cog):
     @commands.command()
     async def wowtoken(self, ctx):
         """Shows the current, weekly, monthly, 6 month and 1 year high and low price of the wow token in US region"""
+        # Use the global variable render_time
+        global render_time
+
         # Get the start time of the whole code
         start_time = time.time()
 
