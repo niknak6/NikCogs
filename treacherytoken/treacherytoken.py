@@ -26,9 +26,6 @@ class TreacheryToken(commands.Cog):
     @commands.command()
     async def wowtoken(self, ctx):
         """Shows the current, weekly, monthly, 6 month and 1 year high and low price of the wow token in US region"""
-        # Use the global variable render_time
-        global render_time
-
         # Get the start time of the whole code
         start_time = time.time()
 
@@ -144,7 +141,7 @@ class TreacheryToken(commands.Cog):
         )
 
         # Set the timestamp of the embed with the timestamp attribute
-        embed.timestamp = datetime.now()
+        embed.timestamp = datetime.utcnow() # use the utcnow() function
 
         # Add the current price as the first field of the embed, and set inline to False
         embed.add_field(name = "Current Price", value = f"```{current} gold```", inline = False)
