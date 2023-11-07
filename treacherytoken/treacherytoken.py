@@ -115,7 +115,8 @@ class TreacheryToken(commands.Cog):
         start_time = time.time()
 
         # Format the prices with commas
-        current = f"{df.iloc[-1]['value']:,}"
+        # Use the loc method instead of the iloc method to get the current price
+        current = f"{df.loc[end_date]['value']:,}" # pass the end date as the index value
         high_w = f"{high_w:,}"
         low_w = f"{low_w:,}"
         high_m = f"{high_m:,}"
@@ -158,7 +159,3 @@ class TreacheryToken(commands.Cog):
 
         # Send the embed message with the send method
         await ctx.send(embed=embed)
-
-        # Print the end date and the current time
-        print(f"End date: {end_date}")
-        print(f"Current time: {datetime.now()}")
