@@ -34,7 +34,8 @@ class TreacheryToken(commands.Cog):
         # Use the requests-cache context manager to disable caching
         with requests_cache.disabled(): # remove the session argument
             # Use the session object to make the request
-            response = session.get(url)
+            # Set the cache parameter to False to disable the client-side cache
+            response = session.get(url, cache=False) # add the cache parameter
         # Use orjson to decode the json data
         data = json.loads(response.content)
 
