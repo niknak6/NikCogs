@@ -140,14 +140,11 @@ class TreacheryToken(commands.Cog):
         # Get the start time of sending the message
         start_time = time.time()
 
-        # Send the embed message with the send method
-        await ctx.send(embed=embed)
-
-        # Get the end time of sending the message
-        end_time = time.time()
-
         # Calculate the duration of sending the message
         render_time = end_time - start_time
 
-        # Set the footer of the embed with the data
-        embed.set_footer(text=f"network: {network_time} | processing: {processing_time} | render: {render_time}")
+        # Append the metrics to the description of the embed
+        embed.description = f"network: {network_time} | processing: {processing_time} | render: {render_time}"
+
+        # Send the embed message with the send method
+        await ctx.send(embed=embed)
