@@ -137,9 +137,6 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name = "6 Month Price", value = f"```High: {high_6m} gold\nLow : {low_6m} gold```", inline = True)
         embed.add_field(name = "1 Year Price", value = f"```High: {high_y} gold\nLow : {low_y} gold```", inline = True)
 
-        # Set the footer of the embed with the data
-        embed.set_footer(text=f"network: {network_time} | processing: {processing_time} | render: {render_time}")
-
         # Get the start time of sending the message
         start_time = time.time()
 
@@ -151,3 +148,6 @@ class TreacheryToken(commands.Cog):
 
         # Calculate the duration of sending the message
         render_time = end_time - start_time
+
+        # Set the footer of the embed with the data
+        embed.set_footer(text=f"network: {network_time} | processing: {processing_time} | render: {render_time}")
