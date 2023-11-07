@@ -74,11 +74,29 @@ class TreacheryToken(commands.Cog):
         start_date_6month = end_date - timedelta(days=182)
         start_date_yearly = end_date - timedelta(days=365)
 
+        # Get the end time of creating the dataframe
+        end_time = time.perf_counter() # use time.perf_counter()
+
+        # Calculate the duration of creating the dataframe
+        dataframe_time = round(end_time - start_time, 2)
+
+        # Get the start time of filtering the data
+        start_time = time.perf_counter() # use time.perf_counter()
+
         # Filter the dataframe for the defined timeframes
         df_weekly = df.loc[start_date_weekly:end_date]
         df_monthly = df.loc[start_date_monthly:end_date]
         df_6month = df.loc[start_date_6month:end_date]
         df_yearly = df.loc[start_date_yearly:end_date]
+
+        # Get the end time of filtering the data
+        end_time = time.perf_counter() # use time.perf_counter()
+
+        # Calculate the duration of filtering the data
+        filter_time = round(end_time - start_time, 2)
+
+        # Get the start time of getting the high and low prices
+        start_time = time.perf_counter() # use time.perf_counter()
 
         # Get the high and low prices for each timeframe
         high_w = df_weekly["value"].max()
@@ -89,6 +107,15 @@ class TreacheryToken(commands.Cog):
         low_6m = df_6month["value"].min()
         high_y = df_yearly["value"].max()
         low_y = df_yearly["value"].min()
+
+        # Get the end time of getting the high and low prices
+        end_time = time.perf_counter() # use time.perf_counter()
+
+        # Calculate the duration of getting the high and low prices
+        price_time = round(end_time - start_time, 2)
+
+        # Get the start time of formatting the prices
+        start_time = time.perf_counter() # use time.perf_counter()
 
         # Format the prices with commas
         # Use the loc method instead of the iloc method to get the current price
@@ -102,11 +129,11 @@ class TreacheryToken(commands.Cog):
         high_y = f"{high_y:,}"
         low_y = f"{low_y:,}"
 
-        # Get the end time of processing the data
+        # Get the end time of formatting the prices
         end_time = time.perf_counter() # use time.perf_counter()
 
-        # Calculate the total processing time
-        processing_time = round(end_time - start_time, 2)
+        # Calculate the duration of formatting the prices
+        format_time = round(end_time - start_time, 2)
 
         # Create a single embed object
         embed = discord.Embed(
@@ -126,6 +153,12 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name = "\u200b", value = "\u200b", inline = False) # blank field
         embed.add_field(name = "6 Month Price", value = f"```High: {high_6m} gold\nLow : {low_6m} gold```", inline = True)
         embed.add_field(name = "1 Year Price", value = f"```High: {high_y} gold\nLow : {low_y} gold```", inline = True)
+
+        # Get the end time of processing the data
+        end_time = time.perf_counter() # use time.perf_counter()
+
+        # Calculate the total processing time
+        processing_time = round(end_time - start_time, 2)
 
         # Set the footer of the embed with the metrics
         embed.set_footer(text=f"n: {network_time} | p: {processing_time}")
