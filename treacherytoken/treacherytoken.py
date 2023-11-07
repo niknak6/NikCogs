@@ -35,7 +35,7 @@ class TreacheryToken(commands.Cog):
         # Get the json data from the url
         url = "https://data.wowtoken.app/token/history/us/1y.json"
         # Use the requests-cache context manager to disable caching
-        with requests_cache.disabled(session): # pass the session object as an argument
+        with requests_cache.disabled(): # remove the session argument
             # Use the session object to make the request
             response = session.get(url)
         # Use orjson to decode the json data
