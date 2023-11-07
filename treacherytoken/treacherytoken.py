@@ -137,14 +137,8 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name = "6 Month Price", value = f"```High: {high_6m} gold\nLow : {low_6m} gold```", inline = True)
         embed.add_field(name = "1 Year Price", value = f"```High: {high_y} gold\nLow : {low_y} gold```", inline = True)
 
-        # Get the start time of sending the message
-        start_time = time.time()
-
-        # Calculate the duration of sending the message
-        render_time = round(end_time - start_time, 2)
-
-        # Append the metrics to the description of the embed
-        embed.description = f"network: {network_time} | processing: {processing_time} | render: {render_time}"
+        # Set the footer of the embed with the metrics
+        embed.set_footer(text=f"n: {network_time} | p: {processing_time}")
 
         # Send the embed message with the send method
         await ctx.send(embed=embed)
