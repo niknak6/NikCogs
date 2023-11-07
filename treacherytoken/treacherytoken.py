@@ -14,6 +14,9 @@ import orjson as json
 # Import requests-cache
 import requests_cache
 
+# Import random module
+import random # add this line
+
 # Create a requests session object
 session = requests.Session()
 
@@ -34,8 +37,8 @@ class TreacheryToken(commands.Cog):
         # Use the requests-cache context manager to disable caching
         with requests_cache.disabled(): # remove the session argument
             # Use the session object to make the request
-            # Set the cache parameter to False to disable the client-side cache
-            response = session.get(url, cache=False) # add the cache parameter
+            # Append a random parameter to the url to bypass the cache
+            response = session.get(url + "?rand=" + str(random.randint(0, 1000000))) # add this line
         # Use orjson to decode the json data
         data = json.loads(response.content)
 
