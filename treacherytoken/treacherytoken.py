@@ -35,9 +35,11 @@ class TreacheryToken(commands.Cog):
         url = "https://data.wowtoken.app/token/history/us/1y.json"
         # Use the requests-cache context manager to disable caching
         with requests_cache.disabled():
-            # Use the httpx library to make the request with HTTP/2 protocol
+            # Create a Client object with HTTP/2 enabled
+            client = httpx.Client(http2=True) # add this line
+            # Use the client object to make the request with HTTP/2 protocol
             # Append a random parameter to the url to bypass the cache
-            response = httpx.get(url + "?rand=" + str(random.randint(0, 1000000)), http2=True) # add the http2 argument
+            response = client.get(url + "?rand=" + str(random.randint(0, 1000000))) # remove the http2 argument and use the client object
         # Use orjson to decode the json data
         data = json.loads(response.content)
 
