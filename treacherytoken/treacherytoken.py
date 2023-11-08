@@ -32,6 +32,9 @@ class TreacheryToken(commands.Cog):
         # Get the start time of processing the data
         start_time = time.perf_counter() # use time.perf_counter() and move this line to the beginning of the command
 
+        # Send a temporary message with the loading text
+        loading_message = await ctx.send("Loading WoW Token Information...") # add this line
+
         # Get the json data from the url
         url = "https://data.wowtoken.app/token/history/us/1y.json"
         # Use the requests-cache context manager to disable caching
@@ -121,5 +124,5 @@ class TreacheryToken(commands.Cog):
         # Set the footer of the embed with the metrics
         embed.set_footer(text=f"n: {network_time} | p: {processing_time}")
 
-        # Send the embed message with the send method
-        await ctx.send(embed=embed)
+        # Edit the loading message with the embed
+        await loading_message.edit(content=None, embed=embed) # add this line
