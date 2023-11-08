@@ -3,7 +3,6 @@ import time
 
 # Import the other modules
 from redbot.core import commands
-import requests
 import pandas as pd
 import discord
 from datetime import datetime, timedelta
@@ -15,10 +14,10 @@ import orjson as json
 import requests_cache
 
 # Import random module
-import random # add this line
+import random
 
-# Create a requests session object
-session = requests.Session()
+# Import httpx module
+import httpx
 
 class TreacheryToken(commands.Cog):
     """A cog that shows the price of the wow token"""
@@ -30,20 +29,20 @@ class TreacheryToken(commands.Cog):
     async def wowtoken(self, ctx):
         """Shows the current, weekly, monthly, 6 month and 1 year high and low price of the wow token in US region"""
         # Get the start time of processing the data
-        start_time = time.perf_counter() # use time.perf_counter() and move this line to the beginning of the command
+        start_time = time.perf_counter()
 
         # Get the json data from the url
         url = "https://data.wowtoken.app/token/history/us/1y.json"
         # Use the requests-cache context manager to disable caching
-        with requests_cache.disabled(): # remove the session argument
-            # Use the session object to make the request
+        with requests_cache.disabled():
+            # Use the httpx library to make the request with HTTP/2 protocol
             # Append a random parameter to the url to bypass the cache
-            response = session.get(url + "?rand=" + str(random.randint(0, 1000000))) # add this line
+            response = httpx.get(url + "?rand=" + str(random.randint(0, 1000000)), http2=True) # add the http2 argument
         # Use orjson to decode the json data
         data = json.loads(response.content)
 
         # Calculate the duration of getting the json data
-        network_time = round(time.perf_counter() - start_time, 2) # use time.perf_counter() and subtract the start time
+        network_time = round(time.perf_counter() - start_time, 2)
 
         # Create a dataframe from the json data
         df = pd.DataFrame(data)
@@ -103,7 +102,7 @@ class TreacheryToken(commands.Cog):
         )
 
         # Set the timestamp of the embed with the timestamp attribute
-        embed.timestamp = datetime.utcnow() # use the utcnow() function
+        embed.timestamp = datetime.utcnow()
 
         # Add the current price as the first field of the embed, and set inline to False
         embed.add_field(name = "Current Price", value = f"```{current} gold```", inline = False)
@@ -116,7 +115,7 @@ class TreacheryToken(commands.Cog):
         embed.add_field(name = "1 Year Price", value = f"```High: {high_y} gold\nLow : {low_y} gold```", inline = True)
 
         # Calculate the total processing time
-        processing_time = round(time.perf_counter() - start_time, 2) # use time.perf_counter() and subtract the start time and move this line to the end of the command
+        processing_time = round(time.perf_counter() - start_time, 2)
 
         # Set the footer of the embed with the metrics
         embed.set_footer(text=f"n: {network_time} | p: {processing_time}")
