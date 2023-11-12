@@ -1,21 +1,20 @@
-# Import the time module
 import time
-
-# Import the other modules
 from redbot.core import commands
-import aiohttp # import aiohttp instead of requests
-import pandas as pd
-import discord
-from datetime import datetime, timedelta
+import aiohttp # a library for making asynchronous HTTP requests
+import pandas as pd # a library for data analysis and manipulation
+import discord # a library for interacting with the Discord API
+from datetime import datetime, timedelta # a module for working with dates and times
+import orjson as json # a library for fast JSON encoding and decoding
+import random # a module for generating random numbers
+from aiohttp import ClientTimeout # a class for setting the timeout for HTTP requests
 
-# Import orjson as json
-import orjson as json
-
-# Import random module
-import random
-
-# Create an aiohttp session object
-session = aiohttp.ClientSession() # use aiohttp.ClientSession() instead of requests.Session()
+# Create a function that creates and returns a new session object
+def get_session():
+    # Create a cookie jar object to store and send cookies
+    jar = aiohttp.CookieJar(unsafe=True)
+    # Create and return a new session object with the cookie jar and no timeout
+    # A session object allows to make multiple requests with the same settings
+    return aiohttp.ClientSession(cookie_jar=jar, timeout=ClientTimeout(total=None))
 
 class TreacheryToken(commands.Cog):
     """A cog that shows the price of the wow token"""
@@ -34,17 +33,36 @@ class TreacheryToken(commands.Cog):
 
         # Get the json data from the url
         url = "https://data.wowtoken.app/token/history/us/1y.json"
-        # Use the aiohttp session object to make the request
+        # Use the get_session function to create a new session object for each request
+        session = get_session()
+        # Use the session object to make the request
         # Use async with to ensure the session is closed properly
         # Append a random parameter to the url to bypass the cache
-        async with session.get(url + "?rand=" + str(random.randint(0, 1000000))) as response: # use async with and add the random parameter
+        # Use the headers parameter to pass a custom header
+        async with session.get(url + "?rand=" + str(random.randint(0, 1000000)), headers={"Cache-Control": "no-cache"}) as response:
             # Use orjson to decode the json data
-            data = json.loads(await response.read()) # use await response.read() to get the content
+            data = json.loads(await response.read())
+            # Get the Date header from the response
+            date_header = response.headers['Date']
+            # Parse the Date header to a datetime object
+            date_header = datetime.strptime(date_header, '%a, %d %b %Y %H:%M:%S %Z')
+            # Get the current time in UTC
+            current_time = datetime.utcnow()
+            # Calculate the difference between the current time and the Date header
+            time_diff = current_time - date_header
+            # Check if the response is cached or not
+            # If the time difference is less than 10 seconds, assume the response is not cached
+            # Otherwise, assume the response is cached
+            cached = 'n' if time_diff < timedelta(seconds=10) else 'y'
+
+        # Close the session after the request is done
+        await session.close()
 
         # Calculate the duration of getting the json data
         network_time = round(time.perf_counter() - start_time, 2)
 
         # Create a dataframe from the json data
+        # A dataframe is a two-dimensional data structure with rows and columns
         df = pd.DataFrame(data)
 
         # Convert the time column to datetime format
@@ -52,9 +70,11 @@ class TreacheryToken(commands.Cog):
         df["time"] = pd.to_datetime(df["time"], format="%Y-%m-%dT%H:%M:%S%z")
 
         # Set the time column as the index
+        # An index is a label for each row
         df = df.set_index("time")
 
         # Sort the dataframe by the time index
+        # Use the ascending argument to specify the order
         df = df.sort_index(ascending=True)
 
         # Define the end date as the most recent date in the dataframe
@@ -62,18 +82,21 @@ class TreacheryToken(commands.Cog):
         end_date = df.index.max()
 
         # Define the start dates for weekly, monthly, 6 month, and yearly timeframes
+        # Use the timedelta class to subtract days from the end date
         start_date_weekly = end_date - timedelta(days=7)
         start_date_monthly = end_date - timedelta(days=30)
         start_date_6month = end_date - timedelta(days=182)
         start_date_yearly = end_date - timedelta(days=365)
 
         # Filter the dataframe for the defined timeframes
+        # Use the loc method to select rows by index labels
         df_weekly = df.loc[start_date_weekly:end_date]
         df_monthly = df.loc[start_date_monthly:end_date]
         df_6month = df.loc[start_date_6month:end_date]
         df_yearly = df.loc[start_date_yearly:end_date]
 
         # Get the high and low prices for each timeframe
+        # Use the max() and min() methods on the value column
         high_w = df_weekly["value"].max()
         low_w = df_weekly["value"].min()
         high_m = df_monthly["value"].max()
@@ -84,8 +107,8 @@ class TreacheryToken(commands.Cog):
         low_y = df_yearly["value"].min()
 
         # Format the prices with commas
-        # Use the loc method instead of the iloc method to get the current price
-        current = f"{df.loc[end_date]['value']:,}" # pass the end date as the index value
+        # Use the f-string syntax and the comma operator
+        current = f"{df.loc[end_date]['value']:,}"
         high_w = f"{high_w:,}"
         low_w = f"{low_w:,}"
         high_m = f"{high_m:,}"
@@ -96,15 +119,15 @@ class TreacheryToken(commands.Cog):
         low_y = f"{low_y:,}"
 
         # Create a single embed object
+        # An embed object is a rich message that can have fields, colors, images, etc.
         embed = discord.Embed(
             color = discord.Color.blue(),
             title = "WoW Token Price",
         )
 
-        # Set the timestamp of the embed with the timestamp attribute
-        embed.timestamp = datetime.utcnow()
-
         # Add the current price as the first field of the embed, and set inline to False
+        # A field is a section of the embed that has a name and a value
+        # The inline argument determines whether the field is displayed in the same line as the previous field or not
         embed.add_field(name = "Current Price", value = f"```{current} gold```", inline = False)
 
         # Add the rest of the pairings as fields of the embed, and set inline to True for each pair
@@ -118,10 +141,9 @@ class TreacheryToken(commands.Cog):
         processing_time = round(time.perf_counter() - start_time, 2)
 
         # Set the footer of the embed with the metrics
-        embed.set_footer(text=f"n: {network_time} | p: {processing_time}")
+        # Add the cached check to the end of the footer
+        embed.set_footer(text=f"n: {network_time} | p: {processing_time} | c: {cached}")
 
         # Edit the loading message with the embed
+        # Use the content argument to clear the text and the embed argument to add the embed
         await loading_message.edit(content=None, embed=embed)
-
-# Close the session
-await session.close() # add this line at the end of the file
