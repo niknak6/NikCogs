@@ -1,12 +1,12 @@
 import discord
 from redbot.core import commands
 
-class HelloTest(commands.Cog):
+class PinFill(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command()
-    async def hellotest(self, ctx):
+    async def pinfill(self, ctx):
         # Create a variable to store the current number
         number = 1
         # Create a loop that runs until the channel's pins are full or a pin cannot be added
@@ -24,7 +24,7 @@ class HelloTest(commands.Cog):
             number += 1
 
     @commands.command()
-    async def unhellotest(self, ctx):
+    async def unpinfill(self, ctx):
         # Get a list of all pinned messages in the channel
         pins = await ctx.channel.pins()
         # Iterate over the pinned messages and unpin them
@@ -34,4 +34,4 @@ class HelloTest(commands.Cog):
         await ctx.send("I have removed all pins from this channel.")
 
 def setup(bot):
-    bot.add_cog(HelloTest(bot))
+    bot.add_cog(PinFill(bot))
