@@ -1,68 +1,50 @@
 from redbot.core import commands
-import requests
-from bs4 import BeautifulSoup, SoupStrainer
-from discord import Embed
-import asyncio
+import aiohttp
+from bs4 import BeautifulSoup
+from datetime import datetime
+
+# Define constants for the URLs and the affix icon prefix
+CURRENT_WEEK_URL = "https://keystone.guru/affixes"
+FUTURE_WEEKS_URL = "https://keystone.guru/affixes?offset=1"
+AFFIX_ICON_PREFIX = "affix_icon_"
 
 class TreacheryAffixes(commands.Cog):
+    """A cog that displays world of warcraft m+ data"""
+
     def __init__(self, bot):
         self.bot = bot
 
-    @staticmethod
-    def fetch_and_parse_affixes(offset: int):
-        # Fetch the HTML from the website
-        response = requests.get(f'https://keystone.guru/affixes?offset={offset}')
-        response.raise_for_status()
-
-        # Define a SoupStrainer to parse only the table rows and data
-        strainer = SoupStrainer(['tr', 'td'])
-
-        # Parse the HTML using the SoupStrainer
-        soup = BeautifulSoup(response.text, 'html.parser', parse_only=strainer)
-
-        # Find all table rows
-        table_rows = soup.find_all('tr', {'class': ['table_row odd', 'table_row even']})
-
-        # Initialize an empty list to store all affixes
-        all_affixes = []
-
-        for week_row in table_rows:
-            # Find the date in the first column and reformat it
-            date = week_row.find('td', {'class': 'first_column'}).get_text(strip=True)
-            year, month, day_hour = date.split('/')
-            day, hour = day_hour.split('@')
-            month_number = {
-                'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
-                'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
-                'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
-            }.get(month[:3], '')
-            formatted_date = f"{month_number}/{day}/{year[-2:]}"
-
-            # Find the affixes in the other columns
-            affixes = [td.get_text(strip=True) for td in week_row.find_all('td')[1:-1]]
-
-            # Append the date and affixes to the list
-            all_affixes.append((formatted_date, affixes))
-
-        return all_affixes
-
     @commands.command()
     async def affixes(self, ctx):
-        # Send a loading message
-        loading_message = await ctx.send("Loading Mythic+ Data...")
+        """Displays the current week and the future weeks affixes"""
+        # Get the current week and the future weeks affixes
+        current_week, future_weeks = await self.fetch_affix_data()
+        # Format and send the data as a message
+        await ctx.send(f"**Current week affixes:**\n{current_week}\n**Future weeks affixes:**\n{future_weeks}")
 
-        # Fetch and parse affixes for current week and future weeks
-        current_week_affixes = self.fetch_and_parse_affixes(0)[-1]
-        future_weeks_affixes = self.fetch_and_parse_affixes(1)
+    async def fetch_affix_data(self):
+        """Sends GET requests to both URLs, parses the HTML tables, and returns the affix data"""
+        # Create an asynchronous session and send GET requests to both URLs
+        async with aiohttp.ClientSession() as session, session.get(CURRENT_WEEK_URL) as current_response, session.get(FUTURE_WEEKS_URL) as future_response:
+            # Parse the response texts and find the table body elements
+            current_table = BeautifulSoup(await current_response.text(), "lxml").select_one("tbody")
+            future_table = BeautifulSoup(await future_response.text(), "lxml").select_one("tbody")
+            # Parse the last row for the current week and get the date and the affixes
+            current_date, current_affixes = self.parse_row(current_table.select("tr")[-1])
+            # Parse the rows for the future weeks and get the dates and the affixes
+            future_data = [self.parse_row(row) for row in future_table.select("tr") if "confirmed" not in row.get("class")]
+            # Format and return the data as strings
+            return f"{current_date}: {', '.join(current_affixes)}", "\n".join(f"{date}: {', '.join(affixes)}" for date, affixes in future_data)
 
-        # Create a new embed object
-        embed = Embed(title="Mythic+ Affixes", colour=0x3498db)
-
-        # Add a field to the embed for current week's affixes
-        embed.add_field(name="Current Week", value=f"{current_week_affixes[0]}: {', '.join(current_week_affixes[1])}", inline=False)
-
-        # Add a field to the embed for upcoming weeks' affixes
-        embed.add_field(name="Upcoming Weeks", value='\n'.join([f"{date}: {', '.join(affix_list)}" for date, affix_list in future_weeks_affixes]), inline=False)
-
-        # Edit the loading message with the actual data
-        await loading_message.edit(content='', embed=embed)
+    def parse_row(self, row):
+        """Parses a table row and returns the date and the affixes"""
+        # Get the class attribute of the row
+        row_class = row.get("class")
+        # Get the text from the first column or the span element
+        date = row.find("td", class_="first_column").text.strip() if "timewalking" in row_class else row.find("span").text.strip()
+        # Convert and format the date string if it is not 'Legion timewalking'
+        date = datetime.strptime(date, "%Y/%b/%d").date().strftime("%m/%d/%y") if date != "Legion timewalking" else date
+        # Find the affix divs and get their last class name without the affix icon prefix
+        affixes = [div["class"][-1].replace(AFFIX_ICON_PREFIX, "").capitalize() for div in row.select(f"div[class*={AFFIX_ICON_PREFIX}]")]
+        # Return the date and the affixes
+        return date, affixes
