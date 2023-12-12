@@ -55,6 +55,10 @@ class TreacheryTimers(commands.Cog):
             else:
                 # Handle the case when the section is not found
                 await ctx.send("Sorry, I could not find the section with the raid reset timers.")
+
+                # Output the response content for debugging
+                await ctx.send("Here is the response content:")
+                await ctx.send(soup.prettify())
         else:
             # Send an error message if the response is not successful
             await ctx.send(f"Sorry, I could not get the data from the remote host. The status code is {response.status_code}.")
