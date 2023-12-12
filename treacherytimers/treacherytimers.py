@@ -3,6 +3,7 @@ from redbot.core import commands
 import requests
 from bs4 import BeautifulSoup
 import datetime
+import importlib # Import the importlib module
 
 # Define the cog class
 class TreacheryTimers(commands.Cog):
@@ -36,3 +37,9 @@ class TreacheryTimers(commands.Cog):
         dt_str = dt.strftime("%Y-%m-%d %H:%M:%S")
         # Send the message to the user
         await ctx.send(f"The timer for {self.raid} is {dt_str}")
+
+        # Import the module by its name as a string
+        homePageLib = importlib.import_module("homePageLib")
+        # Use the module object to access its attributes
+        page = homePageLib.HomePage()
+        print(page)
