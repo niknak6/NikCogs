@@ -31,26 +31,30 @@ class TreacheryTimers(commands.Cog):
             # Find the section with the raid reset timers
             section = soup.find("section", id="US-group-raidresets")
 
-            # Find the link with the Blackfathom Deeps raid
-            link = section.find("a", href="/classic/zone=719/blackfathom-deeps")
+            # Check if the section exists
+            if section is not None:
+                # Find the link with the Blackfathom Deeps raid
+                link = section.find("a", href="/classic/zone=719/blackfathom-deeps")
 
-            # Get the timer as a timestamp
-            timer = link.parent["data-ut"]
+                # Get the timer as a timestamp
+                timer = link.parent["data-ut"]
 
-            # Convert the timestamp to a datetime object
-            timer = datetime.fromtimestamp(int(timer))
+                # Convert the timestamp to a datetime object
+                timer = datetime.fromtimestamp(int(timer))
 
-            # Convert the datetime object to eastern time
-            utc = pytz.utc
-            eastern = pytz.timezone("US/Eastern")
-            timer = utc.localize(timer).astimezone(eastern)
+                # Convert the datetime object to eastern time
+                utc = pytz.utc
+                eastern = pytz.timezone("US/Eastern")
+                timer = utc.localize(timer).astimezone(eastern)
 
-            # Format the datetime object as a string
-            timer = timer.strftime("%Y-%m-%d %H:%M:%S")
+                # Format the datetime object as a string
+                timer = timer.strftime("%Y-%m-%d %H:%M:%S")
 
-            # Send the timer to the user
-            await ctx.send(f"The reset timer for Blackfathom Deeps is {timer} (Eastern Time).")
-
+                # Send the timer to the user
+                await ctx.send(f"The reset timer for Blackfathom Deeps is {timer} (Eastern Time).")
+            else:
+                # Handle the case when the section is not found
+                await ctx.send("Sorry, I could not find the section with the raid reset timers.")
         else:
             # Send an error message if the response is not successful
             await ctx.send(f"Sorry, I could not get the data from the remote host. The status code is {response.status_code}.")
