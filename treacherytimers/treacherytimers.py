@@ -31,7 +31,7 @@ class TreacheryTimers(commands.Cog):
             soup = BeautifulSoup(response.content, "html.parser")
 
             # Find the section with the raid reset timers
-            section = soup.get("section", id="US-group-raidresets", default=None)
+            section = soup.find("section", id="US-group-raidresets", default=None)
 
             # Check if the section is not None
             if section is not None:
