@@ -31,7 +31,8 @@ class TreacheryTimers(commands.Cog):
             soup = BeautifulSoup(response.content, "html.parser")
 
             # Find the section with the raid reset timers
-            section = soup.find("section", id="US-group-dungeons-and-raids")
+            # Use the class and data-group attributes instead of the id attribute
+            section = soup.find("section", class_="group", attrs={"data-group": "US"})
 
             # Check if the section exists
             if section is not None:
