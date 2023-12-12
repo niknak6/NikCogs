@@ -1,48 +1,56 @@
 # Import the required modules
-from redbot.core import commands
-import requests
 from bs4 import BeautifulSoup
-import datetime
-import importlib # Import the importlib module
-import time # Import the time module
+import requests
+from redbot.core import commands
+from datetime import datetime
+import pytz
 
 # Define the cog class
 class TreacheryTimers(commands.Cog):
-    """A cog that shows the raid reset timers for WoW Classic"""
+    """A cog that parses raid reset timers from wowhead.com/classic"""
 
     def __init__(self, bot):
         self.bot = bot
-        self.url = "https://www.wowhead.com/classic" # The remote host URL
-        self.raid = "Blackfathom Deeps" # The raid name
-        self.section_id = "US-group-raidresets" # The section id in the HTML
-        self.line_id = "US-group-raidresets-line-7" # The line id in the HTML
 
     @commands.command()
     async def timers(self, ctx):
-        """Shows the timer for Blackfathom Deeps"""
-        # Get the HTML content from the URL
-        response = requests.get(self.url)
-        # Parse the HTML with BeautifulSoup
-        soup = BeautifulSoup(response.content, "html.parser")
-        # Find the section element by id
-        section = soup.find(id=self.section_id)
-        # Find the line element by id
-        line = section.find(id=self.line_id)
-        # Find the timer element by data-ut attribute
-        timer = line.find(attrs={"data-ut": True})
-        # Get the data-ut value as an integer
-        unix_timestamp = int(timer["data-ut"])
-        # Convert the Unix timestamp to a POSIX timestamp by subtracting the timezone offset
-        posix_timestamp = unix_timestamp - time.timezone
-        # Convert the POSIX timestamp to a datetime object
-        dt = datetime.datetime.fromtimestamp(posix_timestamp)
-        # Format the datetime object as a string
-        dt_str = dt.strftime("%Y-%m-%d %H:%M:%S")
-        # Send the message to the user
-        await ctx.send(f"The timer for {self.raid} is {dt_str}")
+        """Shows the raid reset timers for classic wow"""
 
-        # Import the module by its name as a string
-        homePageLib = importlib.import_module("homePageLib")
-        # Use the module object to access its attributes
-        page = homePageLib.HomePage()
-        print(page)
+        # Define the url and the headers
+        url = "https://www.wowhead.com/classic"
+        headers = {"User-Agent": "Red-DiscordBot/3.5"}
+
+        # Make a request and get the response
+        response = requests.get(url, headers=headers)
+
+        # Check if the response is successful
+        if response.status_code == 200:
+            # Parse the response content with beautifulsoup
+            soup = BeautifulSoup(response.content, "html.parser")
+
+            # Find the section with the raid reset timers
+            section = soup.find("section", id="US-group-raidresets")
+
+            # Find the link with the Blackfathom Deeps raid
+            link = section.find("a", href="/classic/zone=719/blackfathom-deeps")
+
+            # Get the timer as a timestamp
+            timer = link.parent["data-ut"]
+
+            # Convert the timestamp to a datetime object
+            timer = datetime.fromtimestamp(int(timer))
+
+            # Convert the datetime object to eastern time
+            utc = pytz.utc
+            eastern = pytz.timezone("US/Eastern")
+            timer = utc.localize(timer).astimezone(eastern)
+
+            # Format the datetime object as a string
+            timer = timer.strftime("%Y-%m-%d %H:%M:%S")
+
+            # Send the timer to the user
+            await ctx.send(f"The reset timer for Blackfathom Deeps is {timer} (Eastern Time).")
+
+        else:
+            # Send an error message if the response is not successful
+            await ctx.send(f"Sorry, I could not get the data from the remote host. The status code is {response.status_code}.")
