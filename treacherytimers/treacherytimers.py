@@ -31,33 +31,54 @@ class TreacheryTimers(commands.Cog):
             soup = BeautifulSoup(response.content, "html.parser")
 
             # Find the section with the raid reset timers
-            # Use the class and data-group attributes instead of the id attribute
-            section = soup.find("section", class_="group", attrs={"data-group": "US"})
+            section = soup.find("section", id="US-group-raidresets")
 
-            # Check if the section exists
-            if section is not None:
-                # Find the link with the Blackfathom Deeps raid
-                link = section.find("a", href="/classic/zone=719/blackfathom-deeps")
+            # Initialize an empty list to store the timers and names
+            timers_and_names = []
 
-                # Get the timer as a timestamp
-                timer = link.parent["data-ut"]
+            # Loop through the section's children
+            for child in section.children:
+                # Check if the child is a section element
+                if child.name == "section":
+                    # Check if the child has a data-ut attribute
+                    if "data-ut" in child.attrs:
+                        # Get the timer as a timestamp
+                        timer = child.get("data-ut", type=int)
 
-                # Convert the timestamp to a datetime object
-                timer = datetime.fromtimestamp(int(timer))
+                        # Convert the timestamp to a datetime object
+                        timer = datetime.fromtimestamp(timer)
 
-                # Convert the datetime object to eastern time
-                utc = pytz.utc
-                eastern = pytz.timezone("US/Eastern")
-                timer = utc.localize(timer).astimezone(eastern)
+                        # Convert the datetime object to eastern time
+                        utc = pytz.utc
+                        eastern = pytz.timezone("US/Eastern")
+                        timer = utc.localize(timer).astimezone(eastern)
 
-                # Format the datetime object as a string
-                timer = timer.strftime("%Y-%m-%d %H:%M:%S")
+                        # Format the datetime object as a string
+                        timer = timer.strftime("%Y-%m-%d %H:%M:%S")
 
-                # Send the timer to the user
-                await ctx.send(f"The reset timer for Blackfathom Deeps is {timer} (Eastern Time).")
-            else:
-                # Handle the case when the section is not found
-                await ctx.send("Sorry, I could not find the section with the raid reset timers.")
+                        # Append the timer to the list
+                        timers_and_names.append(timer)
+                    # Check if the child has an a element
+                    elif child.find("a") is not None:
+                        # Get the name of the raid
+                        name = child.find("a").text
+
+                        # Append the name to the list
+                        timers_and_names.append(name)
+
+            # Send the timers and names to the user
+            await ctx.send("Here are the raid reset timers for classic wow (Eastern Time):")
+            # Use a code block to format the output
+            await ctx.send("```")
+            # Loop through the list in pairs
+            for i in range(0, len(timers_and_names), 2):
+                # Get the timer and the name
+                timer = timers_and_names[i]
+                name = timers_and_names[i+1]
+                # Send the timer and the name
+                await ctx.send(f"{name}: {timer}")
+            # End the code block
+            await ctx.send("```")
 
         else:
             # Send an error message if the response is not successful
