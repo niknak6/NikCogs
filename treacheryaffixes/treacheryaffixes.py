@@ -20,7 +20,7 @@ class TreacheryAffixes(commands.Cog):
         # Get the current week and the future weeks affixes
         current_week, future_weeks = await self.fetch_affix_data()
         # Format and send the data as a message
-        await ctx.send(f"**Current Week:**\n{current_week}\n**Future Weeks:**\n{future_weeks}")
+        await ctx.send(f"**Current Week:**\n{current_week}\n**Future Weekss:**\n{future_weeks}")
 
     async def fetch_affix_data(self):
         """Sends GET requests to both URLs, parses the HTML tables, and returns the affix data"""
