@@ -11,6 +11,8 @@ class TreacheryTimers(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        # Define a variable to control debug dumping
+        self.debug = False
 
     @commands.command()
     async def timers(self, ctx):
@@ -60,11 +62,13 @@ class TreacheryTimers(commands.Cog):
             # Send an error message if the response is not successful
             await ctx.send(f"Sorry, I could not get the data from the remote host. The status code is {response.status_code}.")
 
-        # Output the response content for debugging
-        await ctx.send("Here is the response content:")
-        content = soup.prettify()
-        # Split the content into chunks of 2000 characters
-        chunks = [content[i:i+2000] for i in range(0, len(content), 2000)]
-        # Send each chunk as a separate message
-        for chunk in chunks:
-            await ctx.send(chunk)
+        # Check if debug dumping is enabled
+        if self.debug:
+            # Output the response content for debugging
+            await ctx.send("Here is the response content:")
+            content = soup.prettify()
+            # Split the content into chunks of 2000 characters
+            chunks = [content[i:i+2000] for i in range(0, len(content), 2000)]
+            # Send each chunk as a separate message
+            for chunk in chunks:
+                await ctx.send(chunk)
