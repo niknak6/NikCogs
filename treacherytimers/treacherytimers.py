@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import datetime
 import importlib # Import the importlib module
+import time # Import the time module
 
 # Define the cog class
 class TreacheryTimers(commands.Cog):
@@ -30,9 +31,11 @@ class TreacheryTimers(commands.Cog):
         # Find the timer element by data-ut attribute
         timer = line.find(attrs={"data-ut": True})
         # Get the data-ut value as an integer
-        timestamp = int(timer["data-ut"])
-        # Convert the timestamp to a datetime object
-        dt = datetime.datetime.fromtimestamp(timestamp)
+        unix_timestamp = int(timer["data-ut"])
+        # Convert the Unix timestamp to a POSIX timestamp by subtracting the timezone offset
+        posix_timestamp = unix_timestamp - time.timezone
+        # Convert the POSIX timestamp to a datetime object
+        dt = datetime.datetime.fromtimestamp(posix_timestamp)
         # Format the datetime object as a string
         dt_str = dt.strftime("%Y-%m-%d %H:%M:%S")
         # Send the message to the user
