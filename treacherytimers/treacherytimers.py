@@ -31,67 +31,20 @@ class TreacheryTimers(commands.Cog):
             soup = BeautifulSoup(response.content, "html.parser")
 
             # Find all the sections with the raid reset timers
-            sections = soup.find_all("section", id="US-group-raidresets")
+            sections = soup.find_all("section", class_="tiw-group")
 
             # Check if the sections are not empty
             if sections:
                 # Initialize an empty list to store the timers and names
-                timers_and_names = []
+                mylist = [" ".join(section.stripped_strings) for section in sections]
 
-                # Loop through the sections
-                for section in sections:
-                    # Find all the direct children of the section that are tags
-                    children = section.find_all(recursive=False)
-
-                    # Loop through the children
-                    for child in children:
-                        # Check if the child is a section element
-                        if child.name == "section":
-                            # Try to get the timer as a timestamp
-                            try:
-                                timer = child["data-ut"]
-                            except KeyError:
-                                # Handle the error if the attribute is not found
-                                # For example, skip the element or log the error message
-                                continue
-
-                            # Convert the timestamp to an integer
-                            timer = int(timer)
-
-                            # Convert the timestamp to a datetime object
-                            timer = datetime.fromtimestamp(timer)
-
-                            # Convert the datetime object to eastern time
-                            utc = pytz.utc
-                            eastern = pytz.timezone("US/Eastern")
-                            timer = utc.localize(timer).astimezone(eastern)
-
-                            # Format the datetime object as a string
-                            timer = timer.strftime("%Y-%m-%d %H:%M:%S")
-
-                            # Append the timer to the list
-                            timers_and_names.append(timer)
-                        # Check if the child is a link element
-                        elif child.name == "a":
-                            # Get the name of the raid
-                            name = child.get_text()
-
-                            # Append the name to the list
-                            timers_and_names.append(name)
+                # Zip the list into pairs of name and timer
+                pairs = zip(mylist[::2], mylist[1::2])
 
                 # Send the timers and names to the user
                 await ctx.send("Here are the raid reset timers for classic wow (Eastern Time):")
-                # Use a code block to format the output
-                await ctx.send("```")
-                # Loop through the list in pairs
-                for i in range(0, len(timers_and_names), 2):
-                    # Get the timer and the name
-                    timer = timers_and_names[i]
-                    name = timers_and_names[i+1]
-                    # Send the timer and the name
-                    await ctx.send(f"{name}: {timer}")
-                # End the code block
-                await ctx.send("```")
+                # Use a formatted string to display the pairs
+                await ctx.send("\n".join(f"{name}: {timer}" for name, timer in pairs))
             else:
                 # Handle the case when the sections are empty
                 await ctx.send("Sorry, I could not find any sections with the raid reset timers.")
