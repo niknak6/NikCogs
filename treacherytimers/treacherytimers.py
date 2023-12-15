@@ -30,10 +30,10 @@ class TreacheryTimers(commands.Cog):
             # Parse the response content with beautifulsoup
             soup = BeautifulSoup(response.content, "html.parser")
 
-            # Find all the sections with the raid reset timers
-            sections = soup.find_all("section", class_="tiw-group")
+            # Find the section with the raid reset timers
+            sections = soup.find_all("section", id="US-group-raidresets-1")
 
-            # Check if the sections are not empty
+            # Check if the section is not empty
             if sections:
                 # Initialize an empty list to store the timers and names
                 mylist = [" ".join(section.stripped_strings) for section in sections]
@@ -46,8 +46,8 @@ class TreacheryTimers(commands.Cog):
                 # Use a formatted string to display the pairs
                 await ctx.send("\n".join(f"{name}: {timer}" for name, timer in pairs))
             else:
-                # Handle the case when the sections are empty
-                await ctx.send("Sorry, I could not find any sections with the raid reset timers.")
+                # Handle the case when the section is empty
+                await ctx.send("Sorry, I could not find the section with the raid reset timers.")
 
         else:
             # Send an error message if the response is not successful
