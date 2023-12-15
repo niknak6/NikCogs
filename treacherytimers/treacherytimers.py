@@ -30,22 +30,33 @@ class TreacheryTimers(commands.Cog):
             # Parse the response content with beautifulsoup
             soup = BeautifulSoup(response.content, "html.parser")
 
-            # Find the section with the raid reset timers
-            section = soup.find("section", id="US-group-raidresets", default=None)
+            # Find all the sections with the raid reset timers
+            sections = soup.find_all("section", id="US-group-raidresets")
 
-            # Check if the section is not None
-            if section is not None:
+            # Check if the sections are not empty
+            if sections:
                 # Initialize an empty list to store the timers and names
                 timers_and_names = []
 
-                # Loop through the section's children
-                for child in section.children:
-                    # Check if the child is a section element
-                    if child.name == "section":
-                        # Check if the child has a data-ut attribute
-                        if "data-ut" in child.attrs:
-                            # Get the timer as a timestamp
-                            timer = child.get("data-ut", type=int)
+                # Loop through the sections
+                for section in sections:
+                    # Find all the direct children of the section that are tags
+                    children = section.find_all(recursive=False)
+
+                    # Loop through the children
+                    for child in children:
+                        # Check if the child is a section element
+                        if child.name == "section":
+                            # Try to get the timer as a timestamp
+                            try:
+                                timer = child["data-ut"]
+                            except KeyError:
+                                # Handle the error if the attribute is not found
+                                # For example, skip the element or log the error message
+                                continue
+
+                            # Convert the timestamp to an integer
+                            timer = int(timer)
 
                             # Convert the timestamp to a datetime object
                             timer = datetime.fromtimestamp(timer)
@@ -60,10 +71,10 @@ class TreacheryTimers(commands.Cog):
 
                             # Append the timer to the list
                             timers_and_names.append(timer)
-                        # Check if the child has an a element
-                        elif child.find("a") is not None:
+                        # Check if the child is a link element
+                        elif child.name == "a":
                             # Get the name of the raid
-                            name = child.find("a").text
+                            name = child.get_text()
 
                             # Append the name to the list
                             timers_and_names.append(name)
@@ -82,8 +93,8 @@ class TreacheryTimers(commands.Cog):
                 # End the code block
                 await ctx.send("```")
             else:
-                # Handle the case when the section is None
-                await ctx.send("Sorry, I could not find the section with the raid reset timers.")
+                # Handle the case when the sections are empty
+                await ctx.send("Sorry, I could not find any sections with the raid reset timers.")
 
         else:
             # Send an error message if the response is not successful
