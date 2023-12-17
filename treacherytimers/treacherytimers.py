@@ -32,12 +32,18 @@ class TreacheryTimers(commands.Cog):
 
             # Find all the sections with the raid reset timers
             import re
-            sections = soup.find_all("section", id=re.compile("^US-group-raidresets"))
+            # Change this line
+            # sections = soup.find_all("section", id=re.compile("^US-group-raidresets"))
+            # To this line
+            sections = soup.find_all("section", id=re.compile("^.*-group-raidresets"))
 
             # Check if the sections are not empty
             if sections:
                 # Initialize an empty list to store the timers and names
-                mylist = [" ".join(section.stripped_strings) for section in sections]
+                # Change this line
+                # mylist = [" ".join(section.stripped_strings) for section in sections]
+                # To this line
+                mylist = [" ".join(div.get_text() for div in section.find_all("div", class_="tiw-line")) for section in sections]
 
                 # Zip the list into pairs of name and timer
                 pairs = zip(mylist[::2], mylist[1::2])
@@ -45,7 +51,10 @@ class TreacheryTimers(commands.Cog):
                 # Send the timers and names to the user
                 await ctx.send("Here are the raid reset timers for classic wow (Eastern Time):")
                 # Use a formatted string to display the pairs
-                await ctx.send("\n".join(f"{name}: {timer}" for name, timer in pairs))
+                # Change this line
+                # await ctx.send("\n".join(f"{name}: {timer}" for name, timer in pairs))
+                # To this line
+                await ctx.send("\n".join(f"**{name}**: {timer}" for name, timer in pairs))
             else:
                 # Handle the case when the sections are empty
                 await ctx.send("Sorry, I could not find any sections with the raid reset timers.")
