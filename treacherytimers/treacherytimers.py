@@ -2,7 +2,7 @@
 from bs4 import BeautifulSoup
 import requests
 from redbot.core import commands
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 
 # Define the cog class
@@ -30,8 +30,8 @@ class TreacheryTimers(commands.Cog):
             # Parse the response content with beautifulsoup
             soup = BeautifulSoup(response.content, "html.parser")
 
-            # Find the div with the calendar
-            calendar = soup.find("div", id="calendar-element")
+            # Find the div with the calendar using a CSS selector
+            calendar = soup.select_one("div.m-PromoList.o-Capsule__m-PromoList")
 
             # Check if the calendar is not empty
             if calendar:
@@ -46,11 +46,13 @@ class TreacheryTimers(commands.Cog):
 
                 # Loop through the events
                 for event in events:
-                    # Get the name and the timer from the event
-                    name = event["data-title"]
-                    timer = event["data-date"]
+                    # Find the a element inside the event
+                    a = event.find("a")
+                    # Get the name and the timer from the a element
+                    name = a["data-title"]
+                    timer = a["data-date"]
 
-                    # Convert the timer to a date object
+                    # Convert the timer to a date object using the correct format
                     timer = datetime.strptime(timer, "%Y-%m-%d").date()
 
                     # Check if the timer is today or later
