@@ -55,10 +55,15 @@ class TreacheryTimers(commands.Cog):
                     # Append the name and the timer to the list
                     mylist.append(f"{name}: {timer}")
 
-                # Send the timers and names to the user
-                await ctx.send("Here are the raid reset timers for classic SoD (Eastern Time):")
-                # Use a formatted string to display the list
-                await ctx.send("\n".join(mylist))
+                # Check if the list is not empty
+                if mylist:
+                    # Send the timers and names to the user
+                    await ctx.send("Here are the raid reset timers for classic SoD (Eastern Time):")
+                    # Use a formatted string to display the list
+                    await ctx.send("\n".join(mylist))
+                else:
+                    # Handle the case when the list is empty
+                    await ctx.send("Sorry, I could not find any events for the requested date range.")
             else:
                 # Handle the case when the calendar is empty
                 await ctx.send("Sorry, I could not find the calendar with the raid reset timers.")
