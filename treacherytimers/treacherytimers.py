@@ -1,8 +1,9 @@
 # Import the required modules
-import asyncio
-from pyppeteer import launch
+from bs4 import BeautifulSoup
+import requests
 from redbot.core import commands
-import json # Import the json module
+from datetime import datetime
+import pytz
 
 # Define the cog class
 class TreacheryTimers(commands.Cog):
@@ -21,39 +22,45 @@ class TreacheryTimers(commands.Cog):
         url = "https://www.wowhead.com/classic"
         headers = {"User-Agent": "Red-DiscordBot/3.5"}
 
-        # Launch a headless browser and create a new page
-        browser = await launch(headless=False, autoClose=False, handleSIGINT=False) # Add some options to prevent the browser from closing unexpectedly
-        page = await browser.newPage()
+        # Make a request and get the response
+        response = requests.get(url, headers=headers)
 
-        # Set the headers for the page
-        await page.setExtraHTTPHeaders(headers)
+        # Check if the response is successful
+        if response.status_code == 200:
+            # Parse the response content with beautifulsoup
+            soup = BeautifulSoup(response.content, "html.parser")
 
-        # Go to the url and wait for the page to load
-        await page.goto(url, waitUntil="networkidle0")
+            # Find all the sections with the raid reset timers
+            import re
+            sections = soup.find_all("section", id=re.compile("^US-group-raidresets"))
 
-        # Evaluate a JavaScript expression on the page and get the result
-        js_data = await page.evaluate("WH.Wow.TodayInWow.US")
+            # Check if the sections are not empty
+            if sections:
+                # Initialize an empty list to store the timers and names
+                mylist = [" ".join(section.stripped_strings) for section in sections]
 
-        # Close the browser
-        await browser.close()
+                # Zip the list into pairs of name and timer
+                pairs = zip(mylist[::2], mylist[1::2])
 
-        # Check if the js data is not None
-        if js_data is None:
-            # Handle the case when the js data is None
-            await ctx.send("Sorry, I could not find the raid reset timers on the web page.")
+                # Send the timers and names to the user
+                await ctx.send("Here are the raid reset timers for classic wow (Eastern Time):")
+                # Use a formatted string to display the pairs
+                await ctx.send("\n".join(f"{name}: {timer}" for name, timer in pairs))
+            else:
+                # Handle the case when the sections are empty
+                await ctx.send("Sorry, I could not find any sections with the raid reset timers.")
+
         else:
-            # Send the raid reset timers to the user
-            await ctx.send("Here are the raid reset timers for classic wow (Eastern Time):")
-            # Use a formatted string to display the pairs
-            await ctx.send("\n".join(f"**{line['name']}**: {line['endingShort']}" for group in js_data for line in group["content"]["lines"].values()))
+            # Send an error message if the response is not successful
+            await ctx.send(f"Sorry, I could not get the data from the remote host. The status code is {response.status_code}.")
 
         # Check if debug dumping is enabled
         if self.debug:
-            # Output the js data for debugging
-            await ctx.send("Here is the js data:")
-            js_data = json.dumps(js_data, indent=4)
-            # Split the js data into chunks of 2000 characters
-            chunks = [js_data[i:i+2000] for i in range(0, len(js_data), 2000)]
+            # Output the response content for debugging
+            await ctx.send("Here is the response content:")
+            content = soup.prettify()
+            # Split the content into chunks of 2000 characters
+            chunks = [content[i:i+2000] for i in range(0, len(content), 2000)]
             # Send each chunk as a separate message
             for chunk in chunks:
                 await ctx.send(chunk)
