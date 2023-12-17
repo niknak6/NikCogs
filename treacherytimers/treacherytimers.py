@@ -2,7 +2,7 @@
 from bs4 import BeautifulSoup
 import requests
 from redbot.core import commands
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 # Define the cog class
@@ -15,7 +15,7 @@ class TreacheryTimers(commands.Cog):
         self.debug = False
 
     @commands.command()
-    async def timers(self, ctx, date=None):
+    async def timers(self, ctx):
         """Shows the raid reset timers for classic SoD (Eastern Time)"""
 
         # Define the url and the headers
@@ -41,19 +41,33 @@ class TreacheryTimers(commands.Cog):
                 # Find all the events in the calendar
                 events = calendar.find_all("div", class_="fc-event")
 
+                # Get today's date in Eastern Time
+                today = datetime.now(pytz.timezone("US/Eastern")).date()
+
                 # Loop through the events
                 for event in events:
                     # Get the name and the timer from the event
                     name = event["data-title"]
                     timer = event["data-date"]
 
-                    # Format the timer to match the Eastern Time zone
-                    timer = datetime.strptime(timer, "%Y-%m-%d")
-                    timer = timer.astimezone(pytz.timezone("US/Eastern"))
-                    timer = timer.strftime("%Y-%m-%d")
+                    # Convert the timer to a date object
+                    timer = datetime.strptime(timer, "%Y-%m-%d").date()
 
-                    # Append the name and the timer to the list
-                    mylist.append(f"{name}: {timer}")
+                    # Check if the timer is today or later
+                    if timer >= today:
+                        # Calculate the days until the reset
+                        days = (timer - today).days
+
+                        # Format the days as a string
+                        if days == 0:
+                            days = "today"
+                        elif days == 1:
+                            days = "tomorrow"
+                        else:
+                            days = f"in {days} days"
+
+                        # Append the name and the days to the list
+                        mylist.append(f"{name}: {days}")
 
                 # Check if the list is not empty
                 if mylist:
@@ -82,17 +96,3 @@ class TreacheryTimers(commands.Cog):
             # Send each chunk as a separate message
             for chunk in chunks:
                 await ctx.send(chunk)
-
-        # If the date argument is not given, use the current date
-        if date is None:
-            date = ctx.message.created_at
-
-        # Change the date format of the date range to match the events
-        start_date = datetime.strptime(date.startStr, "%Y-%m-%dT%H:%M:%S")
-        start_date = start_date.strftime("%Y-%m-%d")
-        end_date = datetime.strptime(date.endStr, "%Y-%m-%dT%H:%M:%S")
-        end_date = end_date.strftime("%Y-%m-%d")
-
-        # Pass the start_date and end_date variables to the getEvents method
-        # This line is indented inside the timers function
-        $wire.getEvents(start_date, end_date)
