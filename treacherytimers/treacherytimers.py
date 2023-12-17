@@ -30,24 +30,38 @@ class TreacheryTimers(commands.Cog):
             # Parse the response content with beautifulsoup
             soup = BeautifulSoup(response.content, "html.parser")
 
-            # Find all the divs with the raid reset timers
-            def is_raid_reset(tag):
-                return tag.name == "div" and tag.has_attr("id") and tag["id"][0].isdigit()
+            # Find the div with the calendar
+            calendar = soup.find("div", id="calendar-element")
 
-            sections = soup.find_all(is_raid_reset)
-
-            # Check if the sections are not empty
-            if sections:
+            # Check if the calendar is not empty
+            if calendar:
                 # Initialize an empty list to store the timers and names
-                mylist = [section.find("span").text for section in sections]
+                mylist = []
+
+                # Find all the events in the calendar
+                events = calendar.find_all("div", class_="fc-event")
+
+                # Loop through the events
+                for event in events:
+                    # Get the name and the timer from the event
+                    name = event["data-title"]
+                    timer = event["data-date"]
+
+                    # Format the timer to match the Eastern Time zone
+                    timer = datetime.strptime(timer, "%Y-%m-%d")
+                    timer = timer.astimezone(pytz.timezone("US/Eastern"))
+                    timer = timer.strftime("%Y-%m-%d")
+
+                    # Append the name and the timer to the list
+                    mylist.append(f"{name}: {timer}")
 
                 # Send the timers and names to the user
                 await ctx.send("Here are the raid reset timers for classic SoD (Eastern Time):")
                 # Use a formatted string to display the list
                 await ctx.send("\n".join(mylist))
             else:
-                # Handle the case when the sections are empty
-                await ctx.send("Sorry, I could not find any divs with the raid reset timers.")
+                # Handle the case when the calendar is empty
+                await ctx.send("Sorry, I could not find the calendar with the raid reset timers.")
 
         else:
             # Send an error message if the response is not successful
