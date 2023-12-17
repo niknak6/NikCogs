@@ -22,7 +22,7 @@ class TreacheryTimers(commands.Cog):
         headers = {"User-Agent": "Red-DiscordBot/3.5"}
 
         # Launch a headless browser and create a new page
-        browser = await launch()
+        browser = await launch(headless=False, autoClose=False, handleSIGINT=False) # Add some options to prevent the browser from closing unexpectedly
         page = await browser.newPage()
 
         # Set the headers for the page
