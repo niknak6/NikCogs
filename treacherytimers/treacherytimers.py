@@ -15,7 +15,7 @@ class TreacheryTimers(commands.Cog):
         self.debug = False
 
     @commands.command()
-    async def timers(self, ctx):
+    async def timers(self, ctx, date=None):
         """Shows the raid reset timers for classic SoD (Eastern Time)"""
 
         # Define the url and the headers
@@ -83,6 +83,10 @@ class TreacheryTimers(commands.Cog):
             for chunk in chunks:
                 await ctx.send(chunk)
 
+        # If the date argument is not given, use the current date
+        if date is None:
+            date = ctx.message.created_at
+
         # Change the date format of the date range to match the events
         start_date = datetime.strptime(date.startStr, "%Y-%m-%dT%H:%M:%S")
         start_date = start_date.strftime("%Y-%m-%d")
@@ -90,5 +94,5 @@ class TreacheryTimers(commands.Cog):
         end_date = end_date.strftime("%Y-%m-%d")
 
         # Pass the start_date and end_date variables to the getEvents method
-        # Move this line inside the timers function and indent it
+        # This line is indented inside the timers function
         $wire.getEvents(start_date, end_date)
