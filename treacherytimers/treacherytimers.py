@@ -7,7 +7,7 @@ import pytz
 
 # Define the cog class
 class TreacheryTimers(commands.Cog):
-    """A cog that parses raid reset timers from wowhead.com/classic"""
+    """A cog that parses raid reset timers from classicraidreset.com/US/SoD"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -16,10 +16,10 @@ class TreacheryTimers(commands.Cog):
 
     @commands.command()
     async def timers(self, ctx):
-        """Shows the raid reset timers for classic wow"""
+        """Shows the raid reset timers for classic SoD (Eastern Time)"""
 
         # Define the url and the headers
-        url = "https://www.wowhead.com/classic"
+        url = "https://classicraidreset.com/US/SoD"
         headers = {"User-Agent": "Red-DiscordBot/3.5"}
 
         # Make a request and get the response
@@ -30,25 +30,24 @@ class TreacheryTimers(commands.Cog):
             # Parse the response content with beautifulsoup
             soup = BeautifulSoup(response.content, "html.parser")
 
-            # Find all the sections with the raid reset timers
-            import re
-            sections = soup.find_all("section", id=re.compile("^US-group-raidresets"))
+            # Find all the divs with the raid reset timers
+            def is_raid_reset(tag):
+                return tag.name == "div" and tag.has_attr("id") and tag["id"][0].isdigit()
+
+            sections = soup.find_all(is_raid_reset)
 
             # Check if the sections are not empty
             if sections:
                 # Initialize an empty list to store the timers and names
-                mylist = [" ".join(section.stripped_strings) for section in sections]
-
-                # Zip the list into pairs of name and timer
-                pairs = zip(mylist[::2], mylist[1::2])
+                mylist = [section.find("span").text for section in sections]
 
                 # Send the timers and names to the user
-                await ctx.send("Here are the raid reset timers for classic wow (Eastern Time):")
-                # Use a formatted string to display the pairs
-                await ctx.send("\n".join(f"{name}: {timer}" for name, timer in pairs))
+                await ctx.send("Here are the raid reset timers for classic SoD (Eastern Time):")
+                # Use a formatted string to display the list
+                await ctx.send("\n".join(mylist))
             else:
                 # Handle the case when the sections are empty
-                await ctx.send("Sorry, I could not find any sections with the raid reset timers.")
+                await ctx.send("Sorry, I could not find any divs with the raid reset timers.")
 
         else:
             # Send an error message if the response is not successful
