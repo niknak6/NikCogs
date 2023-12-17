@@ -83,11 +83,12 @@ class TreacheryTimers(commands.Cog):
             for chunk in chunks:
                 await ctx.send(chunk)
 
-# Change the date format of the date range to match the events
-start_date = datetime.strptime(date.startStr, "%Y-%m-%dT%H:%M:%S")
-start_date = start_date.strftime("%Y-%m-%d")
-end_date = datetime.strptime(date.endStr, "%Y-%m-%dT%H:%M:%S")
-end_date = end_date.strftime("%Y-%m-%d")
+        # Change the date format of the date range to match the events
+        start_date = datetime.strptime(date.startStr, "%Y-%m-%dT%H:%M:%S")
+        start_date = start_date.strftime("%Y-%m-%d")
+        end_date = datetime.strptime(date.endStr, "%Y-%m-%dT%H:%M:%S")
+        end_date = end_date.strftime("%Y-%m-%d")
 
-# Pass the start_date and end_date variables to the getEvents method
-$wire.getEvents(start_date, end_date)
+        # Pass the start_date and end_date variables to the getEvents method
+        # Move this line inside the timers function and indent it
+        $wire.getEvents(start_date, end_date)
