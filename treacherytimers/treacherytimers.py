@@ -28,9 +28,9 @@ class TreacheryTimers(commands.Cog):
         # Assign the bot instance to an attribute
         self.bot = bot
 
-    # Define a command method with the name affixes
+    # Define a command method with the name timers
     @commands.command()
-    async def affixes(self, ctx):
+    async def timers(self, ctx):
         """This shows the raid reset timers from the website."""
 
         # Send a GET request to the website and get the response
