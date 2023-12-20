@@ -1,4 +1,4 @@
-# Import the commands and utils modules from the redbot.core package
+# Import the commands and utils modules from the redbot.core packages
 from redbot.core import commands, utils
 
 # Import the requests and beautifulsoup4 libraries
