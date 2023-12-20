@@ -1,100 +1,74 @@
-# Import the required modules
-from bs4 import BeautifulSoup
+# Import the commands and utils modules from the redbot.core package
+from redbot.core import commands, utils
+
+# Import the requests and beautifulsoup4 libraries
 import requests
-from redbot.core import commands
-from datetime import datetime
-import pytz
+from bs4 import BeautifulSoup
 
-# Define the cog class
+# Define a constant for the website URL
+URL = "https://classicraidreset.com/US/SoD"
+
+# Define a helper function to format the event data as a string
+def format_event(event):
+    # Get the event id, title, start date, and end date
+    event_id = event["id"]
+    event_title = event["title"]
+    event_start = event["start"]
+    event_end = event["end"]
+
+    # Return a formatted string with the event details
+    return f"**{event_title}**\nID: {event_id}\nStart: {event_start}\nEnd: {event_end}\n"
+
+# Define a cog class that inherits from commands.Cog
 class TreacheryTimers(commands.Cog):
-    """A cog that parses raid reset timers from classicraidreset.com/US/SoD"""
+    """A cog that shows raid reset timers from https://classicraidreset.com/US/SoD"""
 
+    # Define the constructor method
     def __init__(self, bot):
+        # Assign the bot instance to an attribute
         self.bot = bot
-        # Define a variable to control debug dumping
-        self.debug = False
 
+    # Define a command method with the name affixes
     @commands.command()
-    async def timers(self, ctx):
-        """Shows the raid reset timers for classic SoD (Eastern Time)"""
+    async def affixes(self, ctx):
+        """This shows the raid reset timers from the website."""
 
-        # Define the url and the headers
-        url = "https://classicraidreset.com/US/SoD"
-        headers = {"User-Agent": "Red-DiscordBot/3.5"}
+        # Send a GET request to the website and get the response
+        response = requests.get(URL)
 
-        # Make a request and get the response
-        response = requests.get(url, headers=headers)
-
-        # Check if the response is successful
+        # Check if the response status code is 200 (OK)
         if response.status_code == 200:
-            # Parse the response content with beautifulsoup
+            # Parse the response content as HTML using beautifulsoup4
             soup = BeautifulSoup(response.content, "html.parser")
 
-            # Find the div with the calendar using a CSS selector
-            calendar = soup.select_one("div.m-PromoList.o-Capsule__m-PromoList")
+            # Find the div element that contains the calendar data
+            calendar = soup.find("div", id="calendar-element")
 
-            # Check if the calendar is not empty
-            if calendar:
-                # Initialize an empty list to store the timers and names
-                mylist = []
+            # Find the script element inside the calendar div that has a wire:snapshot attribute
+            script = calendar.find("script", attrs={"wire:snapshot": True})
 
-                # Find all the events in the calendar
-                events = calendar.find_all("div", class_="fc-event")
+            # Get the value of the wire:snapshot attribute as a string
+            snapshot = script["wire:snapshot"]
 
-                # Get today's date in Eastern Time
-                today = datetime.now(pytz.timezone("US/Eastern")).date()
+            # Parse the snapshot string as a JSON object
+            data = utils.chat_formatting.escape(json.loads(snapshot), mass_mentions=True)
 
-                # Loop through the events
-                for event in events:
-                    # Find the a element inside the event
-                    a = event.find("a")
-                    # Get the name and the timer from the a element
-                    name = a["data-title"]
-                    timer = a["data-date"]
+            # Get the events array from the data object
+            events = data["data"]["events"]
 
-                    # Convert the timer to a date object using the correct format
-                    timer = datetime.strptime(timer, "%Y-%m-%d").date()
+            # Initialize an empty list to store the formatted events
+            event_list = []
 
-                    # Check if the timer is today or later
-                    if timer >= today:
-                        # Calculate the days until the reset
-                        days = (timer - today).days
+            # Loop through the events array
+            for event in events:
+                # Format the event data as a string and append it to the event list
+                event_list.append(format_event(event))
 
-                        # Format the days as a string
-                        if days == 0:
-                            days = "today"
-                        elif days == 1:
-                            days = "tomorrow"
-                        else:
-                            days = f"in {days} days"
+            # Join the event list with newlines and assign it to a variable
+            event_str = "\n".join(event_list)
 
-                        # Append the name and the days to the list
-                        mylist.append(f"{name}: {days}")
-
-                # Check if the list is not empty
-                if mylist:
-                    # Send the timers and names to the user
-                    await ctx.send("Here are the raid reset timers for classic SoD (Eastern Time):")
-                    # Use a formatted string to display the list
-                    await ctx.send("\n".join(mylist))
-                else:
-                    # Handle the case when the list is empty
-                    await ctx.send("Sorry, I could not find any events for the requested date range.")
-            else:
-                # Handle the case when the calendar is empty
-                await ctx.send("Sorry, I could not find the calendar with the raid reset timers.")
-
+            # Send the event string as a message to the context channel
+            await ctx.send(event_str)
         else:
-            # Send an error message if the response is not successful
-            await ctx.send(f"Sorry, I could not get the data from the remote host. The status code is {response.status_code}.")
-
-        # Check if debug dumping is enabled
-        if self.debug:
-            # Output the response content for debugging
-            await ctx.send("Here is the response content:")
-            content = soup.prettify()
-            # Split the content into chunks of 2000 characters
-            chunks = [content[i:i+2000] for i in range(0, len(content), 2000)]
-            # Send each chunk as a separate message
-            for chunk in chunks:
-                await ctx.send(chunk)
+            # Send an error message to the context channel
+            await ctx.send("Sorry, something went wrong. Please try again later.")
