@@ -1,34 +1,38 @@
-# Import the necessary libraries
-import asyncio
-import discord
+# Import BeautifulSoup and json libraries
+from bs4 import BeautifulSoup
+import json
+
+# Import commands module from redbot.core
 from redbot.core import commands
-from pyppeteer import launch
 
-# Define a class for the cog
+# Define a class named TreacheryTimers that inherits from commands.Cog
 class TreacheryTimers(commands.Cog):
-    """A cog that displays raid timers and dates from https://classicraidreset.com/US/SoD"""
+    """A cog that shows the raid reset days for WoW Season of Discovery"""
 
+    # Define an __init__ method that takes a bot parameter and assigns it to self.bot
     def __init__(self, bot):
         self.bot = bot
 
-    # Define a command to get the raid timers and dates
+    # Define a commands.command decorator that defines a command named timers
     @commands.command()
     async def timers(self, ctx):
-        """Get the raid timers and dates from https://classicraidreset.com/US/SoD"""
+        """Shows the raid reset days for WoW Season of Discovery"""
+        # Parse the html source code of the website using BeautifulSoup
+        soup = BeautifulSoup(html, 'html.parser')
 
-        # Launch a browser and a page
-        browser = await launch()
-        page = await browser.newPage()
+        # Find the wire:snapshot element and get the events attribute as a JSON string
+        snapshot = soup.find('div', attrs={'wire:snapshot': True})
+        events = snapshot['wire:snapshot']
 
-        # Go to the website and wait for the calendar to load
-        await page.goto("https://classicraidreset.com/US/SoD")
-        await page.waitForSelector("#calendar-element")
+        # Load the JSON string as a Python dictionary and get the data property, which contains the events array
+        events = json.loads(events)
+        events = events['data']
 
-        # Get the HTML content of the calendar
-        calendar = await page.querySelectorEval("#calendar-element", "element => element.innerHTML")
+        # Filter the events by the type property, which should be instance
+        events = [event for event in events if event['type'] == 'instance']
 
-        # Close the browser
-        await browser.close()
+        # Format the start and title properties of each event as a string, separated by a space, and join them with newlines
+        output = '\n'.join([f"{event['start']} {event['title']}" for event in events])
 
-        # Send the calendar as a message
-        await ctx.send(f"Here are the raid timer and date calendar from https://classicraidreset.com/US/SoD:\n```html\n{calendar}\n```")
+        # Send the formatted string to the channel where the command was used, using ctx.send
+        await ctx.send(output)
