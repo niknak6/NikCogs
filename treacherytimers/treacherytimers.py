@@ -32,7 +32,7 @@ class TreacheryTimers(commands.Cog):
 
         # Load the JSON string as a Python dictionary and get the data property, which contains the events array
         events = json.loads(events)
-        events = events['data']
+        events = events['data'][0] # Access the first element of the data property
 
         # Filter the events by the type property, which should be instance
         events = [event for event in events if event['type'] == 'instance']
