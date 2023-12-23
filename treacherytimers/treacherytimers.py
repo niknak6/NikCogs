@@ -1,10 +1,6 @@
-# Import ast library
-import ast
-
-# Import BeautifulSoup, json, and re libraries
-from bs4 import BeautifulSoup
+# Import lxml.html and json libraries
+import lxml.html
 import json
-import re
 
 # Import requests library
 import requests
@@ -25,23 +21,17 @@ class TreacheryTimers(commands.Cog):
     async def timers(self, ctx):
         """Shows the raid reset days for WoW Season of Discovery"""
         # Get the html content of the website and assign it to html
-        html = requests.get('https://classicraidreset.com').content
+        # Change the URL to the one you specified
+        html = requests.get('https://classicraidreset.com/US/SoD').content
 
-        # Decode the bytes object to a string
-        html = html.decode('utf-8')
+        # Parse the html source code of the website using lxml.html
+        tree = lxml.html.fromstring(html)
 
-        # Parse the html source code of the website using BeautifulSoup
-        soup = BeautifulSoup(html, 'html.parser')
-
-        # Find the wire:snapshot element and get the events attribute as a Python object
-        snapshot = soup.find('div', attrs={'wire:snapshot': True})
-        events = ast.literal_eval(snapshot['wire:snapshot']) # Use the ast.literal_eval function to evaluate the string as a Python object
-
-        # Convert the Python object to a valid JSON string
-        events = json.dumps(events)
+        # Find the wire:snapshot element and get the events attribute as a JSON string
+        snapshot = tree.xpath('//div[@wire:snapshot]/@wire:snapshot')[0]
 
         # Load the JSON string as a Python dictionary and get the data property, which contains the events array
-        events = json.loads(events)
+        events = json.loads(snapshot)
         events = events['data']['s'] # Access the events array by the 's' key
 
         # Filter the events by the type property, which should be instance
