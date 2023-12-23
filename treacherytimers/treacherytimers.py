@@ -1,6 +1,7 @@
-# Import BeautifulSoup and json libraries
+# Import BeautifulSoup, json, and re libraries
 from bs4 import BeautifulSoup
 import json
+import re
 
 # Import requests library
 import requests
@@ -23,16 +24,12 @@ class TreacheryTimers(commands.Cog):
         # Get the html content of the website and assign it to html
         html = requests.get('https://classicraidreset.com').content
 
-        # Parse the html source code of the website using BeautifulSoup
-        soup = BeautifulSoup(html, 'html.parser')
-
-        # Find the wire:snapshot element and get the events attribute as a JSON string
-        snapshot = soup.find('div', attrs={'wire:snapshot': True})
-        events = snapshot['wire:snapshot']
+        # Use a regular expression to get the events attribute as a JSON string
+        events = re.search(r'wire:snapshot="(.+?)"', html).group(1)
 
         # Load the JSON string as a Python dictionary and get the data property, which contains the events array
         events = json.loads(events)
-        events = events['data'][0] # Access the first element of the data property
+        events = events['data']['s'] # Access the events array by the 's' key
 
         # Filter the events by the type property, which should be instance
         events = [event for event in events if event['type'] == 'instance']
