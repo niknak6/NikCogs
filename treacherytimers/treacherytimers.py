@@ -24,6 +24,9 @@ class TreacheryTimers(commands.Cog):
         # Get the html content of the website and assign it to html
         html = requests.get('https://classicraidreset.com').content
 
+        # Decode the bytes object to a string
+        html = html.decode('utf-8')
+
         # Use a regular expression to get the events attribute as a JSON string
         events = re.search(r'wire:snapshot="(.+?)"', html).group(1)
 
