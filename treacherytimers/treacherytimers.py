@@ -1,6 +1,8 @@
 # Import BeautifulSoup and json libraries
 from bs4 import BeautifulSoup
 import json
+
+# Import requests library
 import requests
 
 # Import commands module from redbot.core
@@ -18,6 +20,9 @@ class TreacheryTimers(commands.Cog):
     @commands.command()
     async def timers(self, ctx):
         """Shows the raid reset days for WoW Season of Discovery"""
+        # Get the html content of the website and assign it to html
+        html = requests.get('https://classicraidreset.com').content
+
         # Parse the html source code of the website using BeautifulSoup
         soup = BeautifulSoup(html, 'html.parser')
 
