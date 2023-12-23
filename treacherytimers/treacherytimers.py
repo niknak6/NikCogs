@@ -1,3 +1,6 @@
+# Import ast library
+import ast
+
 # Import BeautifulSoup, json, and re libraries
 from bs4 import BeautifulSoup
 import json
@@ -32,7 +35,7 @@ class TreacheryTimers(commands.Cog):
 
         # Find the wire:snapshot element and get the events attribute as a Python object
         snapshot = soup.find('div', attrs={'wire:snapshot': True})
-        events = eval(snapshot['wire:snapshot']) # Use the eval function to evaluate the string as a Python object
+        events = ast.literal_eval(snapshot['wire:snapshot']) # Use the ast.literal_eval function to evaluate the string as a Python object
 
         # Convert the Python object to a valid JSON string
         events = json.dumps(events)
