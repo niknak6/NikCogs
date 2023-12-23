@@ -27,8 +27,15 @@ class TreacheryTimers(commands.Cog):
         # Decode the bytes object to a string
         html = html.decode('utf-8')
 
-        # Use a regular expression to get the events attribute as a JSON string
-        events = re.search(r'wire:snapshot="(.+?)"', html).group(1)
+        # Parse the html source code of the website using BeautifulSoup
+        soup = BeautifulSoup(html, 'html.parser')
+
+        # Find the wire:snapshot element and get the events attribute as a Python object
+        snapshot = soup.find('div', attrs={'wire:snapshot': True})
+        events = ast.literal_eval(snapshot['wire:snapshot'])
+
+        # Convert the Python object to a valid JSON string
+        events = json.dumps(events)
 
         # Load the JSON string as a Python dictionary and get the data property, which contains the events array
         events = json.loads(events)
