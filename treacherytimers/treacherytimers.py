@@ -1,6 +1,7 @@
 # Import BeautifulSoup and json libraries
 from bs4 import BeautifulSoup
 import json
+import requests
 
 # Import commands module from redbot.core
 from redbot.core import commands
