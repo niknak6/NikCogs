@@ -26,38 +26,49 @@ class TreacheryTimers(commands.Cog):
             # Parse the response content using BeautifulSoup
             soup = BeautifulSoup(response.content, "html.parser")
 
-            # Find all the elements that have the class 'today-in-wow'
-            today_in_wow_elements = soup.find_all(class_="today-in-wow")
+            # Find the element that has the id 'today-in-wow'
+            today_in_wow_element = soup.find(id="today-in-wow")
 
-            # Loop through the elements
-            for element in today_in_wow_elements:
-                # Find the element that has the id 'dungeons-and-raids'
-                dungeons_and_raids_element = element.find(id="dungeons-and-raids")
+            # Find the script element inside the today-in-wow element
+            script_element = today_in_wow_element.script
 
-                # Find all the elements that have the class 'lines'
-                lines_elements = dungeons_and_raids_element.find_all(class_="lines")
+            # Get the text content of the script element
+            script_text = script_element.text
 
-                # Loop through the elements
-                for lines_element in lines_elements:
-                    # Get the value of the 'name' attribute
-                    name = lines_element.get("name")
+            # Find the substring that contains the JSON data for the raid reset timers
+            start_index = script_text.find("[{")
+            end_index = script_text.find("}]);")
+            json_data = script_text[start_index:end_index+2]
 
-                    # Print the name
-                    print(name)
+            # Convert the JSON data to a Python object
+            data = json.loads(json_data)
 
-                    # Find all the elements that have the class 'line'
-                    line_elements = lines_element.find_all(class_="line")
+            # Loop through the data
+            for item in data:
+                # Get the name and region of the item
+                name = item["name"]
+                region = item["regionId"]
 
-                    # Loop through the elements
-                    for line_element in line_elements:
-                        # Get the value of the 'name' attribute
-                        raid_name = line_element.get("name")
+                # Print the name and region
+                print(name, region)
 
-                        # Get the value of the 'ending' attribute
-                        raid_ending = line_element.get("ending")
+                # Get the groups of the item
+                groups = item["groups"]
 
-                        # Get the value of the 'url' attribute
-                        raid_url = line_element.get("url")
+                # Loop through the groups
+                for group in groups:
+                    # Get the content of the group
+                    content = group["content"]
+
+                    # Get the lines of the content
+                    lines = content["lines"]
+
+                    # Loop through the lines
+                    for line in lines.values():
+                        # Get the raid name, ending, and url of the line
+                        raid_name = line["name"]
+                        raid_ending = line["ending"]
+                        raid_url = line["url"]
 
                         # Print the raid name, ending, and url
                         print(raid_name, raid_ending, raid_url)
@@ -66,7 +77,7 @@ class TreacheryTimers(commands.Cog):
             embed = discord.Embed(title="Classic Raid Reset Timers", description="The raid reset timers for the classic season of discovery")
 
             # Add the name, raid name, ending, and url as fields
-            embed.add_field(name=name, value=f"{raid_name}: {raid_ending} [More info](https://docs.python.org/3/library/html.parser.html)")
+            embed.add_field(name=name, value=f"{raid_name}: {raid_ending} [More info]")
 
             # Send the embed to the channel
             await ctx.send(embed=embed)
