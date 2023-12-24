@@ -32,7 +32,9 @@ class TreacheryTimers(commands.Cog):
             # For example, to get all the links in the web page, you can do this:
             links = soup.find_all("a")
             for link in links:
-                print(link["href"])
+                # Check if the link element has an href attribute
+                if link.has_attr("href"):
+                    print(link["href"])
 
             # Create an embed object
             embed = discord.Embed(title="Web page source", description="The source of the web page you requested")
