@@ -1,9 +1,10 @@
 import requests
-from bs4 import BeautifulSoup
 import discord
 import textwrap
 import json
 import re
+from datetime import datetime
+import pytz
 from redbot.core import commands
 
 class TreacheryTimers(commands.Cog):
@@ -57,8 +58,18 @@ class TreacheryTimers(commands.Cog):
                     raid_ending = item["ending"]
                     raid_url = item["url"]
 
-                    # Add the name, raid name, ending, and url as fields
-                    embed.add_field(name=name, value=f"{raid_name}: {raid_ending} More info")
+                    # Convert the endingUt timestamp to a datetime object
+                    reset_time_utc = datetime.utcfromtimestamp(item["endingUt"])
+
+                    # Convert the UTC time to Eastern Time
+                    eastern = pytz.timezone('US/Eastern')
+                    reset_time_eastern = reset_time_utc.replace(tzinfo=pytz.utc).astimezone(eastern)
+
+                    # Format the reset time
+                    reset_time_str = reset_time_eastern.strftime('%Y-%m-%d %H:%M:%S %Z%z')
+
+                    # Add the name, raid name, ending, and reset time as fields
+                    embed.add_field(name=name, value=f"{raid_name}: {raid_ending} (Resets at {reset_time_str}) More info")
 
                 # Send the embed to the channel
                 await ctx.send(embed=embed)
