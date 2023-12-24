@@ -13,7 +13,7 @@ class TreacheryTimers(commands.Cog):
 
     @commands.command()
     async def timers(self, ctx):
-        """Downloads and parses the web page https://www.wowhead.com/classic"""
+        """Downloads and parses the web page https://www.wowhead.com/classic and shows the classic raid reset timers"""
 
         # Define the URL to download
         url = "https://www.wowhead.com/classic"
@@ -26,42 +26,50 @@ class TreacheryTimers(commands.Cog):
             # Parse the response content using BeautifulSoup
             soup = BeautifulSoup(response.content, "html.parser")
 
-            # Print the title of the web page
-            print(soup.title.string)
+            # Find all the elements that have the class 'today-in-wow'
+            today_in_wow_elements = soup.find_all(class_="today-in-wow")
 
-            # You can also access other elements of the web page using soup
-            # For example, to get all the links in the web page, you can do this:
-            links = soup.find_all("a")
-            for link in links:
-                # Check if the link element has an href attribute
-                if link.has_attr("href"):
-                    print(link["href"])
+            # Loop through the elements
+            for element in today_in_wow_elements:
+                # Find the element that has the id 'dungeons-and-raids'
+                dungeons_and_raids_element = element.find(id="dungeons-and-raids")
 
-            # Decode the response.content to a str object using the utf-8 encoding
-            response_content = response.content.decode('utf-8')
+                # Find all the elements that have the class 'lines'
+                lines_elements = dungeons_and_raids_element.find_all(class_="lines")
 
-            # Convert the response_content to a JSON string
-            response_content = json.dumps(response_content)
+                # Loop through the elements
+                for lines_element in lines_elements:
+                    # Get the value of the 'name' attribute
+                    name = lines_element.get("name")
 
-            # Split the response_content into chunks of 1024 characters each
-            chunks = textwrap.wrap(response_content, 1024)
+                    # Print the name
+                    print(name)
 
-            # Create a counter for the embeds
-            count = 1
+                    # Find all the elements that have the class 'line'
+                    line_elements = lines_element.find_all(class_="line")
 
-            # Loop through the chunks
-            for chunk in chunks:
-                # Create an embed object
-                embed = discord.Embed(title=f"Web page source (part {count})", description="The source of the web page you requested")
+                    # Loop through the elements
+                    for line_element in line_elements:
+                        # Get the value of the 'name' attribute
+                        raid_name = line_element.get("name")
 
-                # Add the chunk as a field
-                embed.add_field(name="Source", value=chunk)
+                        # Get the value of the 'ending' attribute
+                        raid_ending = line_element.get("ending")
 
-                # Send the embed to the channel
-                await ctx.send(embed=embed)
+                        # Get the value of the 'url' attribute
+                        raid_url = line_element.get("url")
 
-                # Increment the counter
-                count += 1
+                        # Print the raid name, ending, and url
+                        print(raid_name, raid_ending, raid_url)
+
+            # Create an embed object
+            embed = discord.Embed(title="Classic Raid Reset Timers", description="The raid reset timers for the classic season of discovery")
+
+            # Add the name, raid name, ending, and url as fields
+            embed.add_field(name=name, value=f"{raid_name}: {raid_ending} [More info](https://docs.python.org/3/library/html.parser.html)")
+
+            # Send the embed to the channel
+            await ctx.send(embed=embed)
         else:
             # Handle the error if the response status code is not 200
             print(f"Error: {response.status_code}")
