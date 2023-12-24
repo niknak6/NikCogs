@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import discord
 import textwrap
+import json
 from redbot.core import commands
 
 class TreacheryTimers(commands.Cog):
@@ -36,8 +37,11 @@ class TreacheryTimers(commands.Cog):
                 if link.has_attr("href"):
                     print(link["href"])
 
-            # Split the source into chunks of 1024 characters each
-            chunks = textwrap.wrap(response.content, 1024)
+            # Convert the response.content to a JSON string
+            response_content = json.dumps(response.content)
+
+            # Split the response_content into chunks of 1024 characters each
+            chunks = textwrap.wrap(response_content, 1024)
 
             # Create a counter for the embeds
             count = 1
@@ -59,7 +63,7 @@ class TreacheryTimers(commands.Cog):
             # Handle the error if the response status code is not 200
             print(f"Error: {response.status_code}")
 
-            # Split the source into chunks of 2000 characters each
+            # Split the response.content into chunks of 2000 characters each
             chunks = textwrap.wrap(response.content, 2000)
 
             # Send each chunk as a code block to the channel
