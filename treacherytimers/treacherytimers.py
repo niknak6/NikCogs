@@ -36,14 +36,25 @@ class TreacheryTimers(commands.Cog):
                 if link.has_attr("href"):
                     print(link["href"])
 
-            # Create an embed object
-            embed = discord.Embed(title="Web page source", description="The source of the web page you requested")
+            # Split the source into chunks of 1024 characters each
+            chunks = textwrap.wrap(response.content, 1024)
 
-            # Add the source as a field
-            embed.add_field(name="Source", value=response.content)
+            # Create a counter for the embeds
+            count = 1
 
-            # Send the embed to the channel
-            await ctx.send(embed=embed)
+            # Loop through the chunks
+            for chunk in chunks:
+                # Create an embed object
+                embed = discord.Embed(title=f"Web page source (part {count})", description="The source of the web page you requested")
+
+                # Add the chunk as a field
+                embed.add_field(name="Source", value=chunk)
+
+                # Send the embed to the channel
+                await ctx.send(embed=embed)
+
+                # Increment the counter
+                count += 1
         else:
             # Handle the error if the response status code is not 200
             print(f"Error: {response.status_code}")
