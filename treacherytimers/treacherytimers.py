@@ -64,7 +64,7 @@ class TreacheryTimers(commands.Cog):
                     reset_time_eastern = reset_time_utc.replace(tzinfo=pytz.utc).astimezone(eastern)
 
                     # Format the reset time
-                    reset_time_str = reset_time_eastern.strftime('%Y-%m-%d %H:%M:%S %Z')
+                    reset_time_str = reset_time_eastern.strftime('%m-%d-%Y %I:%M:%S %p %Z')
 
                     # Add the raid name, ending, and reset time as fields
                     embed.add_field(name=raid_name, value=f"{raid_ending} (Resets at {reset_time_str})")
