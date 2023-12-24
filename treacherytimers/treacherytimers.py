@@ -53,10 +53,8 @@ class TreacheryTimers(commands.Cog):
                 # Loop through the data
                 for item in data:
                     # Get the name, raid name, ending, and url of the item
-                    name = item["name"]
                     raid_name = item["name"]
                     raid_ending = item["ending"]
-                    raid_url = item["url"]
 
                     # Convert the endingUt timestamp to a datetime object
                     reset_time_utc = datetime.utcfromtimestamp(item["endingUt"])
@@ -66,10 +64,10 @@ class TreacheryTimers(commands.Cog):
                     reset_time_eastern = reset_time_utc.replace(tzinfo=pytz.utc).astimezone(eastern)
 
                     # Format the reset time
-                    reset_time_str = reset_time_eastern.strftime('%Y-%m-%d %H:%M:%S %Z%z')
+                    reset_time_str = reset_time_eastern.strftime('%Y-%m-%d %H:%M:%S %Z')
 
-                    # Add the name, raid name, ending, and reset time as fields
-                    embed.add_field(name=name, value=f"{raid_name}: {raid_ending} (Resets at {reset_time_str}) More info")
+                    # Add the raid name, ending, and reset time as fields
+                    embed.add_field(name=raid_name, value=f"{raid_ending} (Resets at {reset_time_str})")
 
                 # Send the embed to the channel
                 await ctx.send(embed=embed)
