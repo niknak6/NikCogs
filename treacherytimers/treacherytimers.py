@@ -41,6 +41,9 @@ class TreacheryTimers(commands.Cog):
 
                 # Loop through the matches
                 for match in matches:
+                    # Remove the backslashes from the matched string
+                    match = match.replace("\\", "")
+
                     # Convert the matched string to a Python object using json.loads()
                     item = json.loads(match)
 
