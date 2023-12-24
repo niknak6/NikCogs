@@ -28,8 +28,7 @@ class TreacheryTimers(commands.Cog):
             web_page_source = response.text
 
             # Define a regex pattern to match the lines with the ending, endingShort, endingUt, and name fields in the source
-            # Use a raw string literal and escape the double quotes
-            pattern = r"\{\\\"ending\\\":\\\".+?\\\",\\\"endingShort\\\":\\\".+?\\\",\\\"endingUt\\\":\\d+,\\\"name\\\":\\\".+?\\\",.+?\}"
+            pattern = r"\{\"ending\":\".+?\",\"endingShort\":\".+?\",\"endingUt\":\d+,\"name\":\".+?\",.+?\}"
 
             # Find all the matches of the pattern in the web page source
             matches = re.findall(pattern, web_page_source)
@@ -41,9 +40,6 @@ class TreacheryTimers(commands.Cog):
 
                 # Loop through the matches
                 for match in matches:
-                    # Remove the backslashes from the matched string
-                    match = match.replace("\\", "")
-
                     # Convert the matched string to a Python object using json.loads()
                     item = json.loads(match)
 
