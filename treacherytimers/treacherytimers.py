@@ -27,61 +27,44 @@ class TreacheryTimers(commands.Cog):
             # Get the response content as a string
             web_page_source = response.text
 
-            # Define a regex pattern to match the JSON data for the raid reset timers
-            # Use a normal string literal and escape both the backslashes and the double quotes
-            pattern = "[{\\\"id\\\":\\\"dungeons-and-raids\\\",.+?}(?=])];"
+            # Define a regex pattern to match the lines with the ending, endingShort, endingUt, and name fields in the source
+            # Use a raw string literal and escape the double quotes
+            pattern = r"\{\\\"ending\\\":\\\".+?\\\",\\\"endingShort\\\":\\\".+?\\\",\\\"endingUt\\\":\\d+,\\\"name\\\":\\\".+?\\\",.+?\}"
 
-            # Search for the pattern in the web page source
-            match = re.search(pattern, web_page_source)
+            # Find all the matches of the pattern in the web page source
+            matches = re.findall(pattern, web_page_source)
 
-            # Check if the pattern was found
-            if match:
-                # Get the matched substring
-                json_data = match.group()
+            # Check if any matches were found
+            if matches:
+                # Create an empty list to store the parsed data
+                data = []
 
-                # Convert the JSON data to a Python object
-                data = json.loads(json_data)
+                # Loop through the matches
+                for match in matches:
+                    # Convert the matched string to a Python object using json.loads()
+                    item = json.loads(match)
 
-                # Loop through the data
-                for item in data:
-                    # Get the name and region of the item
-                    name = item["name"]
-                    region = item["regionId"]
-
-                    # Print the name and region
-                    print(name, region)
-
-                    # Get the groups of the item
-                    groups = item["groups"]
-
-                    # Loop through the groups
-                    for group in groups:
-                        # Get the content of the group
-                        content = group["content"]
-
-                        # Get the lines of the content
-                        lines = content["lines"]
-
-                        # Loop through the lines
-                        for line in lines.values():
-                            # Get the raid name, ending, and url of the line
-                            raid_name = line["name"]
-                            raid_ending = line["ending"]
-                            raid_url = line["url"]
-
-                            # Print the raid name, ending, and url
-                            print(raid_name, raid_ending, raid_url)
+                    # Append the item to the data list
+                    data.append(item)
 
                 # Create an embed object
                 embed = discord.Embed(title="Classic Raid Reset Timers", description="The raid reset timers for the classic season of discovery")
 
-                # Add the name, raid name, ending, and url as fields
-                embed.add_field(name=name, value=f"{raid_name}: {raid_ending} [More info]")
+                # Loop through the data
+                for item in data:
+                    # Get the name, raid name, ending, and url of the item
+                    name = item["name"]
+                    raid_name = item["name"]
+                    raid_ending = item["ending"]
+                    raid_url = item["url"]
+
+                    # Add the name, raid name, ending, and url as fields
+                    embed.add_field(name=name, value=f"{raid_name}: {raid_ending} More info")
 
                 # Send the embed to the channel
                 await ctx.send(embed=embed)
             else:
-                # Handle the error if the pattern was not found
+                # Handle the error if no matches were found
                 print("Error: No JSON data found")
         else:
             # Handle the error if the response status code is not 200
