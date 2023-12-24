@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import discord
 import textwrap
 import json
+import re
 from redbot.core import commands
 
 class TreacheryTimers(commands.Cog):
