@@ -27,7 +27,8 @@ class TreacheryTimers(commands.Cog):
             web_page_source = response.text
 
             # Define a regex pattern to match the JSON data for the raid reset timers
-            pattern = r"\[{\\"id\\":\\"dungeons-and-raids\\",.+?}(?=])\];"
+            # Use a normal string literal and escape both the backslashes and the double quotes
+            pattern = "[{\\\"id\\\":\\\"dungeons-and-raids\\\",.+?}(?=])];"
 
             # Search for the pattern in the web page source
             match = re.search(pattern, web_page_source)
