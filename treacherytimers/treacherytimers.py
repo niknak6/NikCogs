@@ -37,8 +37,11 @@ class TreacheryTimers(commands.Cog):
                 if link.has_attr("href"):
                     print(link["href"])
 
-            # Convert the response.content to a JSON string
-            response_content = json.dumps(response.content)
+            # Decode the response.content to a str object using the utf-8 encoding
+            response_content = response.content.decode('utf-8')
+
+            # Convert the response_content to a JSON string
+            response_content = json.dumps(response_content)
 
             # Split the response_content into chunks of 1024 characters each
             chunks = textwrap.wrap(response_content, 1024)
