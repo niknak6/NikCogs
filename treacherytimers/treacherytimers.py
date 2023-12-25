@@ -1,4 +1,4 @@
-import requests, discord, textwrap, json, re, pytz
+import requests, discord, json, re, pytz
 from datetime import datetime
 from redbot.core import commands
 
@@ -15,14 +15,13 @@ class TreacheryTimers(commands.Cog):
         """Downloads and parses the web page https://www.wowhead.com/classic and shows the classic raid reset timers"""
         response = requests.get("https://www.wowhead.com/classic")
         if response.status_code != 200:
-            print(f"Error: {response.status_code}")
-            [await ctx.send(f"```{chunk}```") for chunk in textwrap.wrap(response.content, 2000)]
+            await ctx.send("No data can be found. Please check wowhead.com/classic. If the data is there, send a message to Nik.")
             return
 
         pattern = r"\{\"ending\":\".+?\",\"endingShort\":\".+?\",\"endingUt\":\d+,\"name\":\".+?\",.+?\}"
         matches = re.findall(pattern, response.text)
         if not matches:
-            print("Error: No JSON data found")
+            await ctx.send("No data can be found. Please check wowhead.com/classic. If the data is there, send a message to Nik.")
             return
 
         data = [json.loads(match) for match in matches]
