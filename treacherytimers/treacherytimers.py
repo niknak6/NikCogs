@@ -1,10 +1,5 @@
-import requests
-import discord
-import textwrap
-import json
-import re
+import requests, discord, textwrap, json, re, pytz
 from datetime import datetime
-import pytz
 from redbot.core import commands
 
 class TreacheryTimers(commands.Cog):
@@ -12,26 +7,20 @@ class TreacheryTimers(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.region = 'NA'  # Set your region here
-        self.raid_filter = ['Blackfathom Deeps']  # Set your raid filter here
+        self.region = 'NA'
+        self.raid_filter = ['Blackfathom Deeps']
 
     @commands.command()
     async def timers(self, ctx):
         """Downloads and parses the web page https://www.wowhead.com/classic and shows the classic raid reset timers"""
-
-        url = "https://www.wowhead.com/classic"
-        response = requests.get(url)
-
+        response = requests.get("https://www.wowhead.com/classic")
         if response.status_code != 200:
             print(f"Error: {response.status_code}")
-            chunks = textwrap.wrap(response.content, 2000)
-            for chunk in chunks:
-                await ctx.send(f"```{chunk}```")
+            [await ctx.send(f"```{chunk}```") for chunk in textwrap.wrap(response.content, 2000)]
             return
 
         pattern = r"\{\"ending\":\".+?\",\"endingShort\":\".+?\",\"endingUt\":\d+,\"name\":\".+?\",.+?\}"
         matches = re.findall(pattern, response.text)
-
         if not matches:
             print("Error: No JSON data found")
             return
@@ -41,21 +30,16 @@ class TreacheryTimers(commands.Cog):
         first_occurrences = {}
 
         for item in data:
-            raid_name = item["name"]
-            raid_ending = item["ending"]
-
+            raid_name, raid_ending = item["name"], item["ending"]
             if self.raid_filter and raid_name not in self.raid_filter:
                 continue
 
             reset_time_utc = datetime.utcfromtimestamp(item["endingUt"])
-            eastern = pytz.timezone('US/Eastern')
-            reset_time_eastern = reset_time_utc.replace(tzinfo=pytz.utc).astimezone(eastern)
+            reset_time_eastern = reset_time_utc.replace(tzinfo=pytz.utc).astimezone(pytz.timezone('US/Eastern'))
             reset_time_str = reset_time_eastern.strftime('%m-%d-%Y %I:%M:%S %p %Z')
 
             if raid_name not in first_occurrences or self.region == 'EU':
                 first_occurrences[raid_name] = (raid_ending, reset_time_str)
 
-        for raid_name, (raid_ending, reset_time_str) in first_occurrences.items():
-            embed.add_field(name=raid_name, value=f"{raid_ending} (Resets at {reset_time_str})")
-
+        [embed.add_field(name=raid_name, value=f"{raid_ending} (Resets at {reset_time_str})") for raid_name, (raid_ending, reset_time_str) in first_occurrences.items()]
         await ctx.send(embed=embed)
