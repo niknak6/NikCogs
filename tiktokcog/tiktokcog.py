@@ -6,27 +6,38 @@ from PIL import Image, ImageDraw
 from redbot.core import commands
 
 class TikTokCog(commands.Cog):
-    """A custom cog that reposts tiktok urls"""
+    """A custom cog that reposts tiktok, x, and twitter urls"""
 
     def __init__(self, bot):
         self.bot = bot
-        self.tiktok_pattern = re.compile(r"(?i)(.*?)(https?://)?((\w+)\.)?tiktok.com/(.+)(.*)")
+        self.url_patterns = {
+            'tiktok': re.compile(r"(?i)(.*?)(https?://)?((\w+)\.)?tiktok.com/(.+)(.*)"),
+            'twitter': re.compile(r"(?i)(.*?)(https?://)?((\w+)\.)?twitter.com/(.+)(.*)"),
+            'x': re.compile(r"(?i)(.*?)(https?://)?((\w+)\.)?x.com/(.+)(.*)")
+        }
+        self.new_domains = {
+            'tiktok': 'vxtiktok.com/',
+            'twitter': 'vxtwitter.com/',
+            'x': 'fixvx.com/'
+        }
 
     @commands.Cog.listener()
     async def on_message(self, message):
         """A listener that triggers when a message is sent"""
-        if not message.author.bot and (tiktok_url := self.tiktok_pattern.search(message.content)):
-            new_url, memo_text = self.process_message_content(message.content, tiktok_url)
-            avatar_path = self.download_and_process_avatar(message.author.avatar.url)
-            await self.repost_message(message, new_url, memo_text, avatar_path)
+        if not message.author.bot:
+            for platform, pattern in self.url_patterns.items():
+                if (url_match := pattern.search(message.content)):
+                    new_url, memo_text = self.process_message_content(message.content, url_match, platform)
+                    avatar_path = self.download_and_process_avatar(message.author.avatar.url)
+                    await self.repost_message(message, new_url, memo_text, avatar_path)
 
-    def process_message_content(self, content, tiktok_url):
-        new_url = self.construct_new_url(tiktok_url)
+    def process_message_content(self, content, url_match, platform):
+        new_url = self.construct_new_url(url_match, platform)
         memo_text = self.extract_memo_text(content)
         return new_url, memo_text
 
-    def construct_new_url(self, tiktok_url):
-        return tiktok_url.group(1) + tiktok_url.group(2) + tiktok_url.group(3) + "vxtiktok.com/" + tiktok_url.group(5) + tiktok_url.group(6)
+    def construct_new_url(self, url_match, platform):
+        return url_match.group(1) + url_match.group(2) + url_match.group(3) + self.new_domains[platform] + url_match.group(5) + url_match.group(6)
 
     def extract_memo_text(self, content):
         return " ".join([part for part in content.split() if not part.lower().startswith(("https://", "http://"))])
