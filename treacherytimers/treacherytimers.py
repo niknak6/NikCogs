@@ -12,6 +12,7 @@ class TreacheryTimers(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.preference = 'NA'  # Set your preference here
 
     @commands.command()
     async def timers(self, ctx):
@@ -50,6 +51,9 @@ class TreacheryTimers(commands.Cog):
                 # Create an embed object
                 embed = discord.Embed(title="Classic Raid Reset Timers", description="The raid reset timers for the classic season of discovery")
 
+                # Create a dictionary to store the first occurrence of each raid
+                first_occurrences = {}
+
                 # Loop through the data
                 for item in data:
                     # Get the name, raid name, ending, and url of the item
@@ -66,6 +70,21 @@ class TreacheryTimers(commands.Cog):
                     # Format the reset time
                     reset_time_str = reset_time_eastern.strftime('%m-%d-%Y %I:%M:%S %p %Z')
 
+                    # Check if the raid name is already in the first_occurrences dictionary
+                    if raid_name not in first_occurrences:
+                        # If it's not, add it to the dictionary
+                        first_occurrences[raid_name] = (raid_ending, reset_time_str)
+                    else:
+                        # If it is, check the preference
+                        if self.preference == 'NA':
+                            # If the preference is 'NA', continue to the next item
+                            continue
+                        elif self.preference == 'EU':
+                            # If the preference is 'EU', update the dictionary with the new ending and reset time
+                            first_occurrences[raid_name] = (raid_ending, reset_time_str)
+
+                # Loop through the first_occurrences dictionary
+                for raid_name, (raid_ending, reset_time_str) in first_occurrences.items():
                     # Add the raid name, ending, and reset time as fields
                     embed.add_field(name=raid_name, value=f"{raid_ending} (Resets at {reset_time_str})")
 
