@@ -15,13 +15,13 @@ class TreacheryTimers(commands.Cog):
         """Fetches and parses the web page https://www.wowhead.com/classic and displays the classic raid reset timers"""
         webpage_response = requests.get("https://www.wowhead.com/classic")
         if webpage_response.status_code != 200:
-            await ctx.send("No data can be found. Please check wowhead.com/classic. If the data is there, send a message to Nik.")
+            await ctx.send("Unable to connect to source. Please check wowhead.com/classic. If the site loads, send a message to Nik.")
             return
 
         raid_reset_pattern = r"\{\"ending\":\".+?\",\"endingShort\":\".+?\",\"endingUt\":\d+,\"name\":\".+?\",.+?\}"
         raid_reset_matches = re.findall(raid_reset_pattern, webpage_response.text)
         if not raid_reset_matches:
-            await ctx.send("No data can be found. Please check wowhead.com/classic. If the data is there, send a message to Nik.")
+            await ctx.send("No data can be found. Please check wowhead.com/classic to ensure times are visible. If the data is there, send a message to Nik.")
             return
 
         raid_reset_data = [json.loads(match) for match in raid_reset_matches]
