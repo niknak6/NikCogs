@@ -37,7 +37,7 @@ class TikTokCog(commands.Cog):
         return new_url, memo_text
 
     def construct_new_url(self, url_match, platform):
-        return url_match.group(1) + (url_match.group(2) or 'https://') + self.new_domains[platform] + url_match.group(5)
+        return url_match.group(1) + (url_match.group(2) or 'https://') + (url_match.group(4) or '') + '.' + self.new_domains[platform] + url_match.group(5)
 
     def extract_memo_text(self, content):
         return " ".join([part for part in content.split() if not part.lower().startswith(("https://", "http://"))])
