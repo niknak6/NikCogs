@@ -50,7 +50,7 @@ class TreacheryTimers(commands.Cog):
                     data.append(item)
 
                 # Create an embed object
-                embed = discord.Embed(title="Classic Raid Reset Timers", description="The raid reset timers for the classic season of discovery")
+                embed = discord.Embed(title="Classic Raid Reset Timers", description="")
 
                 # Create a dictionary to store the first occurrence of each raid
                 first_occurrences = {}
