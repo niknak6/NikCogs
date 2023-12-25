@@ -5,92 +5,82 @@ import json
 import re
 from datetime import datetime
 import pytz
-from redbot.core import commands, checks
+from redbot.core import commands
 
 class TreacheryTimers(commands.Cog):
     """A cog that downloads and parses a web page"""
 
     def __init__(self, bot):
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=1234567890)  # Use a unique identifier
-        default_guild = {
-            "raids": []
-        }
-        self.config.register_guild(**default_guild)
 
-    def get_web_data(self):
-        """Get the data from the web page"""
+    @commands.command()
+    async def timers(self, ctx):
+        """Downloads and parses the web page https://www.wowhead.com/classic and shows the classic raid reset timers"""
+
         # Define the URL to download
         url = "https://www.wowhead.com/classic"
 
         # Send a GET request to the URL and store the response
         response = requests.get(url)
 
-        # Get the response content as a string
-        web_page_source = response.text
+        # Check if the response status code is 200 (OK)
+        if response.status_code == 200:
+            # Get the response content as a string
+            web_page_source = response.text
 
-        # Define a regex pattern to match the lines with the ending, endingShort, endingUt, and name fields in the source
-        pattern = r"\{\"ending\":\".+?\",\"endingShort\":\".+?\",\"endingUt\":\d+,\"name\":\".+?\",.+?\}"
+            # Define a regex pattern to match the lines with the ending, endingShort, endingUt, and name fields in the source
+            pattern = r"\{\"ending\":\".+?\",\"endingShort\":\".+?\",\"endingUt\":\d+,\"name\":\".+?\",.+?\}"
 
-        # Find all the matches of the pattern in the web page source
-        matches = re.findall(pattern, web_page_source)
+            # Find all the matches of the pattern in the web page source
+            matches = re.findall(pattern, web_page_source)
 
-        # Convert the matches to Python objects
-        data = [json.loads(match) for match in matches]
+            # Check if any matches were found
+            if matches:
+                # Create an empty list to store the parsed data
+                data = []
 
-        return data
+                # Loop through the matches
+                for match in matches:
+                    # Convert the matched string to a Python object using json.loads()
+                    item = json.loads(match)
 
-    def get_raids(self):
-        """Get the available raids"""
-        data = self.get_web_data()
+                    # Append the item to the data list
+                    data.append(item)
 
-        # Extract the raid names
-        raids = [item["name"] for item in data]
+                # Create an embed object
+                embed = discord.Embed(title="Classic Raid Reset Timers", description="The raid reset timers for the classic season of discovery")
 
-        return raids
+                # Loop through the data
+                for item in data:
+                    # Get the name, raid name, ending, and url of the item
+                    raid_name = item["name"]
+                    raid_ending = item["ending"]
 
-    @commands.group()
-    async def timers(self, ctx):
-        """Commands related to raid timers"""
-        pass
+                    # Convert the endingUt timestamp to a datetime object
+                    reset_time_utc = datetime.utcfromtimestamp(item["endingUt"])
 
-    @timers.command()
-    @checks.admin_or_permissions(manage_guild=True)
-    async def settings(self, ctx):
-        """Set the server's raid preferences"""
-        # Get the available raids
-        raids = self.get_raids()
-        raid_dict = {i+1: raid for i, raid in enumerate(raids)}
+                    # Convert the UTC time to Eastern Time
+                    eastern = pytz.timezone('US/Eastern')
+                    reset_time_eastern = reset_time_utc.replace(tzinfo=pytz.utc).astimezone(eastern)
 
-        # Send the available raids to the user
-        await ctx.send("\n".join([f"{i} - {raid}" for i, raid in raid_dict.items()]))
+                    # Format the reset time
+                    reset_time_str = reset_time_eastern.strftime('%m-%d-%Y %I:%M:%S %p %Z')
 
-        # Ask the user to choose the raids
-        await ctx.send("Which of these raids do you want to display in the timers command? (Enter the numbers separated by commas)")
+                    # Add the raid name, ending, and reset time as fields
+                    embed.add_field(name=raid_name, value=f"{raid_ending} (Resets at {reset_time_str})")
 
-        def check(m):
-            return m.author == ctx.author and m.channel == ctx.channel
-
-        try:
-            msg = await self.bot.wait_for('message', timeout=60.0, check=check)
-        except asyncio.TimeoutError:
-            await ctx.send('Sorry, you took too long.')
+                # Send the embed to the channel
+                await ctx.send(embed=embed)
+            else:
+                # Handle the error if no matches were found
+                print("Error: No JSON data found")
         else:
-            # Save the server's preferences
-            chosen_raids = [raid_dict[int(i)] for i in msg.content.split(",")]
-            await self.config.guild(ctx.guild).raids.set(chosen_raids)
-            await ctx.send(f"The server's preferences have been saved.")
+            # Handle the error if the response status code is not 200
+            print(f"Error: {response.status_code}")
 
-    @timers.command()
-    async def show(self, ctx):
-        """Show the raid timers based on the server's preferences"""
-        # Get the server's preferences
-        chosen_raids = await self.config.guild(ctx.guild).raids()
+            # Split the response.content into chunks of 2000 characters each
+            chunks = textwrap.wrap(response.content, 2000)
 
-        # Get the raid data
-        data = self.get_web_data()
-
-        # Filter the data based on the server's preferences
-        data = [item for item in data if item["name"] in chosen_raids]
-
-        # The rest of your code...
+            # Send each chunk as a code block to the channel
+            for chunk in chunks:
+                await ctx.send(f"```{chunk}```")
