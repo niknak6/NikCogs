@@ -2,7 +2,7 @@ import os
 import random
 import re
 import requests
-from PIL import Image, ImageDraw # Import only the necessary modules from PIL library
+from PIL import Image, ImageDraw
 from redbot.core import commands
 
 class TikTokCog(commands.Cog):
@@ -15,70 +15,51 @@ class TikTokCog(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         """A listener that triggers when a message is sent"""
-        # Check if the message is from a user and contains a tiktok url
-        if message.author.bot:
-            return
-        tiktok_url = self.tiktok_pattern.search(message.content)
-        if not tiktok_url:
-            return
+        if not message.author.bot and (tiktok_url := self.tiktok_pattern.search(message.content)):
+            new_url, memo_text = self.process_message_content(message.content, tiktok_url)
+            avatar_path = self.download_and_process_avatar(message.author.avatar.url)
+            await self.repost_message(message, new_url, memo_text, avatar_path)
 
-        # Add vx in front of tiktok.com in the url, while preserving the protocol, subdomain, and path parts
-        new_url = tiktok_url.group(1) + tiktok_url.group(2) + tiktok_url.group(3) + "vxtiktok.com/" + tiktok_url.group(5) + tiktok_url.group(6)
+    def process_message_content(self, content, tiktok_url):
+        new_url = self.construct_new_url(tiktok_url)
+        memo_text = self.extract_memo_text(content)
+        return new_url, memo_text
 
-        # Extract the memo text from the message content by splitting it by whitespace and removing any part that starts with https:// or http:// (including it)
-        memo_text = " ".join([part for part in message.content.split() if not part.lower().startswith(("https://", "http://"))])
+    def construct_new_url(self, tiktok_url):
+        return tiktok_url.group(1) + tiktok_url.group(2) + tiktok_url.group(3) + "vxtiktok.com/" + tiktok_url.group(5) + tiktok_url.group(6)
 
-        # Remove any whitespace before https:// or http:// in the message content (this will remove any text before or after the url)
-        message_content = " ".join([part for part in new_url.split() if part.lower().startswith(("https://", "http://"))])
+    def extract_memo_text(self, content):
+        return " ".join([part for part in content.split() if not part.lower().startswith(("https://", "http://"))])
 
-        user = message.author # Get the user who sent the message
-        avatar_url = user.avatar.url # Get the avatar URL of the user
+    def download_and_process_avatar(self, avatar_url):
+        avatar_path = "avatar.png"
+        self.download_image(avatar_url, avatar_path)
+        self.process_avatar(avatar_path)
+        return avatar_path
 
-        # Download the image from the URL and save it as avatar.png
-        response = requests.get(avatar_url)
-        with open("avatar.png", "wb") as file:
+    def download_image(self, url, path):
+        response = requests.get(url)
+        with open(path, "wb") as file:
             file.write(response.content)
 
-        # Open the avatar image file
-        image = Image.open("avatar.png")
-
-        # Resize the image to 128x128 pixels
-        image = image.resize((128, 128))
-
-        # Create a mask image with the same size and RGBA mode
+    def process_avatar(self, path):
+        image = Image.open(path).resize((128, 128))
         mask = Image.new("RGBA", image.size)
+        ImageDraw.Draw(mask).ellipse([0, 0, *image.size], fill=(0, 0, 0, 255))
+        Image.composite(image, Image.new("RGBA", image.size), mask).save(path)
 
-        # Create a Draw object for the mask image
-        draw = ImageDraw.Draw(mask)
+    async def repost_message(self, message, new_url, memo_text, avatar_path):
+        emoji = await self.create_custom_emoji(message.guild, avatar_path)
+        formatted_message = self.format_message(message.author, emoji, new_url, memo_text)
+        await message.channel.send(formatted_message)
+        await message.delete()
+        await emoji.delete()
+        os.remove(avatar_path)
 
-        # Draw a black circle on the mask image using the ellipse method
-        draw.ellipse([0, 0, *image.size], fill=(0, 0, 0, 255))
+    async def create_custom_emoji(self, guild, avatar_path):
+        emoji_name = f"user_avatar_{random.randint(0, 9999)}"
+        with open(avatar_path, "rb") as image:
+            return await guild.create_custom_emoji(name=emoji_name, image=image.read())
 
-        # Apply the mask to the avatar image using the Image.composite method
-        image = Image.composite(image, Image.new("RGBA", image.size), mask)
-
-        # Save the cropped image as avatar_cropped.png
-        image.save("avatar_cropped.png")
-
-        guild = message.guild # Get the guild where the message was sent
-
-        # Open the cropped image file in binary mode
-        with open("avatar_cropped.png", "rb") as image:
-
-            # Create a custom emoji with a random name and the image file
-            emoji_name = f"user_avatar_{random.randint(0, 9999)}"
-            emoji = await guild.create_custom_emoji(name=emoji_name, image=image.read())
-
-            # Check if memo_text is empty and hide Message: field accordingly 
-            formatted_message = f"Shared by: {emoji} {user.mention}\n" + (f"Message: {memo_text}\n" if memo_text else "") + f"Link: {message_content}"
-
-            # Repost the formatted message and remove the original message
-            await message.channel.send(formatted_message)
-            await message.delete()
-
-            # Delete the custom emoji
-            await emoji.delete()
-
-            # Delete the avatar.png and avatar_cropped.png files
-            os.remove("avatar.png")
-            os.remove("avatar_cropped.png")
+    def format_message(self, author, emoji, new_url, memo_text):
+        return f"Shared by: {emoji} {author.mention}\n" + (f"Message: {memo_text}\n" if memo_text else "") + f"Link: {new_url}"
