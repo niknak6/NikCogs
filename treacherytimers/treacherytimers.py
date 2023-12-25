@@ -13,6 +13,7 @@ class TreacheryTimers(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.region = 'NA'  # Set your region here
+        self.raid_filter = ['Blackfathom Deeps']  # Set your raid filter here
 
     @commands.command()
     async def timers(self, ctx):
@@ -59,6 +60,10 @@ class TreacheryTimers(commands.Cog):
                     # Get the name, raid name, ending, and url of the item
                     raid_name = item["name"]
                     raid_ending = item["ending"]
+
+                    # If the raid filter is not empty and the raid name is not in the filter, skip this item
+                    if self.raid_filter and raid_name not in self.raid_filter:
+                        continue
 
                     # Convert the endingUt timestamp to a datetime object
                     reset_time_utc = datetime.utcfromtimestamp(item["endingUt"])
