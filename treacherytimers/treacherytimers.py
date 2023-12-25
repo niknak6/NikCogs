@@ -12,7 +12,7 @@ class TreacheryTimers(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.preference = 'NA'  # Set your preference here
+        self.region = 'NA'  # Set your region here
 
     @commands.command()
     async def timers(self, ctx):
@@ -75,12 +75,12 @@ class TreacheryTimers(commands.Cog):
                         # If it's not, add it to the dictionary
                         first_occurrences[raid_name] = (raid_ending, reset_time_str)
                     else:
-                        # If it is, check the preference
-                        if self.preference == 'NA':
-                            # If the preference is 'NA', continue to the next item
+                        # If it is, check the region
+                        if self.region == 'NA':
+                            # If the region is 'NA', continue to the next item
                             continue
-                        elif self.preference == 'EU':
-                            # If the preference is 'EU', update the dictionary with the new ending and reset time
+                        elif self.region == 'EU':
+                            # If the region is 'EU', update the dictionary with the new ending and reset time
                             first_occurrences[raid_name] = (raid_ending, reset_time_str)
 
                 # Loop through the first_occurrences dictionary
