@@ -20,17 +20,16 @@ class TreacheryNews(commands.Cog):
         # Create a draw object
         draw = ImageDraw.Draw(image)
 
-        # Load the fonts
-        headline_font = ImageFont.truetype("Arial", 48) # Use the font name here
-        article_font = ImageFont.truetype("Arial", 24) # Use the font name here
+        # Load the default font
+        font = ImageFont.load_default()
 
         # Draw the headline
-        draw.text((100, 50), "Treachery News", fill=(0, 0, 0), font=headline_font)
+        draw.text((100, 50), "Treachery News", fill=(0, 0, 0), font=font)
 
         # Draw the articles
-        draw.text((50, 150), "Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", fill=(0, 0, 0), font=article_font)
-        draw.text((50, 200), "Article 2: Sed quis nisi quis augue gravida fermentum.", fill=(0, 0, 0), font=article_font)
-        draw.text((50, 250), "Article 3: Quisque euismod leo at nisl ullamcorper, ac aliquet erat lacinia.", fill=(0, 0, 0), font=article_font)
+        draw.text((50, 150), "Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", fill=(0, 0, 0), font=font)
+        draw.text((50, 200), "Article 2: Sed quis nisi quis augue gravida fermentum.", fill=(0, 0, 0), font=font)
+        draw.text((50, 250), "Article 3: Quisque euismod leo at nisl ullamcorper, ac aliquet erat lacinia.", fill=(0, 0, 0), font=font)
 
         # Save the image
         image.save("news.png")
