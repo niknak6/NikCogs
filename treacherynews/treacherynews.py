@@ -17,7 +17,7 @@ class TreacheryNews(commands.Cog):
         """Generate a newspaper image"""
 
         # Create a blank image with a light gray background
-        image = Image.new("RGB", (800, 800), (240, 240, 240))  # Increased the size of the image
+        image = Image.new("RGB", (900, 900), (240, 240, 240))  # Increased the size of the image
 
         # Create a draw object
         draw = ImageDraw.Draw(image)
@@ -26,19 +26,20 @@ class TreacheryNews(commands.Cog):
         font = ImageFont.load_default()
 
         # Draw a horizontal line below the headline
-        draw.line((0, 100, 800, 100), fill=(0, 0, 0))
+        draw.line((0, 100, 900, 100), fill=(0, 0, 0))
 
         # Draw the headline with a larger font and centered alignment
-        draw.text((400, 50), "Treachery News", fill=(0, 0, 0), font=font, anchor="mm")
+        draw.text((450, 50), "Treachery News", fill=(0, 0, 0), font=font, anchor="mm")
 
         # Define the margins and the spacing
         margin = 10
         spacing = 10
 
-        # Draw a 2x2 grid of boxes for the articles
+        # Draw a 2x2 grid of boxes for the articles with margins
+        box_margin = 50  # Define the margin between boxes
         for i in range(2):
             for j in range(2):
-                draw.rectangle((50 + 400 * i, 150 + 300 * j, 350 + 400 * i, 450 + 300 * j), fill=(255, 255, 255), outline=(0, 0, 0))  # Adjusted the box size
+                draw.rectangle((50 + 450 * i + box_margin * i, 150 + 375 * j + box_margin * j, 350 + 450 * i + box_margin * i, 525 + 375 * j + box_margin * j), fill=(255, 255, 255), outline=(0, 0, 0))  # Adjusted the box size and position
 
         # Define the text for each box
         texts = ["Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", 
@@ -51,8 +52,8 @@ class TreacheryNews(commands.Cog):
             for j in range(2):
                 text = texts[i * 2 + j]
                 lines = textwrap.wrap(text, width=40)
-                x = 200 + 400 * i
-                y = 150 + 300 * j + margin  # Adjusted the text position
+                x = 200 + 450 * i + box_margin * i  # Adjusted the text position
+                y = 150 + 375 * j + margin + box_margin * j  # Adjusted the text position
                 for line in lines:
                     draw.text((x, y), line, fill=(0, 0, 0), font=font, align="center", anchor="ma")
                     y += font.getbbox(line)[3] + spacing
