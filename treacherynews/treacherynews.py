@@ -16,8 +16,13 @@ class TreacheryNews(commands.Cog):
     async def news(self, ctx):
         """Generate a newspaper image"""
 
+        # Define the image size, box size, and margin
+        image_width, image_height = 800, 600
+        box_width, box_height = (image_width - 3 * 20) // 2, (image_height - 100 - 3 * 20) // 2
+        margin = 20
+
         # Create a blank image with a light gray background
-        image = Image.new("RGB", (800, 800), (240, 240, 240))
+        image = Image.new("RGB", (image_width, image_height), (240, 240, 240))
 
         # Create a draw object
         draw = ImageDraw.Draw(image)
@@ -25,22 +30,11 @@ class TreacheryNews(commands.Cog):
         # Load the default font
         font = ImageFont.load_default()
 
-        # Draw a horizontal line below the headline
-        draw.line((0, 60, 800, 60), fill=(0, 0, 0))  # Moved the line up
-
         # Draw the headline with a larger font and centered alignment
-        draw.text((400, 30), "Treachery News", fill=(0, 0, 0), font=font, anchor="mm")  # Moved the headline up
+        draw.text((image_width // 2, 30), "Treachery News", fill=(0, 0, 0), font=font, anchor="mm")
 
-        # Define the margins and the spacing
-        margin = 10
-        spacing = 10
-
-        # Draw a 2x2 grid of boxes for the articles with margins
-        box_margin = 20  # Reduced the margin between boxes
-        box_size = (800 - 3 * box_margin) // 2  # Adjusted the box size
-        for i in range(2):
-            for j in range(2):
-                draw.rectangle((box_margin + (box_size + box_margin) * i, 80 + (box_size + box_margin) * j, box_margin + box_size + (box_size + box_margin) * i, 80 + box_size + (box_size + box_margin) * j), fill=(255, 255, 255), outline=(0, 0, 0))
+        # Draw a horizontal line below the headline
+        draw.line((0, 60, image_width, 60), fill=(0, 0, 0))
 
         # Define the text for each box
         texts = ["Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", 
@@ -48,16 +42,30 @@ class TreacheryNews(commands.Cog):
                  "Article 3: Quisque euismod leo at nisl ullamcorper, ac aliquet erat lacinia.",
                  "Article 4: Fusce vitae nisi quis eros tincidunt consequat."]
 
-        # Draw the text in each box
+        # Draw a 2x2 grid of boxes for the articles with margins and draw the text in each box
         for i in range(2):
             for j in range(2):
+                # Calculate the position of the box
+                left = margin + (box_width + margin) * i
+                top = 100 + margin + (box_height + margin) * j
+                right = left + box_width
+                bottom = top + box_height
+
+                # Draw the box
+                draw.rectangle((left, top, right, bottom), fill=(255, 255, 255), outline=(0, 0, 0))
+
+                # Get the text for the box
                 text = texts[i * 2 + j]
+
+                # Wrap the text into lines that fit within the box
                 lines = textwrap.wrap(text, width=40)
-                x = box_margin + box_size // 2 + (box_size + box_margin) * i  # Adjusted the text position
-                y = 80 + margin + (box_size + box_margin) * j  # Adjusted the text position
+
+                # Draw the text in the box
+                x = left + box_width // 2
+                y = top + margin
                 for line in lines:
                     draw.text((x, y), line, fill=(0, 0, 0), font=font, align="center", anchor="ma")
-                    y += font.getbbox(line)[3] + spacing
+                    y += font.getbbox(line)[3] + 10  # Increase the y coordinate by the height of the line and some spacing
 
         # Save the image
         image.save("news.png")
