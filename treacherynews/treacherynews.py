@@ -1,62 +1,39 @@
 # Import the required modules
-import discord
 from redbot.core import commands
-import requests
+from PIL import Image, ImageDraw, ImageFont
 
 # Define the cog class
-class CurrencyConvert(commands.Cog):
-    """Built to help with currency conversions in Treachery Discord"""
+class TreacheryNews(commands.Cog):
+    """A cog that generates a newspaper image"""
 
     def __init__(self, bot):
         self.bot = bot
 
-    # Define the command
-    @commands.command(name="cconv")
-    async def cconv(self, ctx, from_currency: str, to_currency: str, amount: float):
-        """Converts currency from one to another.
+    # Define the news command
+    @commands.command()
+    async def news(self, ctx):
+        """Generate a newspaper image"""
 
-        Example:
-        - `[p]cconv USD CAD 100`
-        """
-        # Validate the input parameters
-        if amount <= 0:
-            await ctx.send("The amount must be positive.")
-            return
-        if len(from_currency) != 3 or len(to_currency) != 3:
-            await ctx.send("The currency codes must be three letters long.")
-            return
+        # Create a blank image
+        image = Image.new("RGB", (800, 600), (255, 255, 255))
 
-        # Convert the currency codes to uppercase
-        from_currency = from_currency.upper()
-        to_currency = to_currency.upper()
+        # Create a draw object
+        draw = ImageDraw.Draw(image)
 
-        # Make a request to the API
-        url = f"https://open.exchangerate-api.com/v6/latest"
-        response = requests.get(url)
+        # Load the fonts
+        headline_font = ImageFont.truetype("arial.ttf", 48)
+        article_font = ImageFont.truetype("arial.ttf", 24)
 
-        # Check if the request was successful
-        if response.status_code == 200:
-            # Parse the response
-            data = response.json()
+        # Draw the headline
+        draw.text((100, 50), "Treachery News", fill=(0, 0, 0), font=headline_font)
 
-            # Check if the conversion rates exist
-            if from_currency in data["rates"] and to_currency in data["rates"]:
-                # Get the conversion rates relative to USD
-                from_rate = data["rates"][from_currency]
-                to_rate = data["rates"][to_currency]
+        # Draw the articles
+        draw.text((50, 150), "Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", fill=(0, 0, 0), font=article_font)
+        draw.text((50, 200), "Article 2: Sed quis nisi quis augue gravida fermentum.", fill=(0, 0, 0), font=article_font)
+        draw.text((50, 250), "Article 3: Quisque euismod leo at nisl ullamcorper, ac aliquet erat lacinia.", fill=(0, 0, 0), font=article_font)
 
-                # Calculate the conversion rate between the currencies
-                rate = to_rate / from_rate
+        # Save the image
+        image.save("news.png")
 
-                # Calculate the converted amount
-                converted_amount = round(amount * rate, 2)
-
-                # Format and send the output message
-                output = f"{amount} {from_currency} is equal to {converted_amount} {to_currency}."
-                await ctx.send(output)
-            else:
-                # Send an error message
-                await ctx.send("The conversion rate for these currencies is not available.")
-        else:
-            # Send an error message
-            await ctx.send("The request to the API failed.")
+        # Send the image to the channel
+        await ctx.send(file=discord.File("news.png"))
