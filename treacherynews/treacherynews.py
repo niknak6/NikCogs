@@ -42,12 +42,21 @@ class TreacheryNews(commands.Cog):
                  "Article 3: Quisque euismod leo at nisl ullamcorper, ac aliquet erat lacinia.",
                  "Article 4: Fusce vitae nisi quis eros tincidunt consequat."]
 
+        # Calculate the vertical space available for the boxes
+        available_space = image_height - 80  # 80 is the space taken by the headline and the line
+
+        # Calculate the total height of the boxes and the margins
+        total_height = 2 * box_height + 3 * margin
+
+        # Calculate the extra space that should be added to the top and bottom margins
+        extra_space = (available_space - total_height) // 2
+
         # Draw a 2x2 grid of boxes for the articles with margins and draw the text in each box
         for i in range(2):
             for j in range(2):
                 # Calculate the position of the box
                 left = margin + (box_width + margin) * i
-                top = 100 + margin + (box_height + margin) * j
+                top = 80 + extra_space + (box_height + margin) * j  # Added the extra space to the top margin
                 right = left + box_width
                 bottom = top + box_height
 
