@@ -28,7 +28,7 @@ class TreacheryNews(commands.Cog):
         draw = ImageDraw.Draw(image)
 
         # Load the default font
-        font = ImageFont.truetype("arialbd.ttf", 15)  # Use a bold font
+        font = ImageFont.load_default()
 
         # Draw the headline with a larger font and centered alignment
         draw.text((image_width // 2, 30), "Treachery News", fill="hotpink", font=font, anchor="mm")
