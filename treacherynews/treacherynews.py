@@ -77,8 +77,6 @@ class TreacheryNews(commands.Cog):
         # Draw a box for the New York Times logo on the top left corner of the image
         draw.rectangle((50, 10, 150, 90), fill=(255, 255, 255), outline=(0, 0, 0))
 
-        # Draw a box for the photo related to the first article on the right side of the image
-        draw.rectangle((450, 10, 750, 90), fill=(255, 255, 255), outline=(0, 0, 0))
 
         # Save the image
         image.save("news.png")
