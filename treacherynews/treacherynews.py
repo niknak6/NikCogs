@@ -17,7 +17,7 @@ class TreacheryNews(commands.Cog):
         """Generate a newspaper image"""
 
         # Create a blank image with a light gray background
-        image = Image.new("RGB", (800, 600), (240, 240, 240))
+        image = Image.new("RGB", (800, 800), (240, 240, 240))  # Increased the size of the image
 
         # Create a draw object
         draw = ImageDraw.Draw(image)
@@ -38,7 +38,7 @@ class TreacheryNews(commands.Cog):
         # Draw a 2x2 grid of boxes for the articles
         for i in range(2):
             for j in range(2):
-                draw.rectangle((50 + 400 * i, 150 + 250 * j, 350 + 400 * i, 400 + 250 * j), fill=(255, 255, 255), outline=(0, 0, 0))
+                draw.rectangle((50 + 400 * i, 150 + 300 * j, 350 + 400 * i, 450 + 300 * j), fill=(255, 255, 255), outline=(0, 0, 0))  # Adjusted the box size
 
         # Define the text for each box
         texts = ["Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", 
@@ -52,7 +52,7 @@ class TreacheryNews(commands.Cog):
                 text = texts[i * 2 + j]
                 lines = textwrap.wrap(text, width=40)
                 x = 200 + 400 * i
-                y = 150 + 250 * j + margin
+                y = 150 + 300 * j + margin  # Adjusted the text position
                 for line in lines:
                     draw.text((x, y), line, fill=(0, 0, 0), font=font, align="center", anchor="ma")
                     y += font.getbbox(line)[3] + spacing
