@@ -52,7 +52,7 @@ class TreacheryNews(commands.Cog):
         y = 150 + margin
         for line in lines:
             draw.text((x, y), line, fill=(0, 0, 0), font=font, anchor="la") # Use the anchor argument to align the text to the left
-            y += font.getsize(line)[1] + spacing # Increase the y coordinate by the height of the line and the spacing
+            y += font.getbbox(line)[3] + spacing # Increase the y coordinate by the bottom coordinate of the bounding box and the spacing
 
         # Draw a box for the New York Times logo on the top left corner of the image
         draw.rectangle((50, 10, 150, 90), fill=(255, 255, 255), outline=(0, 0, 0))
