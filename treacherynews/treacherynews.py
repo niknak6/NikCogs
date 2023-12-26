@@ -37,7 +37,7 @@ class TreacheryNews(commands.Cog):
         # Draw a box for the articles on the left side of the image
         draw.rectangle((50, 150, 350, 450), fill=(255, 255, 255), outline=(0, 0, 0))
 
-        # Define the articles text
+        # Define the text for the left box
         text = "Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Article 2: Sed quis nisi quis augue gravida fermentum. Article 3: Quisque euismod leo at nisl ullamcorper, ac aliquet erat lacinia."
 
         # Wrap the text into lines that fit within the box
@@ -54,11 +54,31 @@ class TreacheryNews(commands.Cog):
             draw.text((x, y), line, fill=(0, 0, 0), font=font, align="center", anchor="ma") # Use the align argument to center the text horizontally and the anchor argument to center the text vertically
             y += font.getbbox(line)[3] + spacing # Increase the y coordinate by the bottom coordinate of the bounding box and the spacing
 
+        # Draw a box for the articles on the right side of the image
+        draw.rectangle((450, 150, 750, 450), fill=(255, 255, 255), outline=(0, 0, 0))
+
+        # Define the text for the right box
+        text = "Article 4: Fusce vitae nisi quis eros tincidunt consequat. Article 5: Morbi id magna vitae nunc sagittis tristique. Article 6: Praesent vel neque quis elit faucibus blandit."
+
+        # Wrap the text into lines that fit within the box
+        lines = textwrap.wrap(text, width=40)
+
+        # Define the margins and the spacing
+        margin = 10
+        spacing = 10
+
+        # Draw the lines with a smaller font and center alignment
+        x = 600 # Use the center of the box as the x coordinate
+        y = 150 + margin
+        for line in lines:
+            draw.text((x, y), line, fill=(0, 0, 0), font=font, align="center", anchor="ma") # Use the align argument to center the text horizontally and the anchor argument to center the text vertically
+            y += font.getbbox(line)[3] + spacing # Increase the y coordinate by the bottom coordinate of the bounding box and the spacing
+
         # Draw a box for the New York Times logo on the top left corner of the image
         draw.rectangle((50, 10, 150, 90), fill=(255, 255, 255), outline=(0, 0, 0))
 
         # Draw a box for the photo related to the first article on the right side of the image
-        draw.rectangle((450, 150, 750, 450), fill=(255, 255, 255), outline=(0, 0, 0))
+        draw.rectangle((450, 10, 750, 90), fill=(255, 255, 255), outline=(0, 0, 0))
 
         # Save the image
         image.save("news.png")
