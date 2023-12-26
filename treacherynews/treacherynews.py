@@ -1,6 +1,7 @@
 # Import the required modules
 from redbot.core import commands
 from PIL import Image, ImageDraw, ImageFont
+import discord # Import the discord module
 
 # Define the cog class
 class TreacheryNews(commands.Cog):
