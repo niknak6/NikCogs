@@ -26,10 +26,10 @@ class TreacheryNews(commands.Cog):
         font = ImageFont.load_default()
 
         # Draw a horizontal line below the headline
-        draw.line((0, 80, 800, 80), fill=(0, 0, 0))  # Moved the line up
+        draw.line((0, 60, 800, 60), fill=(0, 0, 0))  # Moved the line up
 
         # Draw the headline with a larger font and centered alignment
-        draw.text((400, 40), "Treachery News", fill=(0, 0, 0), font=font, anchor="mm")  # Moved the headline up
+        draw.text((400, 30), "Treachery News", fill=(0, 0, 0), font=font, anchor="mm")  # Moved the headline up
 
         # Define the margins and the spacing
         margin = 10
@@ -40,7 +40,7 @@ class TreacheryNews(commands.Cog):
         box_size = (800 - 3 * box_margin) // 2  # Adjusted the box size
         for i in range(2):
             for j in range(2):
-                draw.rectangle((box_margin + (box_size + box_margin) * i, 100 + (box_size + box_margin) * j, box_margin + box_size + (box_size + box_margin) * i, 100 + box_size + (box_size + box_margin) * j), fill=(255, 255, 255), outline=(0, 0, 0))
+                draw.rectangle((box_margin + (box_size + box_margin) * i, 80 + (box_size + box_margin) * j, box_margin + box_size + (box_size + box_margin) * i, 80 + box_size + (box_size + box_margin) * j), fill=(255, 255, 255), outline=(0, 0, 0))
 
         # Define the text for each box
         texts = ["Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", 
@@ -54,7 +54,7 @@ class TreacheryNews(commands.Cog):
                 text = texts[i * 2 + j]
                 lines = textwrap.wrap(text, width=40)
                 x = box_margin + box_size // 2 + (box_size + box_margin) * i  # Adjusted the text position
-                y = 100 + margin + (box_size + box_margin) * j  # Adjusted the text position
+                y = 80 + margin + (box_size + box_margin) * j  # Adjusted the text position
                 for line in lines:
                     draw.text((x, y), line, fill=(0, 0, 0), font=font, align="center", anchor="ma")
                     y += font.getbbox(line)[3] + spacing
