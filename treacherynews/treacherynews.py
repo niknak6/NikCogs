@@ -31,26 +31,18 @@ class TreacheryNews(commands.Cog):
         draw.line((400, 150, 400, 600), fill=(0, 0, 0))
 
         # Draw the headline with a larger font and centered alignment
-        headline_font = ImageFont.truetype("arial.ttf", 36) # Use a larger font size
-        draw.text((400, 50), "Treachery News", fill=(0, 0, 0), font=headline_font, anchor="mm") # Use the anchor argument to center the text
+        draw.text((400, 50), "Treachery News", fill=(0, 0, 0), font=font, anchor="mm") # Use the anchor argument to center the text
 
         # Draw the articles with a smaller font and left alignment
-        article_font = ImageFont.truetype("arial.ttf", 18) # Use a smaller font size
-        draw.text((50, 150), "Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", fill=(0, 0, 0), font=article_font, anchor="la") # Use the anchor argument to align the text to the left
-        draw.text((50, 200), "Article 2: Sed quis nisi quis augue gravida fermentum.", fill=(0, 0, 0), font=article_font, anchor="la")
-        draw.text((50, 250), "Article 3: Quisque euismod leo at nisl ullamcorper, ac aliquet erat lacinia.", fill=(0, 0, 0), font=article_font, anchor="la")
+        draw.text((50, 150), "Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", fill=(0, 0, 0), font=font, anchor="la") # Use the anchor argument to align the text to the left
+        draw.text((50, 200), "Article 2: Sed quis nisi quis augue gravida fermentum.", fill=(0, 0, 0), font=font, anchor="la")
+        draw.text((50, 250), "Article 3: Quisque euismod leo at nisl ullamcorper, ac aliquet erat lacinia.", fill=(0, 0, 0), font=font, anchor="la")
 
-        # Load the New York Times logo from a file
-        logo = Image.open("nyt_logo.png")
+        # Draw a box for the New York Times logo on the top left corner of the image
+        draw.rectangle((50, 10, 150, 90), fill=(255, 255, 255), outline=(0, 0, 0))
 
-        # Paste the logo on the top left corner of the image
-        image.paste(logo, (50, 10))
-
-        # Load a photo related to the first article from a file
-        photo = Image.open("lorem_ipsum.jpg")
-
-        # Paste the photo on the right side of the image
-        image.paste(photo, (450, 150))
+        # Draw a box for the photo related to the first article on the right side of the image
+        draw.rectangle((450, 150, 750, 450), fill=(255, 255, 255), outline=(0, 0, 0))
 
         # Save the image
         image.save("news.png")
