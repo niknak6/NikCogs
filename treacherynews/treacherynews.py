@@ -2,6 +2,7 @@
 from redbot.core import commands
 from PIL import Image, ImageDraw, ImageFont
 import discord # Import the discord module
+import textwrap # Import the textwrap module
 
 # Define the cog class
 class TreacheryNews(commands.Cog):
@@ -36,10 +37,22 @@ class TreacheryNews(commands.Cog):
         # Draw a box for the articles on the left side of the image
         draw.rectangle((50, 150, 350, 450), fill=(255, 255, 255), outline=(0, 0, 0))
 
-        # Draw the articles with a smaller font and left alignment
-        draw.text((50, 150), "Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", fill=(0, 0, 0), font=font, anchor="la") # Use the anchor argument to align the text to the left
-        draw.text((50, 200), "Article 2: Sed quis nisi quis augue gravida fermentum.", fill=(0, 0, 0), font=font, anchor="la")
-        draw.text((50, 250), "Article 3: Quisque euismod leo at nisl ullamcorper, ac aliquet erat lacinia.", fill=(0, 0, 0), font=font, anchor="la")
+        # Define the articles text
+        text = "Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit. Article 2: Sed quis nisi quis augue gravida fermentum. Article 3: Quisque euismod leo at nisl ullamcorper, ac aliquet erat lacinia."
+
+        # Wrap the text into lines that fit within the box
+        lines = textwrap.wrap(text, width=40)
+
+        # Define the margins and the spacing
+        margin = 10
+        spacing = 10
+
+        # Draw the lines with a smaller font and left alignment
+        x = 50 + margin
+        y = 150 + margin
+        for line in lines:
+            draw.text((x, y), line, fill=(0, 0, 0), font=font, anchor="la") # Use the anchor argument to align the text to the left
+            y += font.getsize(line)[1] + spacing # Increase the y coordinate by the height of the line and the spacing
 
         # Draw a box for the New York Times logo on the top left corner of the image
         draw.rectangle((50, 10, 150, 90), fill=(255, 255, 255), outline=(0, 0, 0))
