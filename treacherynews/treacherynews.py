@@ -17,7 +17,7 @@ class TreacheryNews(commands.Cog):
         """Generate a newspaper image"""
 
         # Define the image size, box size, and margin
-        image_width, image_height = 600, 600
+        image_width, image_height = 600, 400
         box_width, box_height = (image_width - 3 * 20) // 2, (image_height - 100 - 3 * 20) // 2
         margin = 20
 
