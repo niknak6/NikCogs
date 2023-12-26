@@ -21,8 +21,8 @@ class TreacheryNews(commands.Cog):
         draw = ImageDraw.Draw(image)
 
         # Load the fonts
-        headline_font = ImageFont.truetype("arial.ttf", 48)
-        article_font = ImageFont.truetype("arial.ttf", 24)
+        headline_font = ImageFont.truetype("times.ttf", 48) # Change the font file name here
+        article_font = ImageFont.truetype("times.ttf", 24) # Change the font file name here
 
         # Draw the headline
         draw.text((100, 50), "Treachery News", fill=(0, 0, 0), font=headline_font)
