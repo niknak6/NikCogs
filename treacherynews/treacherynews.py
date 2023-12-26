@@ -33,6 +33,9 @@ class TreacheryNews(commands.Cog):
         # Draw the headline with a larger font and centered alignment
         draw.text((400, 50), "Treachery News", fill=(0, 0, 0), font=font, anchor="mm") # Use the anchor argument to center the text
 
+        # Draw a box for the articles on the left side of the image
+        draw.rectangle((50, 150, 350, 450), fill=(255, 255, 255), outline=(0, 0, 0))
+
         # Draw the articles with a smaller font and left alignment
         draw.text((50, 150), "Article 1: Lorem ipsum dolor sit amet, consectetur adipiscing elit.", fill=(0, 0, 0), font=font, anchor="la") # Use the anchor argument to align the text to the left
         draw.text((50, 200), "Article 2: Sed quis nisi quis augue gravida fermentum.", fill=(0, 0, 0), font=font, anchor="la")
