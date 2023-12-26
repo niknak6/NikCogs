@@ -47,11 +47,11 @@ class TreacheryNews(commands.Cog):
         margin = 10
         spacing = 10
 
-        # Draw the lines with a smaller font and left alignment
-        x = 50 + margin
+        # Draw the lines with a smaller font and center alignment
+        x = 200 # Use the center of the box as the x coordinate
         y = 150 + margin
         for line in lines:
-            draw.text((x, y), line, fill=(0, 0, 0), font=font, anchor="la") # Use the anchor argument to align the text to the left
+            draw.text((x, y), line, fill=(0, 0, 0), font=font, align="center", anchor="ma") # Use the align argument to center the text horizontally and the anchor argument to center the text vertically
             y += font.getbbox(line)[3] + spacing # Increase the y coordinate by the bottom coordinate of the bounding box and the spacing
 
         # Draw a box for the New York Times logo on the top left corner of the image
