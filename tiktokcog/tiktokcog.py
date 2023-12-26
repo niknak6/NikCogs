@@ -11,9 +11,9 @@ class TikTokCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.url_patterns = {
-            'tiktok': re.compile(r"(?i)(.*?)(https?://)?((\w+)\.)?tiktok.com/(.*)"),
-            'twitter': re.compile(r"(?i)(.*?)(https?://)?((\w+)\.)?twitter.com/(.*)"),
-            'x': re.compile(r"(?i)(.*?)(https?://)?((\w+)\.)?x.com/(.*)")
+            'tiktok': re.compile(r"(?i)\b(https?://)?((\w+)\.)?tiktok.com/\S*\b"),
+            'twitter': re.compile(r"(?i)\b(https?://)?((\w+)\.)?twitter.com/\S*\b"),
+            'x': re.compile(r"(?i)\b(https?://)?((\w+)\.)?x.com/\S*\b")
         }
         self.new_domains = {
             'tiktok': 'vxtiktok.com/',
