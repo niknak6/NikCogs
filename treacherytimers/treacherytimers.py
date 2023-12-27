@@ -19,6 +19,11 @@ class TreacheryTimers(commands.Cog):
         if not matches:
             return None
 
+        # If the pattern contains groups, matches will be a list of tuples.
+        # In this case, we join each tuple into a string.
+        if isinstance(matches[0], tuple):
+            matches = [' '.join(match) for match in matches]
+
         return matches
 
     @commands.command()
@@ -58,7 +63,7 @@ class TreacheryTimers(commands.Cog):
 
         affix_embed = discord.Embed(title="WoW Mythic+ Affixes by Week", description="")
         for match in affix_matches:
-            date, affix1, affix2, affix3 = match
+            date, affix1, affix2, affix3 = match.split()
             affix_embed.add_field(name=date, value=f"+2: {affix1}, +7: {affix2}, +14: {affix3}", inline=False)
 
         await ctx.send(embed=affix_embed)
