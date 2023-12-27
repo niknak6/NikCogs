@@ -29,7 +29,7 @@ class TreacheryTimers(commands.Cog):
     @commands.command()
     async def timers(self, ctx):
         """Fetches and parses the web page https://www.wowhead.com/classic and displays the classic raid reset timers"""
-        raid_reset_matches = self.fetch_and_parse("https://www.wowhead.com/classic", r"\{\"ending\":\".+?\",\"endingShort\":\".+?\",\"endingUt\":\d+,\"name\":\".+?\".+?\}")
+        raid_reset_matches = self.fetch_and_parse("https://www.wowhead.com/classic", r"\{\"ending\":\".+?\",\"endingShort\":\".+?\",\"endingUt\":\d+,\"name\":\".+?\",\"order\":\d+,\"url\":\".+?\"\}")
         if not raid_reset_matches:
             await ctx.send("No data can be found. Please check wowhead.com/classic to ensure times are visible. If the data is there, send a message to Nik.")
             return
