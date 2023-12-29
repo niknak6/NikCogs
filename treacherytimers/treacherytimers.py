@@ -42,17 +42,23 @@ class TreacheryTimers(commands.Cog):
         raid_reset_embed = discord.Embed(title="Classic Raid Reset Timers", description="")
         earliest_resets = {}
 
-        for raid in raid_reset_data:
-            raid_name, raid_ending_time = raid["name"], raid["ending"]
-            if self.selected_raids and raid_name not in self.selected_raids:
+        for region in raid_reset_data:
+            if region["regionId"] != self.server_region:
                 continue
+            for group in region["groups"]:
+                if group["id"] != "raidresets":
+                    continue
+                for raid_id, raid in group["content"]["lines"].items():
+                    raid_name, raid_ending_time = raid["name"], raid["ending"]
+                    if self.selected_raids and raid_name not in self.selected_raids:
+                        continue
 
-            reset_time_utc = datetime.utcfromtimestamp(raid["endingUt"])
-            reset_time_eastern = reset_time_utc.replace(tzinfo=pytz.utc).astimezone(pytz.timezone('US/Eastern'))
-            formatted_reset_time = reset_time_eastern.strftime('%m-%d-%Y %I:%M:%S %p %Z')
+                    reset_time_utc = datetime.utcfromtimestamp(raid["endingUt"])
+                    reset_time_eastern = reset_time_utc.replace(tzinfo=pytz.utc).astimezone(pytz.timezone('US/Eastern'))
+                    formatted_reset_time = reset_time_eastern.strftime('%m-%d-%Y %I:%M:%S %p %Z')
 
-            if raid_name not in earliest_resets or self.server_region == 'EU':
-                earliest_resets[raid_name] = (raid_ending_time, formatted_reset_time)
+                    if raid_name not in earliest_resets:
+                        earliest_resets[raid_name] = (raid_ending_time, formatted_reset_time)
 
         [raid_reset_embed.add_field(name=raid_name, value=f"{raid_ending_time} (Resets at {formatted_reset_time})") for raid_name, (raid_ending_time, formatted_reset_time) in earliest_resets.items()]
         await ctx.send(embed=raid_reset_embed)
