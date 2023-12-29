@@ -11,7 +11,8 @@ class TreacheryTimers(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.server_region = 'NA'
+        # Change the server region from NA to US
+        self.server_region = 'US'
         self.selected_raids = ['Blackfathom Deeps']
 
     def fetch_and_parse(self, url, pattern):
