@@ -35,7 +35,7 @@ class TreacheryTimers(commands.Cog):
     async def timers(self, ctx):
         """Fetches and parses the web page https://www.wowhead.com/classic and displays the classic raid reset timers"""
         # Use a more specific regular expression to extract the JSON data from the string
-        raid_reset_data = self.fetch_and_parse("https://www.wowhead.com/classic", r'new WH\.Wow\.TodayInWow\(WH\.ge\(\'today-in-wow\'\), (\[{"id":"dungeons-and-raids".*?"ending":".*?".*?"order":".+?".*?}\]\)+\);)')
+        raid_reset_data = self.fetch_and_parse("https://www.wowhead.com/classic", r'new WH\.Wow\.TodayInWow\(WH\.ge\(\'today-in-wow\'\), (\[{"id":"dungeons-and-raids".*?"regionId":"\w{2}".*?"groups":\[{"id":"raidresets".*?"content":\{"lines":\{.*?\}\}\}\]\}\]\)+\);')
         if not raid_reset_data:
             await ctx.send("No data can be found. Please check wowhead.com/classic to ensure times are visible. If the data is there, send a message to Nik.")
             return
@@ -68,7 +68,7 @@ class TreacheryTimers(commands.Cog):
     async def mplus(self, ctx):
         """Fetches and parses the web page https://keystone.guru/affixes and displays the WoW Mythic+ affixes by week"""
         # Use a more specific pattern to match the date and the affixes
-        affix_matches = self.fetch_and_parse("https://keystone.guru/affixes", r"(\d{4}/\w{3}/\d{2}).+?affix_icon_(.+?)\".+?affix_icon_(.+?)\".+?affix_icon_(.+?)\"")
+        affix_matches = self.fetch_and_parse("https://keystone.guru/affixes", r'(\d{4}/\w{3}/\d{2}).+?affix_icon_(\w+)" title="(\w+)" data-affix-id="\d+".+?affix_icon_(\w+)" title="(\w+)" data-affix-id="\d+".+?affix_icon_(\w+)" title="(\w+)" data-affix-id="\d+"'')
         if not affix_matches:
             await ctx.send("No data can be found. Please check keystone.guru/affixes to ensure times are visible. If the data is there, send a message to Nik.")
             return
