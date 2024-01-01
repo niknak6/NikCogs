@@ -2,7 +2,7 @@ import redbot.core
 import google.generativeai as genai
 from redbot.core import commands
 
-class Gemini(commands.Cog):
+class TestCog(commands.Cog):
     """A cog that uses the Google Gemini Pro AI API to generate content"""
 
     def __init__(self, bot):
