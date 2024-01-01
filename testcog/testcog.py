@@ -1,8 +1,10 @@
 # Import the google-generativeai package
 import google.generativeai as genai
+# Import the commands module from redbot.core
+from redbot.core import commands
 
 # Define a cog class that inherits from commands.Cog
-class GeminiCog(commands.Cog):
+class TestCog(commands.Cog):
   # Initialize the cog with the bot and the api key
   def __init__(self, bot, api_key):
     self.bot = bot
