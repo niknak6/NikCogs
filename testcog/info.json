@@ -1,14 +1,13 @@
 {
-    "author": ["nik"],
-    "name": "testcog",
-    "install_msg": "testcog",
-    "short": "testcog",
-    "description": "testcog,
-    "tags": [
-        "",
-        "",
-        ""
-    ],
+    "author": ["Your Name"],
+    "install_msg": "Thanks for installing TestCog!",
+    "short": "A cog that tests the google-generativeai module",
+    "description": "A cog that tests the google-generativeai module by generating content based on a given prompt",
+    "tags": ["test", "generative", "ai"],
     "min_bot_version": "3.5.0",
+    "hidden": false,
+    "required_cogs": {},
+    "requirements": ["google-generativeai"],
+    "type": "COG",
     "end_user_data_statement": "This cog does not persistently store data or metadata about users."
 }
