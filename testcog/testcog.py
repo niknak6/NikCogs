@@ -51,12 +51,10 @@ class TestCog(commands.Cog):
     if self.bot.user in message.mentions:
       # Check if the model and chat are not None
       if self.model is not None and self.chat is not None:
-        # Get the user or channel ID as the conversation ID
-        conversation_id = str(message.author.id) if message.guild is None else str(message.channel.id)
-        # Get the conversation history for the conversation ID, or create an empty list if it does not exist
-        conversation_history = self.conversation_histories.get(conversation_id, [])
-        # Generate a response using the gemini model, passing the message content, conversation ID and history as parameters
-        response = self.chat.send_message(message.content, conversation_id=conversation_id, conversation_history=conversation_history, stream=True)
+        # Get the conversation history for the user or channel, or create an empty list if it does not exist
+        conversation_history = self.conversation_histories.get(message.author.id if message.guild is None else message.channel.id, [])
+        # Generate a response using the gemini model, passing the message content and history as parameters
+        response = self.chat.send_message(message.content, conversation_history=conversation_history, stream=True)
         # Send the response to the user
         for chunk in response:
           await message.channel.send(chunk.text)
@@ -64,7 +62,7 @@ class TestCog(commands.Cog):
           conversation_history.append(glm.Content(parts=[glm.Part(text=message.content)], role="user"))
           conversation_history.append(glm.Content(parts=[glm.Part(text=chunk.text)], role="model"))
         # Update the conversation history in the dictionary
-        self.conversation_histories[conversation_id] = conversation_history
+        self.conversation_histories[message.author.id if message.guild is None else message.channel.id] = conversation_history
       else:
         # If the model or chat is None, send a message to the user to set the api key first
         await message.channel.send('Please set the Gemini API key first using the geminiapi command.')
