@@ -23,8 +23,8 @@ class TestCog(commands.Cog):
       print(f'Error: {e}')
       self.model = None
       self.chat = None
-    # Create a dictionary to store the conversation histories for each user or channel
-    self.conversation_histories = {}
+    # Create a list to store the conversation history for the server or the group
+    self.conversation_history = []
 
   # Define a command that sets the api key
   @commands.command()
@@ -51,18 +51,14 @@ class TestCog(commands.Cog):
     if self.bot.user in message.mentions:
       # Check if the model and chat are not None
       if self.model is not None and self.chat is not None:
-        # Get the conversation history for the user or channel, or create an empty list if it does not exist
-        conversation_history = self.conversation_histories.get(message.author.id if message.guild is None else message.channel.id, [])
-        # Generate a response using the gemini model, passing the message content and history as parameters
-        response = self.chat.send_message(message.content, conversation_history=conversation_history, stream=True)
+        # Generate a response using the gemini model, passing the message content and the conversation history as parameters
+        response = self.chat.send_message(message.content, conversation_history=self.conversation_history, stream=True)
         # Send the response to the user
         for chunk in response:
           await message.channel.send(chunk.text)
           # Append the user's message and the bot's response to the conversation history
-          conversation_history.append(glm.Content(parts=[glm.Part(text=message.content)], role="user"))
-          conversation_history.append(glm.Content(parts=[glm.Part(text=chunk.text)], role="model"))
-        # Update the conversation history in the dictionary
-        self.conversation_histories[message.author.id if message.guild is None else message.channel.id] = conversation_history
+          self.conversation_history.append(glm.Content(parts=[glm.Part(text=message.content)], role="user"))
+          self.conversation_history.append(glm.Content(parts=[glm.Part(text=chunk.text)], role="model"))
       else:
         # If the model or chat is None, send a message to the user to set the api key first
         await message.channel.send('Please set the Gemini API key first using the geminiapi command.')
