@@ -2,8 +2,11 @@ from redbot.core import commands
 import google.generativeai as genai
 import os
 
+# Replace this line with your API key
+api_key='AIzaSyCaa3qXhCKf_8gffMFus0winnucnl_KMyk'
+
 genai.configure(
-    api_key=os.environ['AIzaSyCaa3qXhCKf_8gffMFus0winnucnl_KMyk'])
+    api_key=api_key)
 model = genai.GenerativeModel(
     model_name='gemini-pro')
 
