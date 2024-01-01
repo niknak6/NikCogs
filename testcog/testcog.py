@@ -1,5 +1,7 @@
 # Import the google-generativeai package
 import google.generativeai as genai
+# Import the glm module from the google-generativeai package
+from google.generativeai import glm
 # Import the discord and redbot.core packages
 import discord
 from redbot.core import commands
