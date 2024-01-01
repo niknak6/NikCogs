@@ -7,10 +7,10 @@ class TestCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        # Configure the Gemini API with your API key and product ID
-        genai.configure(api_key="AIzaSyCaa3qXhCKf_8gffMFus0winnucnl_KMyk", product_id="advance-sector-409906")
-        # Create a GenerativeModel object with the name of the model you want to use
-        self.model = genai.GenerativeModel("gemini-pro")
+        # Configure the Gemini API with your API key
+        genai.configure(api_key="AIzaSyCaa3qXhCKf_8gffMFus0winnucnl_KMyk")
+        # Create a GenerativeModel object with the name of the model and the product ID you want to use
+        self.model = genai.GenerativeModel("gemini-pro", product_id="advance-sector-409906")
 
     @commands.command()
     async def gemini(self, ctx):
