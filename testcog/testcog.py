@@ -17,7 +17,7 @@ class TestCog(commands.Cog):
       # Create a generative model object for the gemini-pro model
       self.model = genai.GenerativeModel('gemini-pro')
       # Start a chat session with the model
-      self.chat = self.model.start_chat(messages=[])
+      self.chat = self.model.start_chat(prompt=[])
     except Exception as e:
       # If the api key is not set or invalid, print the error and set the model and chat to None
       print(f'Error: {e}')
@@ -37,7 +37,7 @@ class TestCog(commands.Cog):
       # Create a generative model object for the gemini-pro model
       self.model = genai.GenerativeModel('gemini-pro')
       # Start a chat session with the model
-      self.chat = self.model.start_chat(messages=[])
+      self.chat = self.model.start_chat(prompt=[])
       # Send a confirmation message to the user
       await ctx.send(f'Gemini API key set to {api_key}')
     except Exception as e:
@@ -53,8 +53,6 @@ class TestCog(commands.Cog):
       if self.model is not None and self.chat is not None:
         # Append the message content to the conversation history
         self.conversation_history.append(message.content)
-        # Start a chat session with the model using the conversation history as the messages parameter
-        self.chat = self.model.start_chat(messages=self.conversation_history)
         # Generate a response from the model using the send_message method, passing the message content and the stream parameter as True
         response = self.chat.send_message(content=message.content, stream=True)
         # Send the response to the user
