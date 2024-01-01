@@ -12,6 +12,7 @@ import aiohttp
 import uuid
 import os
 import io
+import textwrap # added this module to wrap long responses
 
 genai.configure(api_key=None) # will be set by the user later
 
@@ -56,7 +57,10 @@ class TestCog(commands.Cog):
                     guild_context = await self.config.guild(message.guild).context()
                     context_uids = list(guild_context.keys())
                     response = await self.ask_gpt(input_messages, is_image=False, context_uids=context_uids)
-                    await message.channel.send(response)
+                    # added this block to split the response into smaller chunks
+                    chunks = textwrap.wrap(response, width=1990) # wrap the response into lines of 1990 characters each
+                    for chunk in chunks:
+                        await message.channel.send(chunk) # send each chunk as a separate message
                     # store the input and output messages in the guild context
                     input_uid = str(uuid.uuid4())
                     output_uid = str(uuid.uuid4())
