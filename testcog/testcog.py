@@ -1,4 +1,4 @@
-# gpt.py
+# testcog.py
 
 from redbot.core import commands
 from redbot.core.bot import Red
@@ -15,7 +15,7 @@ import io
 
 genai.configure(api_key=None) # will be set by the user later
 
-class GPT(commands.Cog):
+class TestCog(commands.Cog):
     """A cog that uses Google Generative AI to generate text or image descriptions."""
 
     def __init__(self, bot: Red):
