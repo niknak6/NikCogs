@@ -32,36 +32,40 @@ class TestCog(commands.Cog):
         genai.configure(api_key=key)
         await ctx.send("API key set successfully.")
 
-    @commands.command()
-    async def gpt(self, ctx: commands.Context, *args):
-        """Generates text or image descriptions using Google Generative AI."""
-        if not await self.config.api_key():
-            await ctx.send("The Google API key is not set. Please use the `setapikey` command first.")
-            return
-        if not args:
-            await ctx.send("Please provide some input text or an image URL.")
-            return
-        if args[0].startswith("http"):
-            # assume it's an image URL
-            uid = await self.download_image(args[0])
-            if uid:
-                response = await self.ask_gpt([], is_image=True, context_uids=[uid])
-                await ctx.send(response)
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Responds to mentions using Google Generative AI."""
+        if self.bot.user.mentioned_in(message): # check if the bot is mentioned
+            args = message.content.split() # split the message by spaces
+            if len(args) > 1: # check if there is something after the mention
+                args.pop(0) # remove the mention from the list
+                input_text = " ".join(args) # join the rest of the message with spaces
+                # the input_text is the message appended to the mention
+                # you can use it as the input for the Google API
+                if input_text.startswith("http"):
+                    # assume it's an image URL
+                    uid = await self.download_image(input_text)
+                    if uid:
+                        response = await self.ask_gpt([], is_image=True, context_uids=[uid])
+                        await message.channel.send(response)
+                    else:
+                        await message.channel.send("Failed to download the image.")
+                else:
+                    # assume it's text input
+                    input_messages = [{"role": "user", "content": input_text}]
+                    guild_context = await self.config.guild(message.guild).context()
+                    context_uids = list(guild_context.keys())
+                    response = await self.ask_gpt(input_messages, is_image=False, context_uids=context_uids)
+                    await message.channel.send(response)
+                    # store the input and output messages in the guild context
+                    input_uid = str(uuid.uuid4())
+                    output_uid = str(uuid.uuid4())
+                    guild_context[input_uid] = input_messages[0]['content']
+                    guild_context[output_uid] = response
+                    await self.config.guild(message.guild).context.set(guild_context)
             else:
-                await ctx.send("Failed to download the image.")
-        else:
-            # assume it's text input
-            input_messages = [{"role": "user", "content": " ".join(args)}]
-            guild_context = await self.config.guild(ctx.guild).context()
-            context_uids = list(guild_context.keys())
-            response = await self.ask_gpt(input_messages, is_image=False, context_uids=context_uids)
-            await ctx.send(response)
-            # store the input and output messages in the guild context
-            input_uid = str(uuid.uuid4())
-            output_uid = str(uuid.uuid4())
-            guild_context[input_uid] = input_messages[0]['content']
-            guild_context[output_uid] = response
-            await self.config.guild(ctx.guild).context.set(guild_context)
+                # if there is nothing after the mention, you can send a default message
+                await message.channel.send("Hello, I am a bot that uses Google Generative AI to generate text or image descriptions. You can mention me with some input text or an image URL and I will try to respond.")
 
     async def download_image(self, image_url):
         print(f"Downloading image from URL: {image_url}")
