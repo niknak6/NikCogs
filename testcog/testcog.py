@@ -56,6 +56,10 @@ class TestCog(commands.Cog):
                     input_messages = [{"role": "user", "content": input_text}]
                     guild_context = await self.config.guild(message.guild).context()
                     context_uids = list(guild_context.keys())
+                    # added this block to fetch the referenced message and add it to the input_messages list
+                    if message.reference: # check if the message is a reply
+                        ref_msg = message.reference.cached_message or await message.channel.fetch_message(message.reference.message_id) # get the referenced message object
+                        input_messages.append({"role": "bot", "content": ref_msg.content}) # add the referenced message content to the input_messages list
                     response = await self.ask_gpt(input_messages, is_image=False, context_uids=context_uids)
                     # added this block to split the response into smaller chunks
                     chunks = textwrap.wrap(response, width=1990) # wrap the response into lines of 1990 characters each
