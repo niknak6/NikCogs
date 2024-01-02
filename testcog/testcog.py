@@ -3,7 +3,7 @@
 from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.config import Config
-import google.generativeai as genai
+from google.cloud import aiplatform # added this import to use Vertex AI SDK for Python
 import re
 from PIL import Image
 from pathlib import Path
@@ -14,7 +14,7 @@ import os
 import io
 import textwrap # added this module to wrap long responses
 
-genai.configure(api_key=None) # will be set by the user later
+aiplatform.init(project=None, location=None) # will be set by the user later
 
 class TestCog(commands.Cog):
     """A cog that uses Google Generative AI to generate text or image descriptions."""
@@ -22,16 +22,24 @@ class TestCog(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)
-        self.config.register_global(api_key=None)
-        self.model = None # added this attribute to store the model object
+        self.config.register_global(project_id=None, location=None)
+        self.chat = None # added this attribute to store the chat object
 
     @commands.is_owner()
     @commands.command()
-    async def setapikey(self, ctx: commands.Context, key: str):
-        """Sets the Google API key for the cog."""
-        await self.config.api_key.set(key)
-        genai.configure(api_key=key)
-        await ctx.send("API key set successfully.")
+    async def setprojectid(self, ctx: commands.Context, project_id: str):
+        """Sets the Google Cloud project ID for the cog."""
+        await self.config.project_id.set(project_id)
+        aiplatform.init(project=project_id) # initialize the Vertex AI SDK with the project ID
+        await ctx.send("Project ID set successfully.")
+
+    @commands.is_owner()
+    @commands.command()
+    async def setlocation(self, ctx: commands.Context, location: str):
+        """Sets the Google Cloud location for the cog."""
+        await self.config.location.set(location)
+        aiplatform.init(location=location) # initialize the Vertex AI SDK with the location
+        await ctx.send("Location set successfully.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -106,24 +114,19 @@ class TestCog(commands.Cog):
         def process_image():
             print(f"Processing image with Google API: {temp_file_path}")
             image = Image.open(temp_file_path)
-            model = genai.GenerativeModel(model_name="gemini-pro-vision")
+            model = aiplatform.gapic.GenerativeModel(model_name="gemini-pro-vision")
             return model.generate_content([image]).text
         return await asyncio.to_thread(process_image)
 
     async def ask_gpt(self, input_messages, is_image=False, retry_attempts=3, delay=1):
-        # added this block to create or load the model object with the history
-        if not self.model: # check if the model object is None
-            api_key = await self.config.api_key() # get the api key from the config
-            if not api_key: # check if the api key is None
-                print("No API key set for the cog.")
-                return "No API key set for the cog."
-            history = [] # an empty list for the history
-            # you can load the history from a file or a database here if you want
-            # for example, you can use pickle to load the history from a file
-            # import pickle
-            # with open("history.pkl", "rb") as f:
-            #     history = pickle.load(f)
-            self.model = genai.GenerativeModel(model_name="gemini-pro", history=history) # create the model object with the history
+        # added this block to create or load the chat object
+        if not self.chat: # check if the chat object is None
+            project_id = await self.config.project_id() # get the project ID from the config
+            location = await self.config.location() # get the location from the config
+            if not project_id or not location: # check if the project ID or the location is None
+                print("No project ID or location set for the cog.")
+                return "No project ID or location set for the cog."
+            self.chat = aiplatform.gapic.GenerativeModel(model_name="gemini-pro").start_chat() # create the chat object
         for attempt in range(retry_attempts):
             try:
                 if is_image:
@@ -144,14 +147,9 @@ class TestCog(commands.Cog):
                     else:
                         print("No valid UID found in the message.")
                         return "No valid UID found."
-                input_content = genai.ModelContent(role="user", parts=[genai.ModelContentPart(text=input_messages[0]['content'])]) # create the input content from the first message
-                response_content = self.model.generate_content(input_content) # generate the response content from the model
-                response_text = response_content.parts[0].text # get the text of the response
-                # you can save the history to a file or a database here if you want
-                # for example, you can use pickle to save the history to a file
-                # import pickle
-                # with open("history.pkl", "wb") as f:
-                #     pickle.dump(self.model.history, f)
+                input_text = input_messages[0]['content'] # get the input text from the first message
+                response = self.chat.send_message(input_text) # send the input text to the chat object and get the response
+                response_text = response.text # get the text of the response
                 return response_text
             except Exception as e:
                 print(f"Error in ask_gpt with Google AI: {e}")
