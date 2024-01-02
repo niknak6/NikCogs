@@ -57,10 +57,14 @@ class TestCog(commands.Cog):
                     guild_context = await self.config.guild(message.guild).context()
                     context_uids = list(guild_context.keys())
                     # added this block to fetch the referenced message and add it to the input_messages list
+                    history = [] # initialize an empty history list
                     if message.reference: # check if the message is a reply
                         ref_msg = message.reference.cached_message or await message.channel.fetch_message(message.reference.message_id) # get the referenced message object
-                        input_messages.append({"role": "bot", "content": ref_msg.content}) # add the referenced message content to the input_messages list
-                    response = await self.ask_gpt(input_messages, is_image=False, context_uids=context_uids)
+                        ref_uid = ref_msg.id # get the referenced message id
+                        if ref_uid in guild_context: # check if the referenced message id is in the guild context
+                            ref_content = guild_context[ref_uid] # get the referenced message content from the guild context
+                            history.append({"role": "bot", "content": ref_content}) # add the referenced message content to the history list
+                    response = await self.ask_gpt(input_messages, is_image=False, context_uids=context_uids, history=history) # pass the history list to the ask_gpt method
                     # added this block to split the response into smaller chunks
                     chunks = textwrap.wrap(response, width=1990) # wrap the response into lines of 1990 characters each
                     for chunk in chunks:
@@ -118,7 +122,7 @@ class TestCog(commands.Cog):
             return model.generate_content([image]).text
         return await asyncio.to_thread(process_image)
 
-    async def ask_gpt(self, input_messages, is_image=False, context_uids=[], retry_attempts=3, delay=1):
+    async def ask_gpt(self, input_messages, is_image=False, context_uids=[], history=[], retry_attempts=3, delay=1):
         combined_messages = " " + " ".join(msg['content'] for msg in input_messages if msg['role'] == 'user')
         for uid in context_uids:
             image_path = Path('./images') / f'{uid}.jpg'
@@ -148,7 +152,7 @@ class TestCog(commands.Cog):
                         print("No valid UID found in the message.")
                         return "No valid UID found."
                 model = genai.GenerativeModel(model_name="gemini-pro")
-                chat = model.start_chat()
+                chat = model.start_chat(history=history) # start a chat session with the history list
                 print(f"Sending text to Google AI: {combined_messages}")
                 response = chat.send_message(combined_messages)
                 return response.text
