@@ -217,14 +217,4 @@ class AIEmote(commands.Cog):
 
     @aiemote.command(name="remove", aliases=["rm"])
     @checks.admin_or_permissions(manage_guild=True)
-    async def whitelist_remove(self, ctx: commands.Context, channel: discord.TextChannel):
-        """ Remove a channel from the whitelist
-
-            *Arguments*
-            - `<channel>` The mention of channel
-        """
-        whitelist = self.whitelist.get(ctx.guild.id, [])
-        if channel.id not in whitelist:
-            return await ctx.send("Channel not in whitelist")
-        whitelist.remove(channel.id)
-        self.whitelist[ctx.guild.id
+    async def whitelist_remove(self, ctx
