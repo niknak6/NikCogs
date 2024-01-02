@@ -23,7 +23,7 @@ class TestCog(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)
         self.config.register_global(api_key=None)
-        self.config.register_guild(context={}) # a dictionary of message UIDs and their content
+        self.model = None # added this attribute to store the model object
 
     @commands.is_owner()
     @commands.command()
@@ -54,23 +54,15 @@ class TestCog(commands.Cog):
                 else:
                     # assume it's text input
                     input_messages = [{"role": "user", "content": input_text}]
-                    guild_context = await self.config.guild(message.guild).context()
-                    context_uids = list(guild_context.keys())
                     # added this block to fetch the referenced message and add it to the input_messages list
                     if message.reference: # check if the message is a reply
                         ref_msg = message.reference.cached_message or await message.channel.fetch_message(message.reference.message_id) # get the referenced message object
                         input_messages.append({"role": "bot", "content": ref_msg.content}) # add the referenced message content to the input_messages list
-                    response = await self.ask_gpt(input_messages, is_image=False, context_uids=context_uids)
+                    response = await self.ask_gpt(input_messages, is_image=False)
                     # added this block to split the response into smaller chunks
                     chunks = textwrap.wrap(response, width=1990) # wrap the response into lines of 1990 characters each
                     for chunk in chunks:
                         await message.channel.send(chunk) # send each chunk as a separate message
-                    # store the input and output messages in the guild context
-                    input_uid = str(uuid.uuid4())
-                    output_uid = str(uuid.uuid4())
-                    guild_context[input_uid] = input_messages[0]['content']
-                    guild_context[output_uid] = response
-                    await self.config.guild(message.guild).context.set(guild_context)
             else:
                 # if there is nothing after the mention, you can send a default message
                 await message.channel.send("Hello, I am a bot that uses Google Generative AI to generate text or image descriptions. You can mention me with some input text or an image URL and I will try to respond.")
@@ -118,15 +110,20 @@ class TestCog(commands.Cog):
             return model.generate_content([image]).text
         return await asyncio.to_thread(process_image)
 
-    async def ask_gpt(self, input_messages, is_image=False, context_uids=[], retry_attempts=3, delay=1):
-        combined_messages = " " + " ".join(msg['content'] for msg in input_messages if msg['role'] == 'user')
-        for uid in context_uids:
-            image_path = Path('./images') / f'{uid}.jpg'
-            if image_path.exists():
-                response_text = await self.process_image_with_google_api(image_path)
-                combined_messages += " " + response_text
-            else:
-                print(f"Image with UID {uid} not found in context.")
+    async def ask_gpt(self, input_messages, is_image=False, retry_attempts=3, delay=1):
+        # added this block to create or load the model object with the history
+        if not self.model: # check if the model object is None
+            api_key = await self.config.api_key() # get the api key from the config
+            if not api_key: # check if the api key is None
+                print("No API key set for the cog.")
+                return "No API key set for the cog."
+            history = [] # an empty list for the history
+            # you can load the history from a file or a database here if you want
+            # for example, you can use pickle to load the history from a file
+            # import pickle
+            # with open("history.pkl", "rb") as f:
+            #     history = pickle.load(f)
+            self.model = genai.GenerativeModel(model_name="gemini-pro", history=history) # create the model object with the history
         for attempt in range(retry_attempts):
             try:
                 if is_image:
@@ -147,11 +144,15 @@ class TestCog(commands.Cog):
                     else:
                         print("No valid UID found in the message.")
                         return "No valid UID found."
-                model = genai.GenerativeModel(model_name="gemini-pro")
-                chat = model.start_chat()
-                print(f"Sending text to Google AI: {combined_messages}")
-                response = chat.send_message(combined_messages)
-                return response.text
+                input_content = genai.ModelContent(role="user", parts=[genai.ModelContentPart(text=input_messages[0]['content'])]) # create the input content from the first message
+                response_content = self.model.generate_content(input_content) # generate the response content from the model
+                response_text = response_content.parts[0].text # get the text of the response
+                # you can save the history to a file or a database here if you want
+                # for example, you can use pickle to save the history to a file
+                # import pickle
+                # with open("history.pkl", "wb") as f:
+                #     pickle.dump(self.model.history, f)
+                return response_text
             except Exception as e:
                 print(f"Error in ask_gpt with Google AI: {e}")
                 if attempt < retry_attempts - 1:
