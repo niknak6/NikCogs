@@ -1,164 +1,166 @@
-# testcog.py
-
-from redbot.core import commands
-from redbot.core.bot import Red
-from redbot.core.config import Config
-import google.generativeai as genai
-import re
-from PIL import Image
-from pathlib import Path
-import asyncio
-import aiohttp
-import uuid
+# Import the necessary modules
 import os
-import io
-import textwrap # added this module to wrap long responses
+import re
 
-genai.configure(api_key=None) # will be set by the user later
+import aiohttp
+import discord
+import google.generativeai as genai
+from redbot.core import commands, Config
 
-class TestCog(commands.Cog):
-    """A cog that uses Google Generative AI to generate text or image descriptions."""
-
-    def __init__(self, bot: Red):
+# Create a cog class that inherits from commands.Cog
+class Gemini(commands.Cog):
+    def __init__(self, bot):
         self.bot = bot
+        # Set up the config system
+        default_global = {
+            "google_ai_key": None,
+            "max_history": 0
+        }
         self.config = Config.get_conf(self, identifier=1234567890)
-        self.config.register_global(api_key=None)
-        self.config.register_guild(context={}) # a dictionary of message UIDs and their content
+        self.config.register_global(**default_global)
+        # Configure the generative AI models
+        genai.configure(api_key=await self.config.google_ai_key())
+        text_generation_config = {
+            "temperature": 0.9,
+            "top_p": 1,
+            "top_k": 1,
+            "max_output_tokens": 512,
+        }
+        image_generation_config = {
+            "temperature": 0.4,
+            "top_p": 1,
+            "top_k": 32,
+            "max_output_tokens": 512,
+        }
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"}
+        ]
+        self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config=text_generation_config, safety_settings=safety_settings)
+        self.image_model = genai.GenerativeModel(model_name="gemini-pro-vision", generation_config=image_generation_config, safety_settings=safety_settings)
+        # Initialize the message history dictionary
+        self.message_history = {}
 
+    # Create a command to set the Google AI API key
     @commands.is_owner()
     @commands.command()
-    async def setapikey(self, ctx: commands.Context, key: str):
-        """Sets the Google API key for the cog."""
-        await self.config.api_key.set(key)
-        genai.configure(api_key=key)
-        await ctx.send("API key set successfully.")
+    async def setapikey(self, ctx, key: str):
+        """Sets the Google AI API key."""
+        await self.config.google_ai_key.set(key)
+        await ctx.send("API key set.")
 
+    # Create a command to set the max history value
+    @commands.is_owner()
+    @commands.command()
+    async def setmaxhistory(self, ctx, value: int):
+        """Sets the maximum number of messages to retain in history for each user."""
+        await self.config.max_history.set(value)
+        await ctx.send(f"Max history set to {value}.")
+
+    # Register a listener for the on_message event
     @commands.Cog.listener()
     async def on_message(self, message):
-        """Responds to mentions using Google Generative AI."""
-        if self.bot.user.mentioned_in(message): # check if the bot is mentioned
-            args = message.content.split() # split the message by spaces
-            if len(args) > 1: # check if there is something after the mention
-                args.pop(0) # remove the mention from the list
-                input_text = " ".join(args) # join the rest of the message with spaces
-                # the input_text is the message appended to the mention
-                # you can use it as the input for the Google API
-                if input_text.startswith("http"):
-                    # assume it's an image URL
-                    uid = await self.download_image(input_text)
-                    if uid:
-                        response = await self.ask_gpt([], is_image=True, context_uids=[uid])
-                        await message.channel.send(response)
-                    else:
-                        await message.channel.send("Failed to download the image.")
-                else:
-                    # assume it's text input
-                    input_messages = [{"role": "user", "content": input_text}]
-                    guild_context = await self.config.guild(message.guild).context()
-                    context_uids = list(guild_context.keys())
-                    # added this block to fetch the referenced message and add it to the input_messages list
-                    history = [] # initialize an empty history list
-                    if message.reference: # check if the message is a reply
-                        ref_msg = message.reference.cached_message or await message.channel.fetch_message(message.reference.message_id) # get the referenced message object
-                        ref_uid = ref_msg.id # get the referenced message id
-                        if ref_uid in guild_context: # check if the referenced message id is in the guild context
-                            ref_content = guild_context[ref_uid] # get the referenced message content from the guild context
-                            history.append(ref_content) # add the referenced message content to the history list
-                    response = await self.ask_gpt(input_messages, is_image=False, context_uids=context_uids, history=history) # pass the history list to the ask_gpt method
-                    # added this block to split the response into smaller chunks
-                    chunks = textwrap.wrap(response, width=1990) # wrap the response into lines of 1990 characters each
-                    for chunk in chunks:
-                        await message.channel.send(chunk) # send each chunk as a separate message
-                    # store the input and output messages in the guild context
-                    input_uid = str(uuid.uuid4())
-                    output_uid = str(uuid.uuid4())
-                    guild_context[input_uid] = input_messages[0]['content']
-                    guild_context[output_uid] = response
-                    await self.config.guild(message.guild).context.set(guild_context)
-            else:
-                # if there is nothing after the mention, you can send a default message
-                await message.channel.send("Hello, I am a bot that uses Google Generative AI to generate text or image descriptions. You can mention me with some input text or an image URL and I will try to respond.")
+        # Get the context of the message
+        ctx = await self.bot.get_context(message)
+        # Convert the message content to a cleaned string
+        cleaned_text = await commands.clean_content().convert(ctx, message.content)
 
-    async def download_image(self, image_url):
-        print(f"Downloading image from URL: {image_url}")
-        uid = str(uuid.uuid4())
-        images_dir = Path('./images')
-        images_dir.mkdir(exist_ok=True)
-        file_path = images_dir / f"{uid}.jpg"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(image_url) as response:
-                if response.status == 200:
-                    image_data = await response.read()
-                    image = Image.open(io.BytesIO(image_data))
-                    image = self.compress_image(image, max_size=4*1024*1024)
-                    image.save(file_path, quality=85, optimize=True)
-                    print(f"Image downloaded and compressed as: {file_path}")
-                    return uid
-                else:
-                    print(f"Failed to download image. HTTP status: {response.status}")
-                    return None
+        # Check for image attachments
+        if message.attachments:
+            print("New Image Message FROM:" + str(message.author.id) + ": " + cleaned_text)
+            # Currently no chat history for images
+            for attachment in message.attachments:
+                # These are the only image extensions it currently accepts
+                if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
+                    await message.add_reaction('🎨')
 
-    def compress_image(self, image, max_size):
-        img_byte_arr = io.BytesIO()
-        quality = 95
-        if image.mode == 'RGBA':
-            background = Image.new('RGB', image.size, (255, 255, 255))
-            background.paste(image, mask=image.split()[3])
-            image = background
-        while True:
-            img_byte_arr.seek(0)
-            image.save(img_byte_arr, format='JPEG', quality=quality)
-            if img_byte_arr.tell() <= max_size or quality <= 10:
-                break
-            quality -= 5
-        img_byte_arr.seek(0)
-        return Image.open(img_byte_arr)
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(attachment.url) as resp:
+                            if resp.status != 200:
+                                await message.channel.send('Unable to download the image.')
+                                return
+                            image_data = await resp.read()
+                            response_text = await self.generate_response_with_image_and_text(image_data, cleaned_text)
+                            # Create a paginator and add the response text to it
+                            paginator = commands.Paginator()
+                            paginator.add_line(response_text)
+                            # Send the paginator to the message channel
+                            await self.bot.send_pages(paginator, message.channel)
+                            return
+        # Not an image, do text response
+        else:
+            print("New Message FROM:" + str(message.author.id) + ": " + cleaned_text)
+            # Check for keyword reset
+            if "RESET" in cleaned_text:
+                # Send back message
+                if message.author.id in self.message_history:
+                    del self.message_history[message.author.id]
+                await message.channel.send("🤖 History Reset for user: " + str(message.author.name))
+                return
+            await message.add_reaction('💬')
 
-    async def process_image_with_google_api(self, temp_file_path):
-        def process_image():
-            print(f"Processing image with Google API: {temp_file_path}")
-            image = Image.open(temp_file_path)
-            model = genai.GenerativeModel(model_name="gemini-pro-vision")
-            return model.generate_content([image]).text
-        return await asyncio.to_thread(process_image)
+            # Check if history is disabled, just send response
+            if (await self.config.max_history()) == 0:
+                response_text = await self.generate_response_with_text(cleaned_text)
+                # Create a paginator and add the response text to it
+                paginator = commands.Paginator()
+                paginator.add_line(response_text)
+                # Send the paginator to the message channel
+                await self.bot.send_pages(paginator, message.channel)
+                return
+            # Add user's question to history
+            self.update_message_history(message.author.id, cleaned_text)
+            response_text = await self.generate_response_with_text(self.get_formatted_message_history(message.author.id))
+            # Add AI response to history
+            self.update_message_history(message.author.id, response_text)
+            # Create a paginator and add the response text to it
+            paginator = commands.Paginator()
+            paginator.add_line(response_text)
+            # Send the paginator to the message channel
+            await self.bot.send_pages(paginator, message.channel)
 
-    async def ask_gpt(self, input_messages, is_image=False, context_uids=[], history=[], retry_attempts=3, delay=1):
-        combined_messages = " " + " ".join(msg['content'] for msg in input_messages if msg['role'] == 'user')
-        for uid in context_uids:
-            image_path = Path('./images') / f'{uid}.jpg'
-            if image_path.exists():
-                response_text = await self.process_image_with_google_api(image_path)
-                combined_messages += " " + response_text
-            else:
-                print(f"Image with UID {uid} not found in context.")
-        for attempt in range(retry_attempts):
-            try:
-                if is_image:
-                    uid = None
-                    for msg in input_messages:
-                        uid_match = re.search(r'> Image UID: (\S+)', msg['content'])
-                        if uid_match:
-                            uid = uid_match.group(1)
-                            break
-                    if uid:
-                        image_path = Path('./images') / f'{uid}.jpg'
-                        if not image_path.exists():
-                            print(f"Image not found at path: {image_path}")
-                            return "Image not found."
-                        response_text = await self.process_image_with_google_api(image_path)
-                        print("Image processing completed.")
-                        return response_text + f"\n> Image UID: {uid}"
-                    else:
-                        print("No valid UID found in the message.")
-                        return "No valid UID found."
-                model = genai.GenerativeModel(model_name="gemini-pro")
-                chat = model.start_chat(history=history) # start a chat session with the history list
-                print(f"Sending text to Google AI: {combined_messages}")
-                response = chat.send_message(combined_messages)
-                return response.text # use the text attribute of the response object
-            except Exception as e:
-                print(f"Error in ask_gpt with Google AI: {e}")
-                if attempt < retry_attempts - 1:
-                    await asyncio.sleep(delay)
-                    continue
-                return "I'm sorry, I couldn't process that due to an error in the Google service."
+    # Define the methods for generating responses with text and image
+    async def generate_response_with_text(self, message_text):
+        prompt_parts = [message_text]
+        print("Got textPrompt: " + message_text)
+        response = self.text_model.generate_content(prompt_parts)
+        if (response._error):
+            return "❌" + str(response._error)
+        return response.text
+
+    async def generate_response_with_image_and_text(self, image_data, text):
+        image_parts = [{"mime_type": "image/jpeg", "data": image_data}]
+        prompt_parts = [image_parts[0], f"\n{text if text else 'What is this a picture of?'}"]
+        response = self.image_model.generate_content(prompt_parts)
+        if (response._error):
+            return "❌" + str(response._error)
+        return response.text
+
+    # Define the methods for updating and formatting the message history
+    def update_message_history(self, user_id, text):
+        # Check if user_id already exists in the dictionary
+        if user_id in self.message_history:
+            # Append the new message to the user's message list
+            self.message_history[user_id].append(text)
+            # If there are more than max history messages, remove the oldest one
+            if len(self.message_history[user_id]) > (await self.config.max_history()):
+                self.message_history[user_id].pop(0)
+        else:
+            # If the user_id does not exist, create a new entry with the message
+            self.message_history[user_id] = [text]
+
+    def get_formatted_message_history(self, user_id):
+        """
+        Function to return the message history for a given user_id with two line breaks between each message.
+        """
+        if user_id in self.message_history:
+            # Join the messages with two line breaks
+            return '\n\n'.join(self.message_history[user_id])
+        else:
+            return "No messages found for this user."
+
+# Define a function to load the cog
+def setup(bot):
+    bot.add_cog(Gemini(bot))
