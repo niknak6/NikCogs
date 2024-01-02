@@ -217,4 +217,4 @@ class AIEmote(commands.Cog):
 
     @aiemote.command(name="remove", aliases=["rm"])
     @checks.admin_or_permissions(manage_guild=True)
-    async def whitelist_remove(self, ctx
+    async def whitelist_remove(self, ctx:
