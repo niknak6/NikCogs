@@ -129,7 +129,7 @@ class Gemini(commands.Cog):
             # Append the new message to the user's message list
             self.message_history[user_id].append(text)
             # If there are more than 12 messages, remove the oldest one
-            max_history = await self.config.max_history()
+            max_history = asyncio.run(self.config.max_history())
             if len(self.message_history[user_id]) > max_history:
                 self.message_history[user_id].pop(0)
         else:
