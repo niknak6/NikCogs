@@ -47,7 +47,7 @@ class TestCog(commands.Cog):
                     # assume it's an image URL
                     uid = await self.download_image(input_text)
                     if uid:
-                        response = await self.generate_content([], is_image=True, context_uids=[uid])
+                        response = await self.ask_gpt([], is_image=True, context_uids=[uid])
                         await message.channel.send(response)
                     else:
                         await message.channel.send("Failed to download the image.")
@@ -63,8 +63,8 @@ class TestCog(commands.Cog):
                         ref_uid = ref_msg.id # get the referenced message id
                         if ref_uid in guild_context: # check if the referenced message id is in the guild context
                             ref_content = guild_context[ref_uid] # get the referenced message content from the guild context
-                            history.append(genai.Content(parts=[genai.Part(text=ref_content)])) # add the referenced message content as a Content object to the history list
-                    response = await self.generate_content(input_messages, is_image=False, context_uids=context_uids, history=history) # pass the history list to the generate_content method
+                            history.append(ref_content) # add the referenced message content to the history list
+                    response = await self.ask_gpt(input_messages, is_image=False, context_uids=context_uids, history=history) # pass the history list to the ask_gpt method
                     # added this block to split the response into smaller chunks
                     chunks = textwrap.wrap(response, width=1990) # wrap the response into lines of 1990 characters each
                     for chunk in chunks:
@@ -122,46 +122,43 @@ class TestCog(commands.Cog):
             return model.generate_content([image]).text
         return await asyncio.to_thread(process_image)
 
-    async def generate_content(self, input_messages, is_image=False, context_uids=[], history=[], retry_attempts=3, delay=1):
-        input_contents = [] # initialize an empty list of input contents
-        for msg in input_messages: # loop through the input messages
-            if msg['role'] == 'user': # check if the message is from the user
-                input_contents.append(genai.Content(parts=[genai.Part(text=msg['content'])])) # create a Content object with the message text and append it to the input contents list
-        for uid in context_uids: # loop through the context UIDs
-            image_path = Path('./images') / f'{uid}.jpg' # get the image path
-            if image_path.exists(): # check if the image exists
-                image = Image.open(image_path) # open the image
-                input_contents.append(genai.Content(parts=[genai.Part(image=image)])) # create a Content object with the image and append it to the input contents list
+    async def ask_gpt(self, input_messages, is_image=False, context_uids=[], history=[], retry_attempts=3, delay=1):
+        combined_messages = " " + " ".join(msg['content'] for msg in input_messages if msg['role'] == 'user')
+        for uid in context_uids:
+            image_path = Path('./images') / f'{uid}.jpg'
+            if image_path.exists():
+                response_text = await self.process_image_with_google_api(image_path)
+                combined_messages += " " + response_text
             else:
                 print(f"Image with UID {uid} not found in context.")
-        for attempt in range(retry_attempts): # loop through the retry attempts
+        for attempt in range(retry_attempts):
             try:
-                if is_image: # check if the input is an image
+                if is_image:
                     uid = None
-                    for msg in input_messages: # loop through the input messages
-                        uid_match = re.search(r'> Image UID: (\S+)', msg['content']) # try to find the image UID in the message
-                        if uid_match: # check if there is a match
-                            uid = uid_match.group(1) # get the UID
+                    for msg in input_messages:
+                        uid_match = re.search(r'> Image UID: (\S+)', msg['content'])
+                        if uid_match:
+                            uid = uid_match.group(1)
                             break
-                    if uid: # check if there is a UID
-                        image_path = Path('./images') / f'{uid}.jpg' # get the image path
-                        if not image_path.exists(): # check if the image exists
+                    if uid:
+                        image_path = Path('./images') / f'{uid}.jpg'
+                        if not image_path.exists():
                             print(f"Image not found at path: {image_path}")
                             return "Image not found."
-                        response_text = await self.process_image_with_google_api(image_path) # process the image with the Google API
+                        response_text = await self.process_image_with_google_api(image_path)
                         print("Image processing completed.")
-                        return response_text + f"\n> Image UID: {uid}" # return the response text with the image UID
+                        return response_text + f"\n> Image UID: {uid}"
                     else:
                         print("No valid UID found in the message.")
                         return "No valid UID found."
-                model = genai.GenerativeModel(model_name="gemini-pro") # create a generative model object
+                model = genai.GenerativeModel(model_name="gemini-pro")
                 chat = model.start_chat(history=history) # start a chat session with the history list
-                print(f"Sending contents to Google AI: {input_contents}")
-                response = chat.send_content(input_contents) # send the input contents to the Google AI
-                return response.text # return the response text
-            except Exception as e: # catch any exception
-                print(f"Error in generate_content with Google AI: {e}")
-                if attempt < retry_attempts - 1: # check if there are more attempts left
-                    await asyncio.sleep(delay) # wait for some delay
+                print(f"Sending text to Google AI: {combined_messages}")
+                response = chat.send_message(combined_messages)
+                return response.text # use the text attribute of the response object
+            except Exception as e:
+                print(f"Error in ask_gpt with Google AI: {e}")
+                if attempt < retry_attempts - 1:
+                    await asyncio.sleep(delay)
                     continue
                 return "I'm sorry, I couldn't process that due to an error in the Google service."
