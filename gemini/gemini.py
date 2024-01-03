@@ -21,6 +21,13 @@ class Gemini(commands.Cog):
         self.image_model = None
         self.message_history = {}
 
+        # Add these lines to read the config values and initialize the models
+        api_key = await self.config.google_ai_key()
+        if api_key:
+            genai.configure(api_key=api_key)
+            self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 0.9, "top_p": 1, "top_k": 1, "max_output_tokens": 512}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
+            self.image_model = genai.GenerativeModel(model_name="gemini-pro-vision", generation_config={"temperature": 0.4, "top_p": 1, "top_k": 32, "max_output_tokens": 512}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
+
     @commands.command()
     @commands.is_owner()
     async def setapikey(self, ctx, key: str):
