@@ -5,18 +5,39 @@ import re
 from typing import Optional
 
 import discord
+import tiktoken
 from emoji import EMOJI_DATA
+from openai import AsyncOpenAI
 from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.utils.menus import start_adding_reactions
 from redbot.core.utils.predicates import ReactionPredicate
 from redbot.core.utils.views import SimpleMenu
-import google.generativeai as genai
-import textwrap
-
-genai.configure(api_key=None) # will be set by the user later
 
 logger = logging.getLogger("red.bz_cogs.aiemote")
+
+
+class Emoji:
+    # A base class for all emojis
+    def __init__(self, description, emoji):
+        self.description = description
+        self.emoji = emoji
+        self.encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+
+    def validate(self, ctx: commands.Context):
+        # Check if the emoji is valid
+        if self.emoji in EMOJI_DATA.keys():
+            return True
+        if (not bool(re.fullmatch(AIEmote.MATCH_DISCORD_EMOJI_REGEX, self.emoji))):
+            ctx.send("Invalid emoji!")
+            return False
+        partial_emoji = discord.PartialEmoji.from_str(self.emoji)
+        isBotEmoji = bool(discord.utils.get(ctx.bot.emojis, name=partial_emoji.name, id=partial_emoji.id))
+        if not isBotEmoji:
+            ctx.send("Invalid emoji! Custom emojis must be usable by the bot itself")
+            return False
+        return True
+
 
 class AIEmote(commands.Cog):
     MATCH_DISCORD_EMOJI_REGEX = r"<a?:[A-Za-z0-9]+:[0-9]+>"
@@ -25,19 +46,13 @@ class AIEmote(commands.Cog):
         super().__init__()
         self.bot: Red = bot
         self.config = Config.get_conf(self, identifier=754069)
-        self.model = None # added this attribute to store the model object
+        self.aclient = None
 
         default_global = {
             "percent": 50,
             "global_emojis": [
-                {
-                    "description": "A happy face",
-                    "emoji": "😀",
-                },
-                {
-                    "description": "A sad face",
-                    "emoji": "😢",
-                },
+                Emoji("A happy face", "😀"),
+                Emoji("A sad face", "😢"),
             ],
             "extra_instruction": "",
             "optin": [],
@@ -62,13 +77,26 @@ class AIEmote(commands.Cog):
         for guild_id, config in all_config.items():
             self.whitelist[guild_id] = config["whitelist"]
 
-    @commands.is_owner()
-    @commands.command()
-    async def setapikey(self, ctx: commands.Context, key: str):
-        """Sets the Google API key for the cog."""
-        await self.config.api_key.set(key)
-        genai.configure(api_key=key)
-        await ctx.send("API key set successfully.")
+    @commands.Cog.listener()
+    async def on_red_api_tokens_update(self, service_name, api_tokens):
+        if service_name == "openai":
+            self.initalize_openai()
+
+    async def initalize_openai(self, ctx: commands.Context = None):
+        key = (await self.bot.get_shared_api_tokens("openai")).get("api_key")
+        if not key and ctx:
+            return await ctx.send(
+                f"OpenAI API key not set for `aiemote`. "
+                f"Please set it with `{ctx.clean_prefix}set api openai api_key,API_KEY`")
+        if not key:
+            logger.error(
+                F"OpenAI API key not set for `aiemote` yet! Please set it with `{ctx.clean_prefix}set api openai api_key,API_KEY`")
+            return
+
+        self.aclient = AsyncOpenAI(
+            api_key=key,
+            timeout=50.0
+        )
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message: discord.Message):
@@ -91,35 +119,40 @@ class AIEmote(commands.Cog):
             return None
 
         for index, value in enumerate(emojis):
-            options += f"{index}. {value['description']}\n"
+            options += f"{index}. {value.description}\n"
+
+        logit_bias = {}
+        for i in range(len(emojis)):
+            encoded_value = emojis[i].encoding.encode(str(i))
+            if len(encoded_value) == 1:
+                logit_bias[encoded_value[0]] = 100
 
         system_prompt = f"You are in a chat room. You will pick an emoji for the following message. {await self.config.extra_instruction()} Here are your options: {options} Your answer will be a int between 0 and {len(emojis)-1}."
         content = f"{message.author.display_name} : {self.stringify_any_mentions(message)}"
         try:
-            # added this block to create or load the model object with the history
-            if not self.model: # check if the model object is None
-                api_key = await self.config.api_key() # get the api key from the config
-                if not api_key: # check if the api key is None
-                    print("No API key set for the cog.")
-                    return "No API key set for the cog."
-                history = [] # an empty list for the history
-                self.model = genai.GenerativeModel(model_name="gemini-pro", history=history) # create the model object with the history
-            input_content = genai.ModelContent(role="user", parts=[genai.ModelContentPart(text=content)]) # create the input content from the first message
-            response_content = self.model.generate_content(input_content) # generate the response content from the model
-            response_text = response_content.parts[0].text # get the text of the response
+            response = await self.aclient.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": content}
+                ],
+                max_tokens=1,
+                logit_bias=logit_bias,
+            )
         except:
-            logger.warning(f"Skipping react in {message.guild.name}! Failed to get response from Google AI")
+            logger.warning(f"Skipping react in {message.guild.name}! Failed to get response from OpenAI")
             return None
 
-        if response_text.isnumeric():
-            index = int(response_text)
+        response = response.choices[0].message.content
+        if response.isnumeric():
+            index = int(response)
             if index < 0 or index >= len(emojis):
                 return None
-            partial_emoji = discord.PartialEmoji.from_str(emojis[index]["emoji"])
+            partial_emoji = discord.PartialEmoji.from_str(emojis[index].emoji)
             return partial_emoji
         else:
             logger.warning(
-                f"Skipping react in {message.guild.name}! Non-numeric response from Google AI: {response_text}. (Please report to dev if this occurs often)")
+                f"Skipping react in {message.guild.name}! Non-numeric response from OpenAI: {response}. (Please report to dev if this occurs often)")
             return None
 
     async def is_valid_to_react(self, ctx: commands.Context):
@@ -144,6 +177,11 @@ class AIEmote(commands.Cog):
         if (not ctx.author.id in self.optin_users) and (not (await self.config.guild(ctx.guild).optin_by_default())):
             return False
 
+        if not self.aclient:
+            await self.initalize_openai(ctx)
+            if not self.aclient:
+                return False
+
         # skipping images / embeds
         if not ctx.message.content or (ctx.message.attachments and len(ctx.message.attachments) > 0):
             return False
@@ -153,80 +191,5 @@ class AIEmote(commands.Cog):
             logger.debug(f"Skipping message in {ctx.guild.name} with length {len(ctx.message.content)}")
             return False
 
-        return True
 
-    def stringify_any_mentions(self, message: discord.Message) -> str:
-        """
-        Converts mentions to text
-        """
-        content = message.content
-        mentions = message.mentions + message.role_mentions + message.channel_mentions
-
-        if not mentions:
-            return content
-
-        for mentioned in mentions:
-            if mentioned in message.channel_mentions:
-                content = content.replace(mentioned.mention, f'#{mentioned.name}')
-            elif mentioned in message.role_mentions:
-                content = content.replace(mentioned.mention, f'@{mentioned.name}')
-            else:
-                content = content.replace(mentioned.mention, f'@{mentioned.display_name}')
-
-        return content
-
-    @commands.group(name="aiemote", alias=["ai_emote"])
-    @checks.admin_or_permissions(manage_guild=True)
-    async def aiemote(self, _):
-        """ Totally not glorified sentiment analysis™
-
-            Picks a reaction for a message using gpt-3.5-turbo
-
-            To get started, please add a channel to the whitelist with:
-            `[p]aiemote allow <#channel>`
-        """
-        pass
-
-    @aiemote.command(name="whitelist")
-    @checks.admin_or_permissions(manage_guild=True)
-    async def whitelist_list(self, ctx: commands.Context):
-        """ List all channels in the whitelist """
-        whitelist = self.whitelist.get(ctx.guild.id, [])
-        if not whitelist:
-            return await ctx.send("No channels in whitelist")
-        channels = [ctx.guild.get_channel(channel_id) for channel_id in whitelist]
-        embed = discord.Embed(title="Whitelist", color=await ctx.embed_color())
-        embed.add_field(name="Channels", value="\n".join([channel.mention for channel in channels]))
-        await ctx.send(embed=embed)
-
-    @aiemote.command(name="allow", aliases=["add"])
-    @checks.admin_or_permissions(manage_guild=True)
-    async def whitelist_add(self, ctx: commands.Context, channel: discord.TextChannel):
-        """ Add a channel to the whitelist
-
-            *Arguments*
-            - `<channel>` The mention of channel
-        """
-        whitelist = self.whitelist.get(ctx.guild.id, [])
-        if channel.id in whitelist:
-            return await ctx.send("Channel already in whitelist")
-        whitelist.append(channel.id)
-        self.whitelist[ctx.guild.id] = whitelist
-        await self.config.guild(ctx.guild).whitelist.set(whitelist)
-        return await ctx.tick()
-
-    @aiemote.command(name="remove", aliases=["rm"])
-    @checks.admin_or_permissions(manage_guild=True)
-    async def whitelist_remove(self, ctx: commands.Context, channel: discord.TextChannel):
-        """ Remove a channel from the whitelist
-
-            *Arguments*
-            - `<channel>` The mention of channel
-        """
-        whitelist = self.whitelist.get(ctx.guild.id, [])
-        if channel.id not in whitelist:
-            return await ctx.send("Channel not in whitelist")
-        whitelist.remove(channel.id)
-        self.whitelist[ctx.guild.id] = whitelist
-        await self.config.guild(ctx.guild).whitelist.set(whitelist)
-        return await ctx.tick()
+> Learn more: [1. www.youtube.com](https://www.youtube.com/watch?v=rp1QR3eGI1k) [2. www.youtube.com](https://www.youtube.com/watch?v=wd1JqBWm3lQ) [3. www.youtube.com](https://www.youtube.com/watch?v=731LoaZCUjo) [4. www.freecodecamp.org](https://www.freecodecamp.org/news/best-practices-for-refactoring-code/) [5. realpython.com](https://realpython.com/python-refactoring/) [6. www.coscreen.co](https://www.coscreen.co/blog/ways-to-refactoring-python-code/) [7. www.python-engineer.com](https://www.python-engineer.com/posts/python-refactoring-tips/) [8. learn.microsoft.com](https://learn.microsoft.com/en-us/visualstudio/python/refactoring-python-code?view=vs-2022)
