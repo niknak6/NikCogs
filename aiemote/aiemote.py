@@ -190,6 +190,3 @@ class AIEmote(commands.Cog):
         if len(ctx.message.content) > 1500 or len(ctx.message.content) < 10:
             logger.debug(f"Skipping message in {ctx.guild.name} with length {len(ctx.message.content)}")
             return False
-
-
-> Learn more: [1. www.youtube.com](https://www.youtube.com/watch?v=rp1QR3eGI1k) [2. www.youtube.com](https://www.youtube.com/watch?v=wd1JqBWm3lQ) [3. www.youtube.com](https://www.youtube.com/watch?v=731LoaZCUjo) [4. www.freecodecamp.org](https://www.freecodecamp.org/news/best-practices-for-refactoring-code/) [5. realpython.com](https://realpython.com/python-refactoring/) [6. www.coscreen.co](https://www.coscreen.co/blog/ways-to-refactoring-python-code/) [7. www.python-engineer.com](https://www.python-engineer.com/posts/python-refactoring-tips/) [8. learn.microsoft.com](https://learn.microsoft.com/en-us/visualstudio/python/refactoring-python-code?view=vs-2022)
