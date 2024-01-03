@@ -237,3 +237,8 @@ class AIEmote(commands.Cog):
     async def whitelist_list(self, ctx: commands.Context):
         """ List all channels in the whitelist """
         whitelist = self.whitelist.get(ctx.guild.id, [])
+        if not whitelist:
+            return await ctx.send("No channels in whitelist")
+        channels = [ctx.guild.get_channel(channel_id) for channel_id in whitelist]
+        embed = discord.Embed(title="Whitelist", color=await ctx.embed_color())
+        embed.add_field(name="Channels", value="\n".join([channel.mention for
