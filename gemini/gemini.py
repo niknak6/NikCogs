@@ -24,8 +24,7 @@ class Gemini(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def setapikey(self, ctx, key: str):
-        async with self.config.google_ai_key() as api_key:
-            api_key = key
+        await self.config.google_ai_key.set(key)
         genai.configure(api_key=key)
         self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 0.9, "top_p": 1, "top_k": 1, "max_output_tokens": 512}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
         self.image_model = genai.GenerativeModel(model_name="gemini-pro-vision", generation_config={"temperature": 0.4, "top_p": 1, "top_k": 32, "max_output_tokens": 512}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
@@ -37,8 +36,7 @@ class Gemini(commands.Cog):
         if number < 0:
             await ctx.send("The number must be positive or zero.")
             return
-        async with self.config.max_history() as max_history:
-            max_history = number
+        await self.config.max_history.set(number)
         await ctx.send(f"Max history set to {number}.")
 
     @commands.command()
@@ -47,8 +45,7 @@ class Gemini(commands.Cog):
         if mode not in ['user', 'channel']:
             await ctx.send("The mode must be either 'user' or 'channel'.")
             return
-        async with self.config.context_mode() as context_mode:
-            context_mode = mode # This updates the global setting for context mode
+        await self.config.context_mode.set(mode) # This updates the global setting for context mode
         await ctx.send(f"Context mode set to {mode}.")
 
     @commands.Cog.listener()
@@ -83,14 +80,14 @@ class Gemini(commands.Cog):
                         return
                     await message.add_reaction('💬')
 
-                    async with self.config.context_mode() as context_mode: # This gets the global setting for context mode
-                        context_id = message.channel.id if context_mode == 'channel' else message.author.id # This determines the context id based on the context mode
+                    context_mode = await self.config.context_mode() # This gets the global setting for context mode
+                    context_id = message.channel.id if context_mode == 'channel' else message.author.id # This determines the context id based on the context mode
 
-                    async with self.config.max_history() as max_history:
-                        if max_history == 0:
-                            response_text = await self.generate_response_with_text(cleaned_text)
-                            await self.split_and_send_messages(message, response_text, 1700)
-                            return
+                    max_history = await self.config.max_history()
+                    if max_history == 0:
+                        response_text = await self.generate_response_with_text(cleaned_text)
+                        await self.split_and_send_messages(message, response_text, 1700)
+                        return
                     await self.update_message_history(context_id, cleaned_text)
                     response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
                     await self.update_message_history(context_id, response_text)
@@ -115,9 +112,9 @@ class Gemini(commands.Cog):
     async def update_message_history(self, context_id, text):
         if context_id in self.message_history:
             self.message_history[context_id].append(text)
-            async with self.config.max_history() as max_history:
-                if len(self.message_history[context_id]) > max_history:
-                    self.message_history[context_id].pop(0)
+            max_history = await self.config.max_history()
+            if len(self.message_history[context_id]) > max_history:
+                self.message_history[context_id].pop(0)
         else:
             self.message_history[context_id] = [text]
 
