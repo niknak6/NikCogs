@@ -38,13 +38,6 @@ class Emoji:
             return False
         return True
 
-    def toJSON(self):
-        # Return a dictionary representation of the object
-        return {
-            "description": self.description,
-            "emoji": self.emoji
-        }
-
 
 class AIEmote(commands.Cog):
     MATCH_DISCORD_EMOJI_REGEX = r"<a?:[A-Za-z0-9]+:[0-9]+>"
@@ -197,48 +190,3 @@ class AIEmote(commands.Cog):
         if len(ctx.message.content) > 1500 or len(ctx.message.content) < 10:
             logger.debug(f"Skipping message in {ctx.guild.name} with length {len(ctx.message.content)}")
             return False
-
-        return True
-
-    def stringify_any_mentions(self, message: discord.Message) -> str:
-        """
-        Converts mentions to text
-        """
-        content = message.content
-        mentions = message.mentions + message.role_mentions + message.channel_mentions
-
-        if not mentions:
-            return content
-
-        for mentioned in mentions:
-            if mentioned in message.channel_mentions:
-                content = content.replace(mentioned.mention, f'#{mentioned.name}')
-            elif mentioned in message.role_mentions:
-                content = content.replace(mentioned.mention, f'@{mentioned.name}')
-            else:
-                content = content.replace(mentioned.mention, f'@{mentioned.display_name}')
-
-        return content
-
-    @commands.group(name="aiemote", alias=["ai_emote"])
-    @checks.admin_or_permissions(manage_guild=True)
-    async def aiemote(self, _):
-        """ Totally not glorified sentiment analysis™
-
-            Picks a reaction for a message using gpt-3.5-turbo
-
-            To get started, please add a channel to the whitelist with:
-            `[p]aiemote allow <#channel>`
-        """
-        pass
-
-    @aiemote.command(name="whitelist")
-    @checks.admin_or_permissions(manage_guild=True)
-    async def whitelist_list(self, ctx: commands.Context):
-        """ List all channels in the whitelist """
-        whitelist = self.whitelist.get(ctx.guild.id, [])
-        if not whitelist:
-            return await ctx.send("No channels in whitelist")
-        channels = [ctx.guild.get_channel(channel_id) for channel_id in whitelist]
-        embed = discord.Embed(title="Whitelist", color=await ctx.embed_color())
-        embed.add_field(name="Channels", value="\n".join([channel.mention for
