@@ -100,10 +100,10 @@ class Gemini(commands.Cog):
                         await self.split_and_send_messages(message, response_text, 1700)
                         return
                     # Add users question to history
-                    self.update_message_history(message.author.id, cleaned_text)
+                    await self.update_message_history(message.author.id, cleaned_text)
                     response_text = await self.generate_response_with_text(self.get_formatted_message_history(message.author.id))
                     # Add AI response to history
-                    self.update_message_history(message.author.id, response_text)
+                    await self.update_message_history(message.author.id, response_text)
                     # Split the Message so discord does not get upset
                     await self.split_and_send_messages(message, response_text, 1700)
 
@@ -123,7 +123,7 @@ class Gemini(commands.Cog):
             return "❌" +  str(response._error)
         return response.text
 
-    def update_message_history(self, user_id, text):
+    async def update_message_history(self, user_id, text):
         # Check if user_id already exists in the dictionary
         if user_id in self.message_history:
             # Append the new message to the user's message list
