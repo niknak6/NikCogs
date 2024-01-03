@@ -21,7 +21,11 @@ class Gemini(commands.Cog):
         self.image_model = None
         self.message_history = {}
 
-        # Add these lines to read the config values and initialize the models
+        # Create a task to initialize the models
+        self.bot.loop.create_task(self.initialize_models())
+
+    # Define an async method to read the config values and initialize the models
+    async def initialize_models(self):
         api_key = await self.config.google_ai_key()
         if api_key:
             genai.configure(api_key=api_key)
