@@ -1,8 +1,8 @@
 import asyncio
+import json
 import logging
 import random
 import re
-import json
 from typing import Optional
 
 import discord
@@ -200,4 +200,7 @@ class AIEmote(commands.Cog):
             return super().default(obj)
 
     # Use the custom encoder when dumping the kwargs
-    data = json.loads(json.dumps(kwargs, cls=EmojiEncoder))
+    def _register_default(self, group, **kwargs):
+        data = json.loads(json.dumps(kwargs, cls=EmojiEncoder))
+        self._defaults[group] = data
+        self._do_write(group, data)
