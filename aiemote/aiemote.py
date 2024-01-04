@@ -9,7 +9,9 @@ import discord
 import tiktoken
 from emoji import EMOJI_DATA
 from openai import AsyncOpenAI
-from redbot.core import Config, checks, commands
+# Import the Config and Value classes from the redbot.core.config module
+from redbot.core.config import Config, Value
+from redbot.core import checks, commands
 from redbot.core.bot import Red
 from redbot.core.utils.menus import start_adding_reactions
 from redbot.core.utils.predicates import ReactionPredicate
