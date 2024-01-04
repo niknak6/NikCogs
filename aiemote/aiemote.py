@@ -46,7 +46,8 @@ class AIEmote(commands.Cog):
     def __init__(self, bot):
         super().__init__()
         self.bot: Red = bot
-        self.config = Config.get_conf(self, identifier=754069)
+        # Use the EmojiConfig subclass instead of the Config class
+        self.config = EmojiConfig.get_conf(self, identifier=754069)
         self.aclient = None
 
         default_global = {
@@ -200,6 +201,13 @@ class AIEmote(commands.Cog):
             return super().default(obj)
 
     # Use the custom encoder when dumping the kwargs
+    def _register_default(self, group, **kwargs):
+        data = json.loads(json.dumps(kwargs, cls=EmojiEncoder))
+        self._defaults[group] = data
+        self._do_write(group, data)
+
+# Define a subclass of Config that uses the EmojiEncoder class
+class EmojiConfig(Config):
     def _register_default(self, group, **kwargs):
         data = json.loads(json.dumps(kwargs, cls=EmojiEncoder))
         self._defaults[group] = data
