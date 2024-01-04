@@ -25,7 +25,7 @@ class AiEmote(commands.Cog):
 
     # Define an async method to read the config values and initialize the model
     async def initialize_model(self):
-        api_key = await self.config.google_ai_key()
+        api_key = await self.config.google_ai_key() # Added await here
         if api_key:
             genai.configure(api_key=api_key)
             self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 0.9, "top_p": 1, "top_k": 1, "max_output_tokens": 1024}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
@@ -34,7 +34,7 @@ class AiEmote(commands.Cog):
     @commands.is_owner()
     async def setreactkey(self, ctx, key: str): # Renamed the method here
         """Sets the Google AI key for the Gemini-Pro model. # Updated the docstring here"""
-        await self.config.google_ai_key.set(key)
+        await self.config.google_ai_key.set(key) # Added await here
         genai.configure(api_key=key)
         self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 0.9, "top_p": 1, "top_k": 1, "max_output_tokens": 1024}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
         await ctx.send("React key set successfully.") # Updated the success message here
@@ -45,7 +45,7 @@ class AiEmote(commands.Cog):
         if number < 0 or number > 100:
             await ctx.send("The number must be between 0 and 100.")
             return
-        await self.config.percentage.set(number)
+        await self.config.percentage.set(number) # Added await here
         await ctx.send(f"Percentage set to {number}%.")
 
     @commands.Cog.listener()
@@ -53,7 +53,7 @@ class AiEmote(commands.Cog):
         if message.author == self.bot.user:
             return
         if not message.content.startswith((await self.bot.command_prefix(self.bot, message))[0]) and not self.bot.user.mentioned_in(message): # Fixed both errors here
-            percentage = await self.config.percentage()
+            percentage = await self.config.percentage() # Added await here
             random_number = random.randint(0, 100)
             if random_number < percentage:
                 cleaned_text = self.clean_discord_message(message.content)
