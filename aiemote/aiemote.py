@@ -205,13 +205,6 @@ class AIEmote(commands.Cog):
         self._defaults[group] = data
         self._do_write(group, data)
 
-# Define a subclass of Config that uses the EmojiEncoder class
-class EmojiConfig(Config):
-    def _register_default(self, group, **kwargs):
-        data = json.loads(json.dumps(kwargs, cls=EmojiEncoder))
-        self._defaults[group] = data
-        self._do_write(group, data)
-
     def _do_write(self, group, data):
         # Override the _do_write method to use the EmojiEncoder class
         value = Value(self, group, data)
