@@ -30,14 +30,13 @@ class AiEmote(commands.Cog):
             genai.configure(api_key=api_key)
             self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 0.9, "top_p": 1, "top_k": 1, "max_output_tokens": 1024}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
 
-    @commands.command(name="setreactkey") # Changed the command name here
+    @commands.command()
     @commands.is_owner()
-    async def setreactkey(self, ctx, key: str): # Renamed the method here
-        """Sets the Google AI key for the Gemini-Pro model. # Updated the docstring here"""
+    async def setapikey(self, ctx, key: str):
         await self.config.google_ai_key.set(key)
         genai.configure(api_key=key)
         self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 0.9, "top_p": 1, "top_k": 1, "max_output_tokens": 1024}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
-        await ctx.send("React key set successfully.") # Updated the success message here
+        await ctx.send("API key set successfully.")
 
     @commands.command()
     @commands.is_owner()
