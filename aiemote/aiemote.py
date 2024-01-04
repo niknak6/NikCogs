@@ -64,7 +64,7 @@ class AiEmote(commands.Cog):
                 await message.add_reaction(await self.generate_emoji_reaction(cleaned_text))
 
     async def generate_emoji_reaction(self, message_text):
-        prompt_parts = [message_text, "\nReact to this message with an emoji."]
+        prompt_parts = [message_text, "\nReact to this message with an emoji. Be humorous when possible."]
         print("Got textPrompt: " + message_text)
         response = self.text_model.generate_content(prompt_parts)
         if(response._error):
