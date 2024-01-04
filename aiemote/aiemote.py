@@ -58,9 +58,10 @@ class AiEmote(commands.Cog):
             if random_number < percentage:
                 cleaned_text = self.clean_discord_message(message.content)
 
-                async with message.channel.typing():
-                    print("New Message FROM:" + str(message.author.id) + ": " + cleaned_text)
-                    await message.add_reaction(await self.generate_emoji_reaction(cleaned_text))
+                # Deleted the line below and unindented the lines after it
+                # async with message.channel.typing():
+                print("New Message FROM:" + str(message.author.id) + ": " + cleaned_text)
+                await message.add_reaction(await self.generate_emoji_reaction(cleaned_text))
 
     async def generate_emoji_reaction(self, message_text):
         prompt_parts = [message_text, "\nReact to this message with an emoji."]
