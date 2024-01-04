@@ -8,7 +8,7 @@ import discord
 import google.generativeai as genai
 from redbot.core import commands, Config
 
-class AiEmote(commands.Cog):
+class AIEmote(commands.Cog):
     """Discord bot that randomly reacts to messages with emojis based on the Google's Gemini-Pro API."""
 
     def __init__(self, bot):
