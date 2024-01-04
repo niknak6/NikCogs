@@ -78,7 +78,7 @@ class AiEmote(commands.Cog):
         if emoji_matches:
             emoji_match = emoji_matches[0]
             if emoji.is_emoji(emoji_match):
-                return emoji.emojize(emoji_match, use_aliases=True)
+                return emoji.emojize(emoji_match, language='alias') # Changed this line to use the language argument instead of the use_aliases argument
             else:
                 return default_emoji
         else:
