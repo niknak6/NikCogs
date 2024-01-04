@@ -211,3 +211,8 @@ class EmojiConfig(Config):
         data = json.loads(json.dumps(kwargs, cls=EmojiEncoder))
         self._defaults[group] = data
         self._do_write(group, data)
+
+    def _do_write(self, group, data):
+        # Override the _do_write method to use the EmojiEncoder class
+        value = Value(self, group, data)
+        value(cls=EmojiEncoder)
