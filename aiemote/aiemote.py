@@ -52,7 +52,7 @@ class AiEmote(commands.Cog):
     async def on_message(self, message):
         if message.author == self.bot.user:
             return
-        if not message.content.startswith(self.bot.command_prefix(self.bot, message)[0]) and not self.bot.user.mentioned_in(message): # Fixed the error here
+        if not message.content.startswith((await self.bot.command_prefix(self.bot, message))[0]) and not self.bot.user.mentioned_in(message): # Fixed both errors here
             percentage = await self.config.percentage()
             random_number = random.randint(0, 100)
             if random_number < percentage:
