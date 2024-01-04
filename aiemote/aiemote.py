@@ -17,6 +17,12 @@ from redbot.core.utils.views import SimpleMenu
 
 logger = logging.getLogger("red.bz_cogs.aiemote")
 
+# Define a custom encoder for the Emoji class
+class EmojiEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Emoji):
+            return obj.__dict__
+        return super().default(obj)
 
 class Emoji:
     # A base class for all emojis
@@ -192,13 +198,6 @@ class AIEmote(commands.Cog):
         if len(ctx.message.content) > 1500 or len(ctx.message.content) < 10:
             logger.debug(f"Skipping message in {ctx.guild.name} with length {len(ctx.message.content)}")
             return False
-
-    # Define a custom encoder for the Emoji class
-    class EmojiEncoder(json.JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, Emoji):
-                return obj.__dict__
-            return super().default(obj)
 
     # Use the custom encoder when dumping the kwargs
     def _register_default(self, group, **kwargs):
