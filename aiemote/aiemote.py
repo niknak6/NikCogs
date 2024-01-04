@@ -8,7 +8,7 @@ import discord
 import google.generativeai as genai
 from redbot.core import commands, Config
 
-class AIEmote(commands.Cog):
+class AiEmote(commands.Cog):
     """Discord bot that randomly reacts to messages with emojis based on the Google's Gemini-Pro API."""
 
     def __init__(self, bot):
@@ -30,14 +30,13 @@ class AIEmote(commands.Cog):
             genai.configure(api_key=api_key)
             self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 0.9, "top_p": 1, "top_k": 1, "max_output_tokens": 1024}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
 
-    @commands.command(name="setreactkey") # Changed the command name here
+    @commands.command()
     @commands.is_owner()
-    async def setreactkey(self, ctx, key: str): # Renamed the method here
-        """Sets the Google AI key for the Gemini-Pro model. # Updated the docstring here"""
+    async def setapikey(self, ctx, key: str):
         await self.config.google_ai_key.set(key)
         genai.configure(api_key=key)
         self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 0.9, "top_p": 1, "top_k": 1, "max_output_tokens": 1024}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
-        await ctx.send("React key set successfully.") # Updated the success message here
+        await ctx.send("API key set successfully.")
 
     @commands.command()
     @commands.is_owner()
@@ -52,7 +51,7 @@ class AIEmote(commands.Cog):
     async def on_message(self, message):
         if message.author == self.bot.user:
             return
-        if not message.content.startswith(self.bot.command_prefix) and not self.bot.user.mentioned_in(message):
+        if not message.content.startswith(self.bot.command_prefix(message)) and not self.bot.user.mentioned_in(message): # Changed this line to fix the error
             percentage = await self.config.percentage()
             random_number = random.randint(0, 100)
             if random_number < percentage:
