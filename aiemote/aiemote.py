@@ -211,3 +211,6 @@ class AIEmote(commands.Cog):
         # Override the _do_write method to use the EmojiEncoder class
         value = Value(self, group, data)
         value(cls=EmojiEncoder)
+
+# Import the EmojiConfig class from the emoji_config.py file
+from .emoji_config import EmojiConfig
