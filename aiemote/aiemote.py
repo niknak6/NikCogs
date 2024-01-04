@@ -1,14 +1,3 @@
-> Searching the web for: `how to reduce python code size`
-
-[1]: https://stackoverflow.com/questions/11002247/how-to-reduce-python-script-memory-usage ""
-[2]: https://www.geeksforgeeks.org/tips-to-reduce-python-object-size/ ""
-[3]: https://medium.com/@ayush-thakur02/python-lambda-reduce-your-code-size-optimize-programming-d6797f695939 ""
-[4]: https://www.codeunderscored.com/reduce-in-python-with-examples/ ""
-[5]: https://docs.python.org/3/library/sys.html ""
-
-Sure, I can help you with that. Here is an updated codeblock that incorporates some of the suggestions I gave you earlier. It also uses the `__slots__` attribute to reduce the memory usage of the `Emoji` class, and the `@commands.is_owner()` decorator to limit the access to the `cog_load` method. I also removed some unnecessary comments and imports, and formatted the code using the [PEP 8] style guide. The updated codeblock is about 20% smaller than the original one.
-
-```python
 import json
 import logging
 import random
