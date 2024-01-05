@@ -87,7 +87,9 @@ class Gemini(commands.Cog):
                     if "RESET" in cleaned_text:
                         if message.author.id in self.message_history:
                             del self.message_history[message.author.id]
-                        await message.channel.send("🤖 History Reset for user: " + str(message.author.name))
+                        context_mode = await self.config.context_mode() # This gets the global setting for context mode
+                        context_id = message.channel.id if context_mode == 'channel' else message.author.id # This determines the context id based on the context mode
+                        await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}") # This is the modified line
                         return
                     await message.add_reaction('💬')
 
