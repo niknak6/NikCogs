@@ -64,7 +64,7 @@ class AiEmote(commands.Cog):
                 await message.add_reaction(await self.generate_emoji_reaction(cleaned_text))
 
     async def generate_emoji_reaction(self, message_text):
-        prompt_parts = [message_text, "\nYou are in a chat room. Pick an emoji that summarizes the following message:"]
+        prompt_parts = [message_text, "\nYou are in a chat room. Pick an emoji that summarizes the following message that was received. Choose to summarize the subject of the message before other parts if it exists:"]
         print("Got textPrompt: " + message_text)
         response = self.text_model.generate_content(prompt_parts)
         if(response._error):
