@@ -125,10 +125,15 @@ class Gemini(commands.Cog):
                         response_text = await self.generate_response_with_text(cleaned_text)
                         await self.split_and_send_messages(message, response_text, 1700)
                         return
-                    await self.update_message_history(context_id, cleaned_text)
-                    response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
-                    await self.update_message_history(context_id, response_text)
-                    await self.split_and_send_messages(message, response_text, 1700)
+                    # This is the modified part
+                    if message.reference: # Check if the message is a reply to another message
+                        referenced_message = await message.channel.fetch_message(message.reference.message_id) # Fetch the message that the bot is replying to
+                        referenced_text = self.clean_discord_message(referenced_message.content) # Clean the message content
+                        await self.update_message_history(context_id, referenced_text) # Update the message history with the referenced text
+                    await self.update_message_history(context_id, cleaned_text) # Update the message history with the cleaned text
+                    response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id)) # Generate the response with the message history
+                    await self.update_message_history(context_id, response_text) # Update the message history with the response text
+                    await self.split_and_send_messages(message, response_text, 1700) # Split and send the messages
 
     async def generate_response_with_text(self, message_text):
         prompt_parts = [message_text]
