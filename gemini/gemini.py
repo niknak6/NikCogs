@@ -14,7 +14,7 @@ class Gemini(commands.Cog):
         self.config = Config.get_conf(self, identifier=1234567890)
         self.config.register_global(
             google_ai_key=None,
-            max_history=12,
+            max_history=20,
             context_mode='user', # This is the global setting for context mode
             # Register the settings for the text model
             text_temperature=1.0,
