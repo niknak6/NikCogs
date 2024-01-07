@@ -64,7 +64,7 @@ class AiEmote(commands.Cog):
                 await message.add_reaction(await self.generate_emoji_reaction(cleaned_text))
 
     async def generate_emoji_reaction(self, message_text):
-        prompt_parts = [message_text, "\nThis message was received in a group chat. Please carefully review the message, determine what the message attempts to convey, and provide a single emoji that summarizes it. The emoji should be related to the topic and not an emotional reaction to it. Here is the message: "]
+        prompt_parts = [message_text, "\nReact with the emoji that best describes/summarizes this message: "]
         print("Got textPrompt: " + message_text)
         response = self.text_model.generate_content(prompt_parts)
         if(response._error):
