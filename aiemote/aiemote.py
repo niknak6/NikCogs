@@ -64,7 +64,7 @@ class AiEmote(commands.Cog):
                 await message.add_reaction(await self.generate_emoji_reaction(cleaned_text))
 
     async def generate_emoji_reaction(self, message_text):
-        prompt_parts = [message_text, "\nReact with the emoji that best describes/summarizes this message: "]
+        prompt_parts = [message_text, "\nSummarize this message send in a Discord group chat with a single emoji. Take entire sentence into consideration. Use non-face emojis."]
         print("Got textPrompt: " + message_text)
         response = self.text_model.generate_content(prompt_parts)
         if(response._error):
