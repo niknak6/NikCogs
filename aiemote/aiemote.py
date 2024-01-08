@@ -2,7 +2,6 @@ import os
 import re
 import random
 import emoji
-
 import aiohttp
 import discord
 import google.generativeai as genai
