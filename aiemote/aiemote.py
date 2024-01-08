@@ -63,7 +63,7 @@ class AiEmote(commands.Cog):
                 await message.add_reaction(await self.generate_emoji_reaction(cleaned_text))
 
     async def generate_emoji_reaction(self, message_text):
-        prompt_parts = [message_text, "\nDetermine the most important word in this sentence. Just one singular word. Reply with an emoji that represents that word."]
+        prompt_parts = [message_text, "\nWhat emoji best describes the premise of this sentence?"]
         print("Got textPrompt: " + message_text)
         response = self.text_model.generate_content(prompt_parts)
         if(response._error):
