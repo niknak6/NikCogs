@@ -27,7 +27,7 @@ class AiEmote(commands.Cog):
         api_key = await self.config.google_ai_key() # Added await here
         if api_key:
             genai.configure(api_key=api_key)
-            self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 1.0, "top_p": 0.5, "top_k": 10, "max_output_tokens": 1}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
+            self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 1.0, "top_p": 1.0, "top_k": 1, "max_output_tokens": 2048}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
 
     @commands.command(name="setreactkey") # Changed the command name here
     @commands.is_owner()
@@ -35,7 +35,7 @@ class AiEmote(commands.Cog):
         """Sets the Google AI key for the Gemini-Pro model. # Updated the docstring here"""
         await self.config.google_ai_key.set(key) # Added await here
         genai.configure(api_key=key)
-        self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 1.0, "top_p": 0.5, "top_k": 10, "max_output_tokens": 1}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
+        self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": 1.0, "top_p": 1.0, "top_k": 1, "max_output_tokens": 2048}, safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}])
         await ctx.send("React key set successfully.") # Updated the success message here
 
     @commands.command()
