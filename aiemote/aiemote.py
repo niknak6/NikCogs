@@ -63,7 +63,7 @@ class AiEmote(commands.Cog):
                 await message.add_reaction(await self.generate_emoji_reaction(cleaned_text))
 
     async def generate_emoji_reaction(self, message_text):
-        prompt_parts = [message_text, "\nWhat emoji best describes the premise of this sentence?"]
+        prompt_parts = [message_text, "\nWe are using emojis to flag/categorize messages in a chat channel. Provide the most relevant emoji to describe what is being described or discussed in this message."]
         print("Got textPrompt: " + message_text)
         response = self.text_model.generate_content(prompt_parts)
         if(response._error):
