@@ -183,7 +183,7 @@ class Gemini(commands.Cog):
             await message_system.channel.send(string)
 
     def clean_discord_message(self, input_string):
-    """Remove any special Discord formatting from the message."""
-    mention_pattern = re.compile(r'<@!?(\d+)>')
-    cleaned_content = mention_pattern.sub('@', input_string)
-    return cleaned_content
+        """Remove any special Discord formatting from the message."""
+        mention_pattern = re.compile(r'<@!?(\d+)>')
+        cleaned_content = mention_pattern.sub('@', input_string)
+        return cleaned_content
