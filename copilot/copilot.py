@@ -3,7 +3,7 @@ import asyncio
 import logging
 from sydney import SydneyClient
 from redbot.core import commands, Config, checks, errors
-from redbot.core.commands.help_formatter import HelpFormatter
+from redbot.core.commands.help import RedHelpFormatter, HelpSettings
 
 class Copilot(commands.Cog):
     """A Discord bot that uses sydney.py to interact with Bing AI/Copilot."""
@@ -157,3 +157,15 @@ class Copilot(commands.Cog):
         bracket_pattern = re.compile(r'<[^>]+>')
         cleaned_content = bracket_pattern.sub('', input_string)
         return cleaned_content
+
+    @commands.help_settings(hidden=True)
+    class CopilotHelpFormatter(RedHelpFormatter):
+        """A custom help formatter for the Copilot cog."""
+
+        async def format_help_for_context(self, ctx: commands.Context) -> discord.Embed:
+            """Format the help message for the given context."""
+            pre_processed = await super().format_help_for_context(ctx)
+            if ctx.cog is self.cog:
+                # Add a custom footer for the Copilot cog
+                pre_processed.set_footer(text="Powered by sydney.py and Bing AI/Copilot")
+            return pre_processed
