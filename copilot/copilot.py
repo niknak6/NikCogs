@@ -1,39 +1,45 @@
+import os
 import re
-import json
 import aiohttp
 import discord
-from pathlib import Path
 from redbot.core import commands, Config
-from re_edge_gpt import Chatbot, ConversationStyle
+from sydney import SydneyClient
 
 class Copilot(commands.Cog):
-    """A Discord bot that uses Bing's AI API to interact with users in text and image formats."""
+    """A Discord bot that uses Sydney.py to interact with users in text and image formats."""
 
     def __init__(self, bot):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)
         # Register global settings for the bot
         self.config.register_global(
+            sydney_cookies=None,
             max_history=20,
             context_mode='user', # Determines whether the context is user-specific or channel-specific
         )
-        self.chatbot = None
+        self.sydney_client = None
         self.message_history = {}
 
-        # Initialize the chatbot asynchronously
-        self.bot.loop.create_task(self.initialize_chatbot())
+        # Initialize the Sydney Client asynchronously
+        self.bot.loop.create_task(self.initialize_sydney_client())
 
-    async def initialize_chatbot(self):
-        """Asynchronously initialize the chatbot with the configured settings."""
-        try:
-            # Load cookies from the bing_cookies.json file
-            cookies_path = Path(__file__).parent / 'bing_cookies.json'
-            with cookies_path.open('r', encoding='utf-8') as f:
-                cookies = json.load(f)
-            # Initialize the chatbot with the loaded cookies
-            self.chatbot = await Chatbot.create(cookies=cookies)
-        except Exception as e:
-            print(f"Failed to initialize chatbot: {e}")
+    async def initialize_sydney_client(self):
+        """Asynchronously initialize the Sydney Client with the configured settings."""
+        cookies = await self.config.sydney_cookies()
+        if cookies:
+            os.environ["BING_COOKIES"] = cookies
+            self.sydney_client = SydneyClient()
+            await self.sydney_client.start_conversation()
+        else:
+            print("No cookies found. Please set the cookies using the setapikey command.")
+
+    @commands.command()
+    @commands.is_owner()
+    async def setapikey(self, ctx, cookies: str):
+        """Set the cookies for the Sydney Client."""
+        await self.config.sydney_cookies.set(cookies)
+        os.environ["BING_COOKIES"] = cookies
+        await ctx.send("Cookies set successfully.")
 
     @commands.command()
     @commands.is_owner()
@@ -58,57 +64,66 @@ class Copilot(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         """Handle incoming messages and generate responses."""
-        if message.author == self.bot.user:
+        if message.author == self.bot.user or not self.sydney_client:
             return
         if self.bot.user.mentioned_in(message) or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
 
             async with message.channel.typing():
-                # Handle text messages
-                if "RESET" in cleaned_text:
-                    if message.author.id in self.message_history:
-                        del self.message_history[message.author.id]
+                if message.attachments:
+                    # Handle image messages
+                    for attachment in message.attachments:
+                        if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
+                            await message.add_reaction('🎨')
+
+                            async with aiohttp.ClientSession() as session:
+                                async with session.get(attachment.url) as resp:
+                                    if resp.status != 200:
+                                        await message.channel.send('Unable to download the image.')
+                                        return
+                                    image_data = await resp.read()
+                                    response_text = await self.generate_response_with_image_and_text(image_data, cleaned_text)
+                                    await self.split_and_send_messages(message, response_text, 1700)
+                                    return
+                else:
+                    # Handle text messages
+                    if "RESET" in cleaned_text:
+                        if message.author.id in self.message_history:
+                            del self.message_history[message.author.id]
+                        context_mode = await self.config.context_mode()
+                        context_id = message.channel.id if context_mode == 'channel' else message.author.id
+                        await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
+                        return
+                    await message.add_reaction('💬')
+
                     context_mode = await self.config.context_mode()
                     context_id = message.channel.id if context_mode == 'channel' else message.author.id
-                    await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
-                    return
-                await message.add_reaction('💬')
 
-                context_mode = await self.config.context_mode()
-                context_id = message.channel.id if context_mode == 'channel' else message.author.id
-
-                max_history = await self.config.max_history()
-                if max_history == 0:
-                    response_text = await self.generate_response_with_text(cleaned_text)
+                    max_history = await self.config.max_history()
+                    if max_history == 0:
+                        response_text = await self.generate_response_with_text(cleaned_text)
+                        await self.split_and_send_messages(message, response_text, 1700)
+                        return
+                    if message.reference:
+                        referenced_message = await message.channel.fetch_message(message.reference.message_id)
+                        referenced_text = self.clean_discord_message(referenced_message.content)
+                        await self.update_message_history(context_id, referenced_text)
+                    await self.update_message_history(context_id, cleaned_text)
+                    response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
+                    await self.update_message_history(context_id, response_text)
                     await self.split_and_send_messages(message, response_text, 1700)
-                    return
-                if message.reference:
-                    referenced_message = await message.channel.fetch_message(message.reference.message_id)
-                    referenced_text = self.clean_discord_message(referenced_message.content)
-                    await self.update_message_history(context_id, referenced_text)
-                await self.update_message_history(context_id, cleaned_text)
-                response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
-                await self.update_message_history(context_id, response_text)
-                await self.split_and_send_messages(message, response_text, 1700)
 
     async def generate_response_with_text(self, message_text):
-        """Generate a text response using the Bing AI API."""
-        try:
-            response = await self.chatbot.ask(
-                prompt=message_text,
-                conversation_style=ConversationStyle.balanced,
-                simplify_response=True
-            )
-            # Check if 'messages' key exists in the response
-            if 'messages' in response["item"] and response["item"]["messages"]:
-                # Extract the response text from the response object
-                response_text = response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"]
-                return response_text
-            else:
-                return "Sorry, I couldn't fetch a response. Please try again."
-        except Exception as e:
-            print(f"An error occurred while generating a response: {e}")
-            return "An error occurred. Please try again later."
+        """Generate a text response using Sydney Client."""
+        async with SydneyClient() as sydney:
+            response = await sydney.ask(message_text)
+            return response
+
+    async def generate_response_with_image_and_text(self, image_data, text):
+        """Generate a text response using Sydney Client with an image attachment."""
+        async with SydneyClient() as sydney:
+            response = await sydney.ask(text, attachment=image_data)
+            return response
 
     async def update_message_history(self, context_id, text):
         """Update the message history for the given context."""
