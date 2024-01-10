@@ -12,11 +12,12 @@ class Copilot(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)
         # Register global settings for the bot
-        self.config.register_global(
-            sydney_cookies=None,
-            max_history=20,
-            context_mode='user', # Determines whether the context is user-specific or channel-specific
-        )
+        default_global = {
+            "sydney_cookies": None,
+            "max_history": 20,
+            "context_mode": "user",  # Determines whether the context is user-specific or channel-specific
+        }
+        self.config.register_global(**default_global)
         self.sydney_client = None
         self.message_history = {}
 
@@ -39,6 +40,11 @@ class Copilot(commands.Cog):
         """Set the cookies for the Sydney Client."""
         await self.config.sydney_cookies.set(cookies)
         os.environ["BING_COOKIES"] = cookies
+        # Reinitialize the Sydney Client with the new cookies
+        if self.sydney_client:
+            await self.sydney_client.close_conversation()
+        self.sydney_client = SydneyClient()
+        await self.sydney_client.start_conversation()
         await ctx.send("Cookies set successfully.")
 
     @commands.command()
@@ -115,15 +121,13 @@ class Copilot(commands.Cog):
 
     async def generate_response_with_text(self, message_text):
         """Generate a text response using Sydney Client."""
-        async with SydneyClient() as sydney:
-            response = await sydney.ask(message_text)
-            return response
+        response = await self.sydney_client.ask(message_text)
+        return response
 
     async def generate_response_with_image_and_text(self, image_data, text):
         """Generate a text response using Sydney Client with an image attachment."""
-        async with SydneyClient() as sydney:
-            response = await sydney.ask(text, attachment=image_data)
-            return response
+        response = await self.sydney_client.ask(text, attachment=image_data)
+        return response
 
     async def update_message_history(self, context_id, text):
         """Update the message history for the given context."""
