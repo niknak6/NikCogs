@@ -10,7 +10,7 @@ class Copilot(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.config = Config.get_conf(self, cog_name="Copilot")
+        self.config = Config.get_conf(self, identifier=1234567890, cog_name="Copilot")
         # Register global settings for the bot
         self.config.register_global(
             bing_cookies=None, # The cookies for the Copilot API
