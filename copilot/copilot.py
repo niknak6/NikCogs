@@ -1,3 +1,5 @@
+import re
+import discord
 import os
 import asyncio
 import logging
