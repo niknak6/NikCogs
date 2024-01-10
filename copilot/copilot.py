@@ -1,6 +1,8 @@
 import re
+import json
 import aiohttp
 import discord
+from pathlib import Path
 from redbot.core import commands, Config
 from re_edge_gpt import Chatbot, ConversationStyle
 
@@ -23,8 +25,15 @@ class Copilot(commands.Cog):
 
     async def initialize_chatbot(self):
         """Asynchronously initialize the chatbot with the configured settings."""
-        cookies = []  # Load cookies from a file if needed
-        self.chatbot = await Chatbot.create(cookies=cookies)
+        try:
+            # Load cookies from the bing_cookies.json file
+            cookies_path = Path(__file__).parent / 'bing_cookies.json'
+            with cookies_path.open('r', encoding='utf-8') as f:
+                cookies = json.load(f)
+            # Initialize the chatbot with the loaded cookies
+            self.chatbot = await Chatbot.create(cookies=cookies)
+        except Exception as e:
+            print(f"Failed to initialize chatbot: {e}")
 
     @commands.command()
     @commands.is_owner()
