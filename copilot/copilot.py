@@ -93,14 +93,22 @@ class Copilot(commands.Cog):
 
     async def generate_response_with_text(self, message_text):
         """Generate a text response using the Bing AI API."""
-        response = await self.chatbot.ask(
-            prompt=message_text,
-            conversation_style=ConversationStyle.balanced,
-            simplify_response=True
-        )
-        # Extract the response text from the response object
-        response_text = response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"]
-        return response_text
+        try:
+            response = await self.chatbot.ask(
+                prompt=message_text,
+                conversation_style=ConversationStyle.balanced,
+                simplify_response=True
+            )
+            # Check if 'messages' key exists in the response
+            if 'messages' in response["item"] and response["item"]["messages"]:
+                # Extract the response text from the response object
+                response_text = response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"]
+                return response_text
+            else:
+                return "Sorry, I couldn't fetch a response. Please try again."
+        except Exception as e:
+            print(f"An error occurred while generating a response: {e}")
+            return "An error occurred. Please try again later."
 
     async def update_message_history(self, context_id, text):
         """Update the message history for the given context."""
