@@ -1,70 +1,30 @@
-import os
 import re
 import aiohttp
 import discord
-import google.generativeai as genai
 from redbot.core import commands, Config
+from re_edge_gpt import Chatbot, ConversationStyle
 
-class Gemini(commands.Cog):
-    """A Discord bot that uses Google's Gemini-Pro API to interact with users in text and image formats."""
+class Copilot(commands.Cog):
+    """A Discord bot that uses Bing's AI API to interact with users in text and image formats."""
 
     def __init__(self, bot):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)
         # Register global settings for the bot
         self.config.register_global(
-            google_ai_key=None,
             max_history=20,
             context_mode='user', # Determines whether the context is user-specific or channel-specific
-            # Settings for the text model
-            text_temperature=1.0,
-            text_top_p=1,
-            text_top_k=1,
-            text_max_output_tokens=2048,
-            text_safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}],
-            # Settings for the image model
-            image_temperature=0.4,
-            image_top_p=1,
-            image_top_k=32,
-            image_max_output_tokens=2048,
-            image_safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}]
         )
-        self.text_model = None
-        self.image_model = None
+        self.chatbot = None
         self.message_history = {}
 
-        # Initialize the models asynchronously
-        self.bot.loop.create_task(self.initialize_models())
+        # Initialize the chatbot asynchronously
+        self.bot.loop.create_task(self.initialize_chatbot())
 
-    async def initialize_models(self):
-        """Asynchronously initialize the text and image models with the configured settings."""
-        api_key = await self.config.google_ai_key()
-        if api_key:
-            genai.configure(api_key=api_key)
-            # Retrieve and apply the settings for the text model
-            text_temperature = await self.config.get_attr("text_temperature")()
-            text_top_p = await self.config.get_attr("text_top_p")()
-            text_top_k = await self.config.get_attr("text_top_k")()
-            text_max_output_tokens = await self.config.get_attr("text_max_output_tokens")()
-            text_safety_settings = await self.config.get_attr("text_safety_settings")()
-            # Retrieve and apply the settings for the image model
-            image_temperature = await self.config.get_attr("image_temperature")()
-            image_top_p = await self.config.get_attr("image_top_p")()
-            image_top_k = await self.config.get_attr("image_top_k")()
-            image_max_output_tokens = await self.config.get_attr("image_max_output_tokens")()
-            image_safety_settings = await self.config.get_attr("image_safety_settings")()
-            # Initialize the text model
-            self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": text_temperature, "top_p": text_top_p, "top_k": text_top_k, "max_output_tokens": text_max_output_tokens}, safety_settings=text_safety_settings)
-            # Initialize the image model
-            self.image_model = genai.GenerativeModel(model_name="gemini-pro-vision", generation_config={"temperature": image_temperature, "top_p": image_top_p, "top_k": image_top_k, "max_output_tokens": image_max_output_tokens}, safety_settings=image_safety_settings)
-
-    @commands.command()
-    @commands.is_owner()
-    async def setapikey(self, ctx, key: str):
-        """Set the API key for the Google AI services."""
-        await self.config.google_ai_key.set(key)
-        genai.configure(api_key=key)
-        await ctx.send("API key set successfully.")
+    async def initialize_chatbot(self):
+        """Asynchronously initialize the chatbot with the configured settings."""
+        cookies = []  # Load cookies from a file if needed
+        self.chatbot = await Chatbot.create(cookies=cookies)
 
     @commands.command()
     @commands.is_owner()
@@ -95,65 +55,43 @@ class Gemini(commands.Cog):
             cleaned_text = self.clean_discord_message(message.content)
 
             async with message.channel.typing():
-                if message.attachments:
-                    # Handle image messages
-                    for attachment in message.attachments:
-                        if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
-                            await message.add_reaction('🎨')
-
-                            async with aiohttp.ClientSession() as session:
-                                async with session.get(attachment.url) as resp:
-                                    if resp.status != 200:
-                                        await message.channel.send('Unable to download the image.')
-                                        return
-                                    image_data = await resp.read()
-                                    response_text = await self.generate_response_with_image_and_text(image_data, cleaned_text)
-                                    await self.split_and_send_messages(message, response_text, 1700)
-                                    return
-                else:
-                    # Handle text messages
-                    if "RESET" in cleaned_text:
-                        if message.author.id in self.message_history:
-                            del self.message_history[message.author.id]
-                        context_mode = await self.config.context_mode()
-                        context_id = message.channel.id if context_mode == 'channel' else message.author.id
-                        await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
-                        return
-                    await message.add_reaction('💬')
-
+                # Handle text messages
+                if "RESET" in cleaned_text:
+                    if message.author.id in self.message_history:
+                        del self.message_history[message.author.id]
                     context_mode = await self.config.context_mode()
                     context_id = message.channel.id if context_mode == 'channel' else message.author.id
+                    await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
+                    return
+                await message.add_reaction('💬')
 
-                    max_history = await self.config.max_history()
-                    if max_history == 0:
-                        response_text = await self.generate_response_with_text(cleaned_text)
-                        await self.split_and_send_messages(message, response_text, 1700)
-                        return
-                    if message.reference:
-                        referenced_message = await message.channel.fetch_message(message.reference.message_id)
-                        referenced_text = self.clean_discord_message(referenced_message.content)
-                        await self.update_message_history(context_id, referenced_text)
-                    await self.update_message_history(context_id, cleaned_text)
-                    response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
-                    await self.update_message_history(context_id, response_text)
+                context_mode = await self.config.context_mode()
+                context_id = message.channel.id if context_mode == 'channel' else message.author.id
+
+                max_history = await self.config.max_history()
+                if max_history == 0:
+                    response_text = await self.generate_response_with_text(cleaned_text)
                     await self.split_and_send_messages(message, response_text, 1700)
+                    return
+                if message.reference:
+                    referenced_message = await message.channel.fetch_message(message.reference.message_id)
+                    referenced_text = self.clean_discord_message(referenced_message.content)
+                    await self.update_message_history(context_id, referenced_text)
+                await self.update_message_history(context_id, cleaned_text)
+                response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
+                await self.update_message_history(context_id, response_text)
+                await self.split_and_send_messages(message, response_text, 1700)
 
     async def generate_response_with_text(self, message_text):
-        """Generate a text response using the text model."""
-        prompt_parts = [message_text]
-        response = self.text_model.generate_content(prompt_parts)
-        if(response._error):
-            return "❌" +  str(response._error)
-        return response.text
-
-    async def generate_response_with_image_and_text(self, image_data, text):
-        """Generate a text response using the image model."""
-        image_parts = [{"mime_type": "image/jpeg", "data": image_data}]
-        prompt_parts = [image_parts[0], f"\n{text if text else 'What is this a picture of?'}"]
-        response = self.image_model.generate_content(prompt_parts)
-        if(response._error):
-            return "❌" +  str(response._error)
-        return response.text
+        """Generate a text response using the Bing AI API."""
+        response = await self.chatbot.ask(
+            prompt=message_text,
+            conversation_style=ConversationStyle.balanced,
+            simplify_response=True
+        )
+        # Extract the response text from the response object
+        response_text = response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"]
+        return response_text
 
     async def update_message_history(self, context_id, text):
         """Update the message history for the given context."""
