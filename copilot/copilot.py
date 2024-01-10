@@ -158,6 +158,7 @@ class Copilot(commands.Cog):
         cleaned_content = bracket_pattern.sub('', input_string)
         return cleaned_content
 
+    @commands.hidden()
     @commands.help_settings(hidden=True)
     class CopilotHelpFormatter(RedHelpFormatter):
         """A custom help formatter for the Copilot cog."""
