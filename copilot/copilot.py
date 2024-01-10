@@ -157,16 +157,3 @@ class Copilot(commands.Cog):
         bracket_pattern = re.compile(r'<[^>]+>')
         cleaned_content = bracket_pattern.sub('', input_string)
         return cleaned_content
-
-    @commands.is_hidden()
-    @commands.help_settings(hidden=True)
-    class CopilotHelpFormatter(RedHelpFormatter):
-        """A custom help formatter for the Copilot cog."""
-
-        async def format_help_for_context(self, ctx: commands.Context) -> discord.Embed:
-            """Format the help message for the given context."""
-            pre_processed = await super().format_help_for_context(ctx)
-            if ctx.cog is self.cog:
-                # Add a custom footer for the Copilot cog
-                pre_processed.set_footer(text="Powered by sydney.py and Bing AI/Copilot")
-            return pre_processed
