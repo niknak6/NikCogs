@@ -112,7 +112,8 @@ class Gemini(commands.Cog):
                                     return
                 else:
                     # Handle text messages
-                    if "RESET" in cleaned_text:
+                    # Change the condition to check if the cleaned text is equal to "RESET"
+                    if cleaned_text == "RESET":
                         if message.author.id in self.message_history:
                             del self.message_history[message.author.id]
                         context_mode = await self.config.context_mode()
