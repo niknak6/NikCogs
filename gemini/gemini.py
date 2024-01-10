@@ -112,8 +112,7 @@ class Gemini(commands.Cog):
                                     return
                 else:
                     # Handle text messages
-                    # Change the condition to check if the cleaned text is equal to "RESET"
-                    if cleaned_text == "RESET":
+                    if "RESET" in cleaned_text:
                         if message.author.id in self.message_history:
                             del self.message_history[message.author.id]
                         context_mode = await self.config.context_mode()
@@ -184,6 +183,6 @@ class Gemini(commands.Cog):
 
     def clean_discord_message(self, input_string):
         """Remove any special Discord formatting from the message."""
-        mention_pattern = re.compile(r'<@!?(\d+)>')
-        cleaned_content = mention_pattern.sub('@', input_string)
+        bracket_pattern = re.compile(r'<[^>]+>')
+        cleaned_content = bracket_pattern.sub('', input_string)
         return cleaned_content
