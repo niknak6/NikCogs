@@ -1,54 +1,34 @@
 import os
-import re
-import aiohttp
-import discord
-from redbot.core import commands, Config
+import asyncio
+import logging
 from sydney import SydneyClient
+from redbot.core import commands, Config, checks, errors
+from redbot.core.commands.help_formatter import HelpFormatter
 
 class Copilot(commands.Cog):
-    """A Discord bot that uses Sydney.py to interact with users in text and image formats."""
+    """A Discord bot that uses sydney.py to interact with Bing AI/Copilot."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=1234567890)
+        self.config = Config.get_conf(self, cog_name="Copilot")
         # Register global settings for the bot
-        default_global = {
-            "sydney_cookies": None,
-            "max_history": 20,
-            "context_mode": "user",  # Determines whether the context is user-specific or channel-specific
-        }
-        self.config.register_global(**default_global)
-        self.sydney_client = None
+        self.config.register_global(
+            bing_cookies=None, # The cookies for the Copilot API
+            max_history=20, # The maximum number of messages to keep in the history
+            context_mode='user', # Determines whether the context is user-specific or channel-specific
+        )
         self.message_history = {}
-
-        # Initialize the Sydney Client asynchronously
-        self.bot.loop.create_task(self.initialize_sydney_client())
-
-    async def initialize_sydney_client(self):
-        """Asynchronously initialize the Sydney Client with the configured settings."""
-        cookies = await self.config.sydney_cookies()
-        if cookies:
-            os.environ["BING_COOKIES"] = cookies
-            self.sydney_client = SydneyClient()
-            await self.sydney_client.start_conversation()
-        else:
-            print("No cookies found. Please set the cookies using the setapikey command.")
+        self.logger = logging.getLogger("red.Copilot")
 
     @commands.command()
-    @commands.is_owner()
-    async def setapikey(self, ctx, cookies: str):
-        """Set the cookies for the Sydney Client."""
-        await self.config.sydney_cookies.set(cookies)
-        os.environ["BING_COOKIES"] = cookies
-        # Reinitialize the Sydney Client with the new cookies
-        if self.sydney_client:
-            await self.sydney_client.close_conversation()
-        self.sydney_client = SydneyClient()
-        await self.sydney_client.start_conversation()
+    @checks.is_owner()
+    async def setcookies(self, ctx, cookies: str):
+        """Set the cookies for the Copilot API."""
+        await self.config.bing_cookies.set(cookies)
         await ctx.send("Cookies set successfully.")
 
     @commands.command()
-    @commands.is_owner()
+    @checks.is_owner()
     async def maxhistory(self, ctx, number: int):
         """Set the maximum number of messages to keep in the history."""
         if number < 0:
@@ -58,7 +38,7 @@ class Copilot(commands.Cog):
         await ctx.send(f"Max history set to {number}.")
 
     @commands.command()
-    @commands.is_owner()
+    @checks.is_owner()
     async def contextmode(self, ctx, mode: str):
         """Set the context mode to either 'user' or 'channel'."""
         if mode not in ['user', 'channel']:
@@ -68,9 +48,10 @@ class Copilot(commands.Cog):
         await ctx.send(f"Context mode set to {mode}.")
 
     @commands.Cog.listener()
+    @commands.bot_has_permissions(send_messages=True, add_reactions=True, attach_files=True)
     async def on_message(self, message):
         """Handle incoming messages and generate responses."""
-        if message.author == self.bot.user or not self.sydney_client:
+        if message.author == self.bot.user:
             return
         if self.bot.user.mentioned_in(message) or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
@@ -120,14 +101,30 @@ class Copilot(commands.Cog):
                     await self.split_and_send_messages(message, response_text, 1700)
 
     async def generate_response_with_text(self, message_text):
-        """Generate a text response using Sydney Client."""
-        response = await self.sydney_client.ask(message_text)
-        return response
+        """Generate a text response using sydney.py."""
+        try:
+            cookies = await self.config.bing_cookies()
+            if cookies:
+                os.environ["BING_COOKIES"] = cookies
+            async with SydneyClient() as sydney:
+                response = await sydney.ask(message_text)
+                return response
+        except Exception as e:
+            self.logger.exception(e)
+            return "❌ Something went wrong. Please try again later."
 
     async def generate_response_with_image_and_text(self, image_data, text):
-        """Generate a text response using Sydney Client with an image attachment."""
-        response = await self.sydney_client.ask(text, attachment=image_data)
-        return response
+        """Generate a text response using sydney.py and an image attachment."""
+        try:
+            cookies = await self.config.bing_cookies()
+            if cookies:
+                os.environ["BING_COOKIES"] = cookies
+            async with SydneyClient() as sydney:
+                response = await sydney.ask(text, attachment=image_data)
+                return response
+        except Exception as e:
+            self.logger.exception(e)
+            return "❌ Something went wrong. Please try again later."
 
     async def update_message_history(self, context_id, text):
         """Update the message history for the given context."""
