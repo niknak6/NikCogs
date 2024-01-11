@@ -158,4 +158,4 @@ class Copilot(commands.Cog):
         """Remove any special Discord formatting from the message."""
         bracket_pattern = re.compile(r'<[^>]+>')
         cleaned_content = bracket_pattern.sub('', input_string)
-        return cleaned_content
+        return cleaned_content````
