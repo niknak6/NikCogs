@@ -168,7 +168,7 @@ class Gemini(commands.Cog):
             return "❌" +  str(response._error)
         return response.text
 
-        async def update_message_history(self, context_id, text):
+    async def update_message_history(self, context_id, text):
         """Update the message history for the given context."""
         if context_id in self.message_history:
             self.message_history[context_id].append(text)
