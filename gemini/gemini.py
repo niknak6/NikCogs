@@ -5,6 +5,7 @@ import discord
 import google.generativeai as genai
 from redbot.core import commands, Config
 import textwrap # Import the textwrap module
+from PIL import Image # Import the Pillow library
 
 class Gemini(commands.Cog):
     """A Discord bot that uses Google's Gemini-Pro API to interact with users in text and image formats."""
@@ -109,7 +110,9 @@ class Gemini(commands.Cog):
                                         responses.append('Unable to download the image.')
                                         continue
                                     image_data = await resp.read()
-                                    response_text = await self.generate_response_with_image_and_text(image_data, cleaned_text)
+                                    # Compress the image data before generating a response
+                                    compressed_image_data = compress_image(image_data)
+                                    response_text = await self.generate_response_with_image_and_text(compressed_image_data, cleaned_text)
                                     responses.append(response_text)
                     # Concatenate the responses and send them together
                     response_text = '\n\n'.join(responses)
