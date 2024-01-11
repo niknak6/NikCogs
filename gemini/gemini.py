@@ -5,7 +5,6 @@ import discord
 import google.generativeai as genai
 from redbot.core import commands, Config
 import textwrap # Import the textwrap module
-from PIL import Image # Import the Pillow library
 
 class Gemini(commands.Cog):
     """A Discord bot that uses Google's Gemini-Pro API to interact with users in text and image formats."""
@@ -110,12 +109,6 @@ class Gemini(commands.Cog):
                                         responses.append('Unable to download the image.')
                                         continue
                                     image_data = await resp.read()
-                                    # Compress the image if needed
-                                    image_name = compress_img_if_needed(attachment.filename)
-                                    # Load the image from the file name
-                                    img = Image.open(image_name)
-                                    # Get the image data in bytes
-                                    image_data = img.tobytes()
                                     response_text = await self.generate_response_with_image_and_text(image_data, cleaned_text)
                                     responses.append(response_text)
                     # Concatenate the responses and send them together
@@ -163,44 +156,39 @@ class Gemini(commands.Cog):
         return response.text
 
     async def generate_response_with_image_and_text(self, image_data, text):
-    """Generate a text response using the image model."""
-    image_parts = [{"mime_type": "image/jpeg", "data": image_data}]
-    prompt_parts = [image_parts[0], f"\n{text if text else 'What is this a picture of?'}"]
-    response = self.image_model.generate_content(prompt_parts)
-    if(response._error):
-        return "❌" +  str(response._error)
-    return response.text
+        """Generate a text response using the image model."""
+        image_parts = [{"mime_type": "image/jpeg", "data": image_data}]
+        prompt_parts = [image_parts[0], f"\n{text if text else 'What is this a picture of?'}"]
+        response = self.image_model.generate_content(prompt_parts)
+        if(response._error):
+            return "❌" +  str(response._error)
+        return response.text
 
-async def update_message_history(self, context_id, text):
-    """Update the message history for the given context."""
-    if context_id in self.message_history:
-        self.message_history[context_id].append(text)
-        max_history = await self.config.max_history()
-        if len(self.message_history[context_id]) > max_history:
-            self.message_history[context_id].pop(0)
-    else:
-        self.message_history[context_id] = [text]
+    async def update_message_history(self, context_id, text):
+        """Update the message history for the given context."""
+        if context_id in self.message_history:
+            self.message_history[context_id].append(text)
+            max_history = await self.config.max_history()
+            if len(self.message_history[context_id]) > max_history:
+                self.message_history[context_id].pop(0)
+        else:
+            self.message_history[context_id] = [text]
 
-def get_formatted_message_history(self, context_id):
-    """Retrieve the message history for the given context."""
-    if context_id in self.message_history:
-        return '\n\n'.join(self.message_history[context_id])
-    else:
-        return "No messages found for this user."
+    def get_formatted_message_history(self, context_id):
+        """Retrieve the message history for the given context."""
+        if context_id in self.message_history:
+            return '\n\n'.join(self.message_history[context_id])
+        else:
+            return "No messages found for this user."
 
-async def wrap_and_send_messages(self, message_system, text, max_length):
-    """Wrap the text into smaller chunks based on the maximum length and send them as separate messages."""
-    messages = textwrap.wrap(text, max_length) # Use the textwrap.wrap function to split the text into a list of strings
-    for string in messages:
-        await message_system.channel.send(string)
+    async def wrap_and_send_messages(self, message_system, text, max_length):
+        """Wrap the text into smaller chunks based on the maximum length and send them as separate messages."""
+        messages = textwrap.wrap(text, max_length) # Use the textwrap.wrap function to split the text into a list of strings
+        for string in messages:
+            await message_system.channel.send(string)
 
-def clean_discord_message(self, input_string):
-    """Remove any special Discord formatting from the message."""
-    bracket_pattern = re.compile(r'<[^>]+>')
-    cleaned_content = bracket_pattern.sub('', input_string)
-    return cleaned_content
-
-def compress_img(image_name, new_size_ratio=0.9, quality=90, width=None, height=None, to_jpg=True):
-    # load the image to memory
-    img = Image.open(image_name)
-    # print the original image
+    def clean_discord_message(self, input_string):
+        """Remove any special Discord formatting from the message."""
+        bracket_pattern = re.compile(r'<[^>]+>')
+        cleaned_content = bracket_pattern.sub('', input_string)
+        return cleaned_content
