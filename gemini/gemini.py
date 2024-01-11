@@ -53,7 +53,10 @@ class Gemini(commands.Cog):
                 for setting in self.model_settings[model_type]:
                     self.model_settings[model_type][setting] = await self.config.get_attr(f"{model_type}_{setting}")()
                 # Initialize the models
-                self.models[model_type] = genai.GenerativeModel(model_name=f"gemini-pro-{model_type}", generation_config=self.model_settings[model_type], safety_settings=self.model_settings[model_type]["safety_settings"])
+                # Exclude the safety_settings field from the generation_config
+                generation_config = {k: v for k, v in self.model_settings[model_type].items() if k != "safety_settings"}
+                # Pass the safety_settings as a separate parameter
+                self.models[model_type] = genai.GenerativeModel(model_name=f"gemini-pro-{model_type}", generation_config=generation_config, safety_settings=self.model_settings[model_type]["safety_settings"])
 
     @commands.command()
     @commands.is_owner()
