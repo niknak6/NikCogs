@@ -97,6 +97,7 @@ class Gemini(commands.Cog):
             async with message.channel.typing():
                 if message.attachments:
                     # Handle image messages
+                    responses = [] # A list of responses for each attachment
                     for attachment in message.attachments:
                         if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
                             await message.add_reaction('🎨')
@@ -104,23 +105,30 @@ class Gemini(commands.Cog):
                             async with aiohttp.ClientSession() as session:
                                 async with session.get(attachment.url) as resp:
                                     if resp.status != 200:
-                                        await message.channel.send('Unable to download the image.')
-                                        return
+                                        responses.append('Unable to download the image.')
+                                        continue
                                     image_data = await resp.read()
                                     response_text = await self.generate_response_with_image_and_text(image_data, cleaned_text)
-                                    await self.split_and_send_messages(message, response_text, 1700)
-                                    return
+                                    responses.append(response_text)
+                    # Concatenate the responses and send them together
+                    response_text = '\n\n'.join(responses)
+                    await self.split_and_send_messages(message, response_text, 1700)
+                    return
                 else:
                     # Handle text messages
-                    if "RESET" in cleaned_text:
-                        if message.author.id in self.message_history:
-                            del self.message_history[message.author.id]
+                    reset_pattern = re.compile(r'\bRESET\b') # A pattern to match the word RESET as a whole word
+                    if reset_pattern.search(cleaned_text):
+                        # Get the context mode and ID
                         context_mode = await self.config.context_mode()
                         context_id = message.channel.id if context_mode == 'channel' else message.author.id
+                        # Delete the entry for that context ID from the message history
+                        if context_id in self.message_history:
+                            del self.message_history[context_id]
                         await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
                         return
                     await message.add_reaction('💬')
 
+                    # Get the context mode and ID
                     context_mode = await self.config.context_mode()
                     context_id = message.channel.id if context_mode == 'channel' else message.author.id
 
