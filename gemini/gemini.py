@@ -116,13 +116,15 @@ class Gemini(commands.Cog):
                         if message.author.id in self.message_history:
                             del self.message_history[message.author.id]
                         context_mode = await self.config.context_mode()
-                        context_id = message.channel.id if context_mode == 'channel' else message.author.id
+                        # Use the channel's name instead of the channel's ID if the context mode is 'channel'
+                        context_id = message.channel.name if context_mode == 'channel' else message.author.id
                         await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
                         return
                     await message.add_reaction('💬')
 
                     context_mode = await self.config.context_mode()
-                    context_id = message.channel.id if context_mode == 'channel' else message.author.id
+                    # Use the channel's name instead of the channel's ID if the context mode is 'channel'
+                    context_id = message.channel.name if context_mode == 'channel' else message.author.id
 
                     max_history = await self.config.max_history()
                     if max_history == 0:
