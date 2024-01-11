@@ -171,6 +171,7 @@ class TreacheryToken(commands.Cog):
         await ctx.send(f"Alert set. You will receive a DM when the wow token price is lower than or equal to {threshold:,} gold.")
 
     async def send_alert(self, user, threshold):
+    # Indent the docstring with four spaces
     """Sends a DM to the user with the current wow token price if it is lower than or equal to the threshold"""
     # Get the current time in UTC
     now = datetime.utcnow()
