@@ -116,19 +116,17 @@ class Gemini(commands.Cog):
                         if message.author.id in self.message_history:
                             del self.message_history[message.author.id]
                         context_mode = await self.config.context_mode()
-                        # Use the channel's name instead of the channel's ID if the context mode is 'channel'
-                        context_id = message.channel.name if context_mode == 'channel' else message.author.id
+                        context_id = message.channel.id if context_mode == 'channel' else message.author.id
                         await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
                         return
                     await message.add_reaction('💬')
 
                     context_mode = await self.config.context_mode()
-                    # Use the channel's name instead of the channel's ID if the context mode is 'channel'
-                    context_id = message.channel.name if context_mode == 'channel' else message.author.id
+                    context_id = message.channel.id if context_mode == 'channel' else message.author.id
 
                     max_history = await self.config.max_history()
                     if max_history == 0:
-                        response_text = await self.generate_response_with_text(cleaned_text, reset_memory=True)
+                        response_text = await self.generate_response_with_text(cleaned_text)
                         await self.split_and_send_messages(message, response_text, 1700)
                         return
                     if message.reference:
@@ -136,13 +134,7 @@ class Gemini(commands.Cog):
                         referenced_text = self.clean_discord_message(referenced_message.content)
                         await self.update_message_history(context_id, referenced_text)
                     await self.update_message_history(context_id, cleaned_text)
-                    # Check if the message history is empty
-                    if len(self.message_history[context_id]) == 0:
-                        # Use the cleaned text as the prompt and reset the text model's memory
-                        response_text = await self.generate_response_with_text(cleaned_text, reset_memory=True)
-                    else:
-                        # Use the formatted message history as the prompt
-                        response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
+                    response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
                     await self.update_message_history(context_id, response_text)
                     await self.split_and_send_messages(message, response_text, 1700)
 
