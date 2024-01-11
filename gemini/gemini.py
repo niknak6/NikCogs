@@ -3,10 +3,7 @@ import re
 import aiohttp
 import discord
 import google.generativeai as genai
-import textwrap
 from redbot.core import commands, Config
-from discord.utils import remove_markdown
-from collections import defaultdict
 
 class Gemini(commands.Cog):
     """A Discord bot that uses Google's Gemini-Pro API to interact with users in text and image formats."""
@@ -19,26 +16,22 @@ class Gemini(commands.Cog):
             google_ai_key=None,
             max_history=20,
             context_mode='user', # Determines whether the context is user-specific or channel-specific
+            # Settings for the text model
+            text_temperature=1.0,
+            text_top_p=1,
+            text_top_k=1,
+            text_max_output_tokens=2048,
+            text_safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}],
+            # Settings for the image model
+            image_temperature=0.4,
+            image_top_p=1,
+            image_top_k=32,
+            image_max_output_tokens=2048,
+            image_safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}]
         )
-        # Define the settings for the text and image models
-        self.model_settings = {
-            "text": {
-                "temperature": 1.0,
-                "top_p": 1,
-                "top_k": 1,
-                "max_output_tokens": 2048,
-                "safety_settings": [{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}]
-            },
-            "image": {
-                "temperature": 0.4,
-                "top_p": 1,
-                "top_k": 32,
-                "max_output_tokens": 2048,
-                "safety_settings": [{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}]
-            }
-        }
-        self.models = {}
-        self.message_history = defaultdict(list)
+        self.text_model = None
+        self.image_model = None
+        self.message_history = {}
 
         # Initialize the models asynchronously
         self.bot.loop.create_task(self.initialize_models())
@@ -48,15 +41,22 @@ class Gemini(commands.Cog):
         api_key = await self.config.google_ai_key()
         if api_key:
             genai.configure(api_key=api_key)
-            # Retrieve and apply the settings for the text and image models
-            for model_type in ["text", "image"]:
-                for setting in self.model_settings[model_type]:
-                    self.model_settings[model_type][setting] = await self.config.get_attr(f"{model_type}_{setting}")()
-                # Initialize the models
-                # Exclude the safety_settings field from the generation_config
-                generation_config = {k: v for k, v in self.model_settings[model_type].items() if k != "safety_settings"}
-                # Pass the safety_settings as a separate parameter
-                self.models[model_type] = genai.GenerativeModel(model_name=f"gemini-pro-{model_type}", generation_config=generation_config, safety_settings=self.model_settings[model_type]["safety_settings"])
+            # Retrieve and apply the settings for the text model
+            text_temperature = await self.config.get_attr("text_temperature")()
+            text_top_p = await self.config.get_attr("text_top_p")()
+            text_top_k = await self.config.get_attr("text_top_k")()
+            text_max_output_tokens = await self.config.get_attr("text_max_output_tokens")()
+            text_safety_settings = await self.config.get_attr("text_safety_settings")()
+            # Retrieve and apply the settings for the image model
+            image_temperature = await self.config.get_attr("image_temperature")()
+            image_top_p = await self.config.get_attr("image_top_p")()
+            image_top_k = await self.config.get_attr("image_top_k")()
+            image_max_output_tokens = await self.config.get_attr("image_max_output_tokens")()
+            image_safety_settings = await self.config.get_attr("image_safety_settings")()
+            # Initialize the text model
+            self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": text_temperature, "top_p": text_top_p, "top_k": text_top_k, "max_output_tokens": text_max_output_tokens}, safety_settings=text_safety_settings)
+            # Initialize the image model
+            self.image_model = genai.GenerativeModel(model_name="gemini-pro-vision", generation_config={"temperature": image_temperature, "top_p": image_top_p, "top_k": image_top_k, "max_output_tokens": image_max_output_tokens}, safety_settings=image_safety_settings)
 
     @commands.command()
     @commands.is_owner()
@@ -108,7 +108,7 @@ class Gemini(commands.Cog):
                                         responses.append('Unable to download the image.')
                                         continue
                                     image_data = await resp.read()
-                                    response_text = await self.generate_content("image", [image_data, f"\n{cleaned_text if cleaned_text else 'What is this a picture of?'}"])
+                                    response_text = await self.generate_response_with_image_and_text(image_data, cleaned_text)
                                     responses.append(response_text)
                     # Concatenate the responses and send them together
                     response_text = '\n\n'.join(responses)
@@ -134,7 +134,7 @@ class Gemini(commands.Cog):
 
                     max_history = await self.config.max_history()
                     if max_history == 0:
-                        response_text = await self.generate_content("text", [cleaned_text])
+                        response_text = await self.generate_response_with_text(cleaned_text)
                         await self.split_and_send_messages(message, response_text, 1700)
                         return
                     if message.reference:
@@ -142,41 +142,55 @@ class Gemini(commands.Cog):
                         referenced_text = self.clean_discord_message(referenced_message.content)
                         await self.update_message_history(context_id, referenced_text)
                     await self.update_message_history(context_id, cleaned_text)
-                    response_text = await self.generate_content("text", [self.get_formatted_message_history(context_id)])
+                    response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
                     await self.update_message_history(context_id, response_text)
                     await self.split_and_send_messages(message, response_text, 1700)
 
-    async def generate_content(self, model_type, prompt_parts):
-        """Generate a response using the specified model."""
-        response = self.models[model_type].generate_content(prompt_parts)
+    async def generate_response_with_text(self, message_text):
+        """Generate a text response using the text model."""
+        prompt_parts = [message_text]
+        response = self.text_model.generate_content(prompt_parts)
+        if(response._error):
+            return "❌" +  str(response._error)
+        return response.text
+
+    async def generate_response_with_image_and_text(self, image_data, text):
+        """Generate a text response using the image model."""
+        image_parts = [{"mime_type": "image/jpeg", "data": image_data}]
+        prompt_parts = [image_parts[0], f"\n{text if text else 'What is this a picture of?'}"]
+        response = self.image_model.generate_content(prompt_parts)
         if(response._error):
             return "❌" +  str(response._error)
         return response.text
 
     async def update_message_history(self, context_id, text):
         """Update the message history for the given context."""
-        # Append the text to the message history for the context ID
-        self.message_history[context_id].append(text)
-        max_history = await self.config.max_history()
-        # Remove the oldest message if the history exceeds the maximum limit
-        if len(self.message_history[context_id]) > max_history:
-            self.message_history[context_id].pop(0)
+        if context_id in self.message_history:
+            self.message_history[context_id].append(text)
+            max_history = await self.config.max_history()
+            if len(self.message_history[context_id]) > max_history:
+                self.message_history[context_id].pop(0)
+        else:
+            self.message_history[context_id] = [text]
 
     def get_formatted_message_history(self, context_id):
         """Retrieve the message history for the given context."""
-        # Return the message history or a default message
-        return '\n\n'.join(self.message_history[context_id]) if self.message_history[context_id] else "No messages found for this user."
+        if context_id in self.message_history:
+            return '\n\n'.join(self.message_history[context_id])
+        else:
+            return "No messages found for this user."
 
     async def split_and_send_messages(self, message_system, text, max_length):
         """Split the response into multiple messages if it exceeds the maximum length."""
-        # Use textwrap to split the text into messages of the max length
-        messages = textwrap.wrap(text, max_length)
-        # Send each message
+        messages = []
+        for i in range(0, len(text), max_length):
+            sub_message = text[i:i+max_length]
+            messages.append(sub_message)
         for string in messages:
             await message_system.channel.send(string)
 
     def clean_discord_message(self, input_string):
         """Remove any special Discord formatting from the message."""
-        # Use remove_markdown to strip the formatting
-        cleaned_content = remove_markdown(input_string)
+        bracket_pattern = re.compile(r'<[^>]+>')
+        cleaned_content = bracket_pattern.sub('', input_string)
         return cleaned_content
