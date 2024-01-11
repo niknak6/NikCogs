@@ -6,6 +6,7 @@ import google.generativeai as genai
 from redbot.core import commands, Config
 import textwrap # Import the textwrap module
 from PIL import Image # Import the Pillow library
+import io # Import the io module # ADDED
 
 class Gemini(commands.Cog):
     """A Discord bot that uses Google's Gemini-Pro API to interact with users in text and image formats."""
@@ -111,8 +112,8 @@ class Gemini(commands.Cog):
                                         continue
                                     image_data = await resp.read()
                                     # Compress the image data before generating a response
-                                    compressed_image_data = compress_image(image_data)
-                                    response_text = await self.generate_response_with_image_and_text(compressed_image_data, cleaned_text)
+                                    compressed_image_data = compress_image(image_data) # ADDED
+                                    response_text = await self.generate_response_with_image_and_text(compressed_image_data, cleaned_text) # CHANGED
                                     responses.append(response_text)
                     # Concatenate the responses and send them together
                     response_text = '\n\n'.join(responses)
@@ -167,7 +168,7 @@ class Gemini(commands.Cog):
             return "❌" +  str(response._error)
         return response.text
 
-    async def update_message_history(self, context_id, text):
+        async def update_message_history(self, context_id, text):
         """Update the message history for the given context."""
         if context_id in self.message_history:
             self.message_history[context_id].append(text)
@@ -195,3 +196,16 @@ class Gemini(commands.Cog):
         bracket_pattern = re.compile(r'<[^>]+>')
         cleaned_content = bracket_pattern.sub('', input_string)
         return cleaned_content
+
+    # ADDED
+    from PIL import Image
+
+    def compress_image(image_data):
+        # Create an image object from the bytes data
+        img = Image.open(io.BytesIO(image_data))
+        # Resize the image and preserve the aspect ratio
+        img.thumbnail((800, 800))
+        # Save the image to a buffer and return the bytes
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG", quality=75, optimize=True)
+        return buffer.getvalue()
