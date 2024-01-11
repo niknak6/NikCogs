@@ -126,7 +126,7 @@ class Gemini(commands.Cog):
 
                     max_history = await self.config.max_history()
                     if max_history == 0:
-                        response_text = await self.generate_response_with_text(cleaned_text)
+                        response_text = await self.generate_response_with_text(cleaned_text, reset_memory=True)
                         await self.split_and_send_messages(message, response_text, 1700)
                         return
                     if message.reference:
@@ -136,8 +136,8 @@ class Gemini(commands.Cog):
                     await self.update_message_history(context_id, cleaned_text)
                     # Check if the message history is empty
                     if len(self.message_history[context_id]) == 0:
-                        # Use the cleaned text as the prompt
-                        response_text = await self.generate_response_with_text(cleaned_text)
+                        # Use the cleaned text as the prompt and reset the text model's memory
+                        response_text = await self.generate_response_with_text(cleaned_text, reset_memory=True)
                     else:
                         # Use the formatted message history as the prompt
                         response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
