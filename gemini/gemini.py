@@ -136,7 +136,7 @@ class Gemini(commands.Cog):
                     max_history = await self.config.max_history()
                     if max_history == 0:
                         response_text = await self.generate_response_with_text(cleaned_text)
-                        await self.wrap_and_send_messages(message, response_text, 1700) # Use the wrap_and_send_messages method
+                        await self.wrap_and_send_messages(message, response_text, 1999) # Use the wrap_and_send_messages method
                         return
                     if message.reference:
                         referenced_message = await message.channel.fetch_message(message.reference.message_id)
@@ -145,7 +145,7 @@ class Gemini(commands.Cog):
                     await self.update_message_history(context_id, cleaned_text)
                     response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
                     await self.update_message_history(context_id, response_text)
-                    await self.wrap_and_send_messages(message, response_text, 1700) # Use the wrap_and_send_messages method
+                    await self.wrap_and_send_messages(message, response_text, 1999 # Use the wrap_and_send_messages method
 
     async def generate_response_with_text(self, message_text):
         """Generate a text response using the text model."""
