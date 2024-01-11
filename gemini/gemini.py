@@ -4,6 +4,7 @@ import aiohttp
 import discord
 import google.generativeai as genai
 from redbot.core import commands, Config
+import textwrap # Import the textwrap module
 
 class Gemini(commands.Cog):
     """A Discord bot that uses Google's Gemini-Pro API to interact with users in text and image formats."""
@@ -112,7 +113,7 @@ class Gemini(commands.Cog):
                                     responses.append(response_text)
                     # Concatenate the responses and send them together
                     response_text = '\n\n'.join(responses)
-                    await self.split_and_send_messages(message, response_text, 1700)
+                    await self.wrap_and_send_messages(message, response_text, 1700) # Use the wrap_and_send_messages method
                     return
                 else:
                     # Handle text messages
@@ -135,7 +136,7 @@ class Gemini(commands.Cog):
                     max_history = await self.config.max_history()
                     if max_history == 0:
                         response_text = await self.generate_response_with_text(cleaned_text)
-                        await self.split_and_send_messages(message, response_text, 1700)
+                        await self.wrap_and_send_messages(message, response_text, 1700) # Use the wrap_and_send_messages method
                         return
                     if message.reference:
                         referenced_message = await message.channel.fetch_message(message.reference.message_id)
@@ -144,7 +145,7 @@ class Gemini(commands.Cog):
                     await self.update_message_history(context_id, cleaned_text)
                     response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
                     await self.update_message_history(context_id, response_text)
-                    await self.split_and_send_messages(message, response_text, 1700)
+                    await self.wrap_and_send_messages(message, response_text, 1700) # Use the wrap_and_send_messages method
 
     async def generate_response_with_text(self, message_text):
         """Generate a text response using the text model."""
@@ -180,12 +181,9 @@ class Gemini(commands.Cog):
         else:
             return "No messages found for this user."
 
-    async def split_and_send_messages(self, message_system, text, max_length):
-        """Split the response into multiple messages if it exceeds the maximum length."""
-        messages = []
-        for i in range(0, len(text), max_length):
-            sub_message = text[i:i+max_length]
-            messages.append(sub_message)
+    async def wrap_and_send_messages(self, message_system, text, max_length):
+        """Wrap the text into smaller chunks based on the maximum length and send them as separate messages."""
+        messages = textwrap.wrap(text, max_length) # Use the textwrap.wrap function to split the text into a list of strings
         for string in messages:
             await message_system.channel.send(string)
 
