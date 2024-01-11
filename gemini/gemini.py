@@ -182,27 +182,10 @@ class Gemini(commands.Cog):
             return "No messages found for this user."
 
     async def wrap_and_send_messages(self, message_system, text, max_length):
-    """Wrap the text into smaller chunks based on the maximum length and send them as separate messages."""
-    # Check if the text is a code snippet
-    if text.startswith("import") or text.startswith("from"):
-        # Add the backticks and the language name to the text
-        text = f"```python\n{text}\n```"
-    # Use the splitlines function to split the text into a list of lines
-    lines = text.splitlines()
-    messages = [] # A list of messages to send
-    current_message = "" # The current message to append lines to
-    for line in lines:
-        # Check if the current message plus the line exceeds the max length
-        if len(current_message) + len(line) > max_length:
-            # If so, append the current message to the messages list and start a new one
-            messages.append(current_message)
-            current_message = ""
-        # Append the line to the current message with a newline
-        current_message += line + "\n"
-    # Append the last message to the messages list
-    messages.append(current_message)
-    for string in messages:
-        await message_system.channel.send(string)
+        """Wrap the text into smaller chunks based on the maximum length and send them as separate messages."""
+        messages = textwrap.wrap(text, max_length) # Use the textwrap.wrap function to split the text into a list of strings
+        for string in messages:
+            await message_system.channel.send(string)
 
     def clean_discord_message(self, input_string):
         """Remove any special Discord formatting from the message."""
