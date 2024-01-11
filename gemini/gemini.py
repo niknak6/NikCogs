@@ -134,7 +134,13 @@ class Gemini(commands.Cog):
                         referenced_text = self.clean_discord_message(referenced_message.content)
                         await self.update_message_history(context_id, referenced_text)
                     await self.update_message_history(context_id, cleaned_text)
-                    response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
+                    # Check if the message history is empty
+                    if len(self.message_history[context_id]) == 0:
+                        # Use the cleaned text as the prompt
+                        response_text = await self.generate_response_with_text(cleaned_text)
+                    else:
+                        # Use the formatted message history as the prompt
+                        response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
                     await self.update_message_history(context_id, response_text)
                     await self.split_and_send_messages(message, response_text, 1700)
 
