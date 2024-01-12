@@ -1,7 +1,24 @@
 # Import the required modules
-import asyncio
+import os
 from redbot.core import commands
 from sydney import SydneyClient
+
+# Define the command class
+class CopilotAPI(commands.Cog):
+    """A command that allows the bot owner to set the cookie for Sydney.py."""
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    # Define the command decorator
+    @commands.command()
+    @commands.is_owner() # This will make the command only available to the bot owner
+    async def copilotapi(self, ctx, cookie: str):
+        """Set the cookie for Sydney.py."""
+        # Set the cookie as an environment variable
+        os.environ["BING_COOKIES"] = cookie
+        # Send a confirmation message
+        await ctx.send("The cookie for Sydney.py has been set successfully.")
 
 # Define the cog class
 class Copilot(commands.Cog):
