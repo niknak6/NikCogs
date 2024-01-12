@@ -25,11 +25,11 @@ class Copilot(commands.Cog):
         self.imagegen = ImageGenAsync(auth_cookie=auth_cookie)
 
     @commands.command()
-    async def chat(self, ctx, *, message: str):
+    async def chat(self, ctx):
         """Chat with the ReEdgeGPT chatbot"""
         if self.chatbot is None:
             await self.create_chatbot()
-        response = await self.chatbot.ask(message, conversation_style=self.style)
+        response = await self.chatbot.ask(ctx.message.clean_content, conversation_style=self.style)
         await ctx.send(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
 
     @commands.command(name="copilotdraw")
@@ -75,3 +75,6 @@ class Copilot(commands.Cog):
             await ctx.send("Conversation reset successfully. 😊")
         except Exception as error:
             await ctx.send(f"An error occurred while resetting the conversation: {error}")
+
+# change the command prefix to only mention
+client = commands.Bot(command_prefix=commands.when_mentioned_or(""))
