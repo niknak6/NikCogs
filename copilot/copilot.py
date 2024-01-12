@@ -1,6 +1,7 @@
 import discord # add this line
 import json
 import os
+import re # add this line
 from redbot.core import commands
 from re_edge_gpt import Chatbot, ImageGenAsync, ConversationStyle
 
@@ -91,13 +92,13 @@ class Copilot(commands.Cog):
                 await self.chat(message) # chat with the user
         elif self.bot.user in message.mentions:
             # the message mentions the bot
-            if message.content.lower().startswith(("generate picture", "generate image")):
-                # the message starts with the keywords
+            if re.search("(generate picture|generate image)", message.content, re.IGNORECASE): # use re.search with re.IGNORECASE
+                # the message contains the keywords
                 await message.add_reaction("\U0001f3a8") # add the art emoji
                 async with message.channel.typing(): # start typing
                     await self.copilot_draw(message) # generate an image
             else:
-                # the message does not start with the keywords
+                # the message does not contain the keywords
                 await message.add_reaction("\U0001f916") # add the robot emoji
                 async with message.channel.typing(): # start typing
                     await self.chat(message) # chat with the user
