@@ -26,14 +26,6 @@ class Copilot(commands.Cog):
         auth_cookie = open(os.path.join(os.getcwd(), "/root/.local/share/Red-DiscordBot/data/redbot/cogs/CogManager/cogs/copilot/bing_cookies.txt"), "r+").read()
         self.imagegen = ImageGenAsync(auth_cookie=auth_cookie)
 
-    # remove the chat command
-    # async def chat(self, ctx, *, message: str):
-    #     """Chat with the ReEdgeGPT chatbot"""
-    #     if self.chatbot is None:
-    #         await self.create_chatbot()
-    #     response = await self.chatbot.ask(message, conversation_style=self.style)
-    #     await ctx.send(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
-
     # disable the copilotdraw command
     @commands.command(name="copilotdraw", enabled=False)
     async def copilot_draw(self, ctx, *, prompt: str):
@@ -108,7 +100,11 @@ class Copilot(commands.Cog):
         if self.chatbot is None:
             await self.create_chatbot()
         response = await self.chatbot.ask(message.clean_content, conversation_style=self.style)
-        await message.channel.send(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
+        # split the response into chunks of 1999 characters or less
+        chunks = [response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"][i:i+1999] for i in range(0, len(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"]), 1999)]
+        # send each chunk to the channel
+        for chunk in chunks:
+            await message.channel.send(chunk)
 
     async def copilot_draw(self, message):
         """Generate an image using the ReEdgeGPT image generator"""
