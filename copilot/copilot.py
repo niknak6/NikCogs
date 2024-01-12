@@ -33,7 +33,8 @@ class Copilot(commands.Cog):
     #     response = await self.chatbot.ask(message, conversation_style=self.style)
     #     await ctx.send(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
 
-    @commands.command(name="copilotdraw")
+    # disable the copilotdraw command
+    @commands.command(name="copilotdraw", enabled=False)
     async def copilot_draw(self, ctx, *, prompt: str):
         """Generate an image using the ReEdgeGPT image generator"""
         if self.imagegen is None:
@@ -90,9 +91,16 @@ class Copilot(commands.Cog):
                 await self.chat(message) # chat with the user
         elif self.bot.user in message.mentions:
             # the message mentions the bot
-            await message.add_reaction("\U0001f916") # add the robot emoji
-            async with message.channel.typing(): # start typing
-                await self.chat(message) # chat with the user
+            if message.content.lower().startswith(("generate picture", "generate image")):
+                # the message starts with the keywords
+                await message.add_reaction("\U0001f3a8") # add the art emoji
+                async with message.channel.typing(): # start typing
+                    await self.copilot_draw(message) # generate an image
+            else:
+                # the message does not start with the keywords
+                await message.add_reaction("\U0001f916") # add the robot emoji
+                async with message.channel.typing(): # start typing
+                    await self.chat(message) # chat with the user
 
     async def chat(self, message):
         """Chat with the ReEdgeGPT chatbot"""
@@ -100,6 +108,17 @@ class Copilot(commands.Cog):
             await self.create_chatbot()
         response = await self.chatbot.ask(message.clean_content, conversation_style=self.style)
         await message.channel.send(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
+
+    async def copilot_draw(self, message):
+        """Generate an image using the ReEdgeGPT image generator"""
+        if self.imagegen is None:
+            await self.create_imagegen()
+        prompt = message.clean_content # get the clean message content
+        prompt = prompt.replace("generate picture", "", 1) # remove the first occurrence of the keyword
+        prompt = prompt.replace("generate image", "", 1) # remove the first occurrence of the keyword
+        prompt = prompt.strip() # remove any leading or trailing whitespace
+        image_list = await self.imagegen.get_images(prompt) # get the images for the prompt
+        await message.channel.send(image_list[0]) # send the first image to the channel
 
 # change the command prefix to only mention
 # add the intents argument
