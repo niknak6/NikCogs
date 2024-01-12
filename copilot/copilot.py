@@ -1,5 +1,5 @@
+import discord # add this line
 import json
-import discord
 import os
 from redbot.core import commands
 from re_edge_gpt import Chatbot, ImageGenAsync, ConversationStyle
