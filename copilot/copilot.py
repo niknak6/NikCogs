@@ -85,10 +85,14 @@ class Copilot(commands.Cog):
             return # ignore the bot's own messages
         if message.reference and message.reference.resolved.author == self.bot.user:
             # the message is a reply to the bot
-            await self.chat(message)
+            await message.add_reaction("\U0001f916") # add the robot emoji
+            async with message.channel.typing(): # start typing
+                await self.chat(message) # chat with the user
         elif self.bot.user in message.mentions:
             # the message mentions the bot
-            await self.chat(message)
+            await message.add_reaction("\U0001f916") # add the robot emoji
+            async with message.channel.typing(): # start typing
+                await self.chat(message) # chat with the user
 
     async def chat(self, message):
         """Chat with the ReEdgeGPT chatbot"""
