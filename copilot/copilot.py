@@ -20,7 +20,8 @@ class Copilot(commands.Cog):
 
     async def create_imagegen(self):
         """Creates an image generator instance using the cookies file"""
-        auth_cookie = open(os.path.join(os.getcwd(), "bing_cookies.txt"), "r+").read()
+        # use the same path as the bing_cookies.json file
+        auth_cookie = open(os.path.join(os.getcwd(), "/root/.local/share/Red-DiscordBot/data/redbot/cogs/CogManager/cogs/copilot/bing_cookies.txt"), "r+").read()
         self.imagegen = ImageGenAsync(auth_cookie=auth_cookie)
 
     @commands.command()
