@@ -152,6 +152,36 @@ class TreacheryToken(commands.Cog):
         await loading_message.edit(content=None, embed=embed)
 
     @commands.command()
+    async def wowtoken(self, ctx):
+        """Shows the current, weekly, monthly, 6 month and 1 year high and low price of the wow token in US region"""
+        # Your existing code...
+
+    @commands.command()
+    async def tokenalert(self, ctx, amount: str):
+        """Sets an alert for the wow token price in US region"""
+        # Your existing code...
+
+    async def send_alert(self, user, threshold):
+        """
+        Sends a DM to the user with the current wow token price if it is lower than or equal to the threshold
+        """
+        # Your existing code...
+
+    @commands.command()
+    async def testtokenalert(self, ctx, amount: str):
+        """Tests the tokenalert function on demand"""
+        # Check if the amount is a valid number
+        if not amount.isdigit():
+            await ctx.send("Invalid amount of gold. Please enter a positive integer.")
+            return
+
+        # Convert the amount to an integer
+        threshold = int(amount)
+
+        # Call the send_alert function immediately
+        await self.send_alert(ctx.author, threshold)
+
+    @commands.command()
     async def tokenalert(self, ctx, amount: str):
         """Sets an alert for the wow token price in US region"""
         # Check if the amount is a valid number
