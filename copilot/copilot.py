@@ -1,3 +1,4 @@
+import json
 from redbot.core import commands
 from re_edge_gpt import Chatbot, ImageGenAsync, ConversationStyle
 
