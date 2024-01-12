@@ -171,78 +171,79 @@ class TreacheryToken(commands.Cog):
         await ctx.send(f"Alert set. You will receive a DM when the wow token price is lower than or equal to {threshold:,} gold.")
 
     async def send_alert(self, user, threshold):
-    # Indent the docstring with four spaces
-    """Sends a DM to the user with the current wow token price if it is lower than or equal to the threshold"""
-    # Get the current time in UTC
-    now = datetime.utcnow()
+        """
+        Sends a DM to the user with the current wow token price if it is lower than or equal to the threshold
+        """
+        # Get the current time in UTC
+        now = datetime.utcnow()
 
-    # Calculate the next 5 PM in UTC
-    next_5pm = now.replace(hour=17, minute=0, second=0, microsecond=0)
-    if now.hour >= 17:
-        # Add one day to the next 5 PM
-        next_5pm += timedelta(days=1)
+        # Calculate the next 5 PM in UTC
+        next_5pm = now.replace(hour=17, minute=0, second=0, microsecond=0)
+        if now.hour >= 17:
+            # Add one day to the next 5 PM
+            next_5pm += timedelta(days=1)
 
-    # Calculate the seconds to wait
-    delta = next_5pm - now
-    seconds = delta.total_seconds()
+        # Calculate the seconds to wait
+        delta = next_5pm - now
+        seconds = delta.total_seconds()
 
-    # Wait until 5 PM
-    await asyncio.sleep(seconds)
+        # Wait until 5 PM
+        await asyncio.sleep(seconds)
 
-    # Loop indefinitely
-    while True:
-        # Get the json data from the url
-        url = "https://data.wowtoken.app/token/history/us/1y.json"
-        # Use the get_session function to create a new session object for each request
-        session = get_session()
-        # Use the session object to make the request
-        # Use async with to ensure the session is closed properly
-        # Append a random parameter to the url to bypass the cache
-        # Use the headers parameter to pass a custom header
-        async with session.get(url + "?rand=" + str(random.randint(0, 1000000)), headers={"Cache-Control": "no-cache"}) as response:
-            # Use orjson to decode the json data
-            data = json.loads(await response.read())
+        # Loop indefinitely
+        while True:
+            # Get the json data from the url
+            url = "https://data.wowtoken.app/token/history/us/1y.json"
+            # Use the get_session function to create a new session object for each request
+            session = get_session()
+            # Use the session object to make the request
+            # Use async with to ensure the session is closed properly
+            # Append a random parameter to the url to bypass the cache
+            # Use the headers parameter to pass a custom header
+            async with session.get(url + "?rand=" + str(random.randint(0, 1000000)), headers={"Cache-Control": "no-cache"}) as response:
+                # Use orjson to decode the json data
+                data = json.loads(await response.read())
 
-        # Close the session after the request is done
-        await session.close()
+            # Close the session after the request is done
+            await session.close()
 
-        # Create a dataframe from the json data
-        df = pd.DataFrame(data)
+            # Create a dataframe from the json data
+            df = pd.DataFrame(data)
 
-        # Convert the time column to datetime format
-        df["time"] = pd.to_datetime(df["time"], format="%Y-%m-%dT%H:%M:%S%z")
+            # Convert the time column to datetime format
+            df["time"] = pd.to_datetime(df["time"], format="%Y-%m-%dT%H:%M:%S%z")
 
-        # Set the time column as the index
-        df = df.set_index("time")
+            # Set the time column as the index
+            df = df.set_index("time")
 
-        # Sort the dataframe by the time index
-        df = df.sort_index(ascending=True)
+            # Sort the dataframe by the time index
+            df = df.sort_index(ascending=True)
 
-        # Define the end date as the most recent date in the dataframe
-        end_date = df.index.max()
+            # Define the end date as the most recent date in the dataframe
+            end_date = df.index.max()
 
-        # Get the current price
-        current = df.loc[end_date]["value"]
+            # Get the current price
+            current = df.loc[end_date]["value"]
 
-        # Format the price with commas
-        current = f"{current:,}"
+            # Format the price with commas
+            current = f"{current:,}"
 
-        # Check if the current price is lower than or equal to the threshold
-        if current <= threshold:
-            # Create a single embed object
-            embed = discord.Embed(
-                color = discord.Color.blue(),
-                title = "WoW Token Price Alert",
-            )
+            # Check if the current price is lower than or equal to the threshold
+            if current <= threshold:
+                # Create a single embed object
+                embed = discord.Embed(
+                    color = discord.Color.blue(),
+                    title = "WoW Token Price Alert",
+                )
 
-            # Add the current price as the first field of the embed, and set inline to False
-            embed.add_field(name = "Current Price", value = f"```{current} gold```", inline = False)
+                # Add the current price as the first field of the embed, and set inline to False
+                embed.add_field(name = "Current Price", value = f"```{current} gold```", inline = False)
 
-            # Set the footer of the embed with the source
-            embed.set_footer(text="Data from https://wowtoken.app")
+                # Set the footer of the embed with the source
+                embed.set_footer(text="Data from https://wowtoken.app")
 
-            # Send the embed to the user
-            await user.send(embed=embed)
+                # Send the embed to the user
+                await user.send(embed=embed)
 
-        # Wait for 24 hours
-        await asyncio.sleep(86400)
+            # Wait for 24 hours
+            await asyncio.sleep(86400)
