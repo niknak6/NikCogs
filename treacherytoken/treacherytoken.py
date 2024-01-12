@@ -1,4 +1,5 @@
 import time
+import asyncio
 from redbot.core import commands
 import aiohttp # a library for making asynchronous HTTP requests
 import pandas as pd # a library for data analysis and manipulation
@@ -162,7 +163,7 @@ class TreacheryToken(commands.Cog):
         threshold = int(amount)
 
         # Create a new task for the user
-        task = loop.create_task(send_alert(ctx.author, threshold))
+        task = self.bot.loop.create_task(self.send_alert(ctx.author, threshold))
 
         # Store the task in the dictionary
         self.tasks[ctx.author.id] = task
@@ -224,9 +225,6 @@ class TreacheryToken(commands.Cog):
 
             # Get the current price
             current = df.loc[end_date]["value"]
-
-            # Format the price with commas
-            current = f"{current:,}"
 
             # Check if the current price is lower than or equal to the threshold
             if current <= threshold:
