@@ -24,11 +24,11 @@ class Copilot(commands.Cog):
         # Start the conversation
         await self.sydney.start_conversation()
         # Send a welcome message
-        await ctx.send("You have started a conversation with Copilot. Type your messages here or use !stop to end the conversation.")
+        await ctx.send("You have started a conversation with Copilot. Type your messages here or use !copilotstop to end the conversation.")
 
     # Define a command to stop a conversation with Copilot
-    @commands.command()
-    async def stop(self, ctx):
+    @commands.command(name="copilotstop") # Change the command name here
+    async def copilotstop(self, ctx): # Change the function name here
         """Stop a conversation with Copilot."""
         # Check if there is a conversation
         if self.sydney is None:
