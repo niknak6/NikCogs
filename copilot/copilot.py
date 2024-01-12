@@ -13,7 +13,7 @@ class Copilot(commands.Cog):
 
     async def create_chatbot(self):
         """Creates a chatbot instance using the cookies file"""
-        cookies = json.loads(open("{HOME}/.local/share/Red-DiscordBot/data/redbot/cogs/CogManager/cogs/copilot/bing_cookies.json", encoding="utf-8").read())
+        cookies = json.loads(open("/root/.local/share/Red-DiscordBot/data/redbot/cogs/CogManager/cogs/copilot/bing_cookies.json", encoding="utf-8").read())
         self.chatbot = await Chatbot.create(cookies=cookies)
 
     async def create_imagegen(self):
