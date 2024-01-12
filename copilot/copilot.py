@@ -77,4 +77,6 @@ class Copilot(commands.Cog):
             await ctx.send(f"An error occurred while resetting the conversation: {error}")
 
 # change the command prefix to only mention
-client = commands.Bot(command_prefix=commands.when_mentioned_or(""))
+# add the intents argument
+intents = discord.Intents.all() # or any other intents you want
+client = commands.Bot(command_prefix=commands.when_mentioned_or(""), intents=intents)
