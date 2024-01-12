@@ -106,7 +106,7 @@ class Copilot(commands.Cog):
         for chunk in chunks:
             await message.channel.send(chunk)
 
-    async def copilot_draw(self, message):
+    async def copilot_draw(self, message, retries=3):
         """Generate an image using the ReEdgeGPT image generator"""
         if self.imagegen is None:
             await self.create_imagegen()
@@ -115,7 +115,19 @@ class Copilot(commands.Cog):
         prompt = prompt.replace("generate image", "", 1) # remove the first occurrence of the keyword
         prompt = prompt.strip() # remove any leading or trailing whitespace
         image_list = await self.imagegen.get_images(prompt) # get the images for the prompt
-        await message.channel.send(image_list[0]) # send the first image to the channel
+        url = image_list[0] # get the first image url
+        if url.endswith(".svg"):
+            # the url is not a valid image
+            if retries > 0:
+                # there are still some retries left
+                await message.channel.send("Oops. It failed. Trying again...") # print a message
+                await self.copilot_draw(message, retries-1) # call the function again with one less retry
+            else:
+                # there are no more retries left
+                await message.channel.send("Sorry. I could not generate a valid image. 😞") # print a message
+        else:
+            # the url is a valid image
+            await message.channel.send(url) # send the image to the channel
 
 # change the command prefix to only mention
 # add the intents argument
