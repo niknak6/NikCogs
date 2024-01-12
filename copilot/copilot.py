@@ -63,3 +63,15 @@ class Copilot(commands.Cog):
         """Set the conversation style to precise"""
         self.style = ConversationStyle.precise
         await ctx.send("Conversation style changed to precise. 🔬")
+
+    # add the reset command
+    @commands.command(name="copilotreset")
+    async def copilot_reset(self, ctx):
+        """Reset the conversation with the ReEdgeGPT chatbot"""
+        if self.chatbot is None:
+            await self.create_chatbot()
+        try:
+            await self.chatbot.reset()
+            await ctx.send("Conversation reset successfully. 😊")
+        except Exception as error:
+            await ctx.send(f"An error occurred while resetting the conversation: {error}")
