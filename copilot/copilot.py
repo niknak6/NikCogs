@@ -10,6 +10,7 @@ class Copilot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.sydney = None # The Sydney client instance
+        self.channel_id = None # The channel id where the conversation is happening
 
     # Define a command to start a conversation with Copilot
     @commands.command()
@@ -23,6 +24,8 @@ class Copilot(commands.Cog):
         self.sydney = SydneyClient(style="creative")
         # Start the conversation
         await self.sydney.start_conversation()
+        # Store the channel id as an attribute
+        self.channel_id = ctx.channel.id # Add this line here
         # Send a welcome message
         await ctx.send("You have started a conversation with Copilot. Type your messages here or use !copilotstop to end the conversation.")
 
@@ -54,7 +57,7 @@ class Copilot(commands.Cog):
         if self.sydney is None:
             return
         # Check if the message is in the same channel as the command
-        if message.channel != self.bot.get_channel(self.sydney.channel_id):
+        if message.channel.id != self.channel_id: # Use the message channel id here
             return
         # Get the message content
         prompt = message.content
