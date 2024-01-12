@@ -1,85 +1,37 @@
-# Import the required modules
-import json
-import os
 from redbot.core import commands
-from re_edge_gpt import Chatbot, ConversationStyle # Import ReEdgeGPT here
+from re_edge_gpt import Chatbot, ImageGenAsync
 
-# Define the cog class
+
 class Copilot(commands.Cog):
-    """A cog that allows you to chat with Copilot."""
+    """A cog that uses ReEdgeGPT to chat and generate images"""
 
     def __init__(self, bot):
         self.bot = bot
-        self.re_edge_gpt = None # The ReEdgeGPT client instance
-        self.channel_id = None # The channel id where the conversation is happening
+        self.chatbot = None
+        self.imagegen = None
 
-    # Define a command to start a conversation with Copilot
+    async def create_chatbot(self):
+        """Creates a chatbot instance using the cookies file"""
+        cookies = json.loads(open("./path/to/bing_cookies.json", encoding="utf-8").read())
+        self.chatbot = await Chatbot.create(cookies=cookies)
+
+    async def create_imagegen(self):
+        """Creates an image generator instance using the cookies file"""
+        auth_cookie = open("bing_cookies.txt", "r+").read()
+        self.imagegen = ImageGenAsync(auth_cookie=auth_cookie)
+
     @commands.command()
-    async def start(self, ctx):
-        """Start a conversation with Copilot."""
-        # Check if there is already a conversation
-        if self.re_edge_gpt is not None:
-            await ctx.send("You are already in a conversation with Copilot.")
-            return
-        # Create a new ReEdgeGPT client with the desired style
-        self.re_edge_gpt = Chatbot(conversation_style=ConversationStyle.creative) # Use ReEdgeGPT here
-        # Start the conversation
-        await self.re_edge_gpt.start_conversation()
-        # Store the channel id as an attribute
-        self.channel_id = ctx.channel.id
-        # Send a welcome message
-        await ctx.send("You have started a conversation with Copilot. Type your messages here or use !copilotstop to end the conversation.")
+    async def chat(self, ctx, *, message: str):
+        """Chat with the ReEdgeGPT chatbot"""
+        if self.chatbot is None:
+            await self.create_chatbot()
+        response = await self.chatbot.ask(message)
+        await ctx.send(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
 
-    # Define a command to stop a conversation with Copilot
-    @commands.command(name="copilotstop")
-    async def copilotstop(self, ctx):
-        """Stop a conversation with Copilot."""
-        # Check if there is a conversation
-        if self.re_edge_gpt is None:
-            await ctx.send("You are not in a conversation with Copilot.")
-            return
-        # Close the conversation
-        await self.re_edge_gpt.close_conversation()
-        # Delete the ReEdgeGPT client instance
-        self.re_edge_gpt = None
-        # Send a farewell message
-        await ctx.send("You have ended the conversation with Copilot. Thank you for chatting.")
-
-    # Define a listener for messages in the same channel as the command
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        # Ignore messages from bots
-        if message.author.bot:
-            return
-        # Ignore messages that are not commands
-        if message.content.startswith("!"):
-            return
-        # Check if there is a conversation
-        if self.re_edge_gpt is None:
-            return
-        # Check if the message is in the same channel as the command
-        if message.channel.id != self.channel_id:
-            return
-        # Get the message content
-        prompt = message.content
-        # Send the prompt to Copilot and get the response
-        response = await self.re_edge_gpt.ask(prompt) # Use ReEdgeGPT here
-        # Check if the response is None
-        if response is None:
-            # End the conversation
-            await self.copilotstop(message)
-        else:
-            # Send the response
-            await message.channel.send(response)
-
-    # Define a command that allows the bot owner to set the cookie for ReEdgeGPT
     @commands.command()
-    @commands.is_owner()
-    async def copilotapi(self, ctx, cookie: str):
-        """Set the cookie for ReEdgeGPT."""
-        # Parse the cookie as a list of dicts
-        cookies = json.loads(cookie)
-        # Set the cookie for ReEdgeGPT
-        await self.re_edge_gpt.set_cookies(cookies) # Use ReEdgeGPT here
-        # Send a confirmation message
-        await ctx.send("The cookie for ReEdgeGPT has been set successfully.")
+    async def draw(self, ctx, *, prompt: str):
+        """Generate an image using the ReEdgeGPT image generator"""
+        if self.imagegen is None:
+            await self.create_imagegen()
+        image_list = await self.imagegen.get_images(prompt)
+        await ctx.send(image_list[0])
