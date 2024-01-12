@@ -25,13 +25,13 @@ class Copilot(commands.Cog):
         auth_cookie = open(os.path.join(os.getcwd(), "/root/.local/share/Red-DiscordBot/data/redbot/cogs/CogManager/cogs/copilot/bing_cookies.txt"), "r+").read()
         self.imagegen = ImageGenAsync(auth_cookie=auth_cookie)
 
-    @commands.command()
-    async def chat(self, ctx):
-        """Chat with the ReEdgeGPT chatbot"""
-        if self.chatbot is None:
-            await self.create_chatbot()
-        response = await self.chatbot.ask(ctx.message.clean_content, conversation_style=self.style)
-        await ctx.send(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
+    # remove the chat command
+    # async def chat(self, ctx, *, message: str):
+    #     """Chat with the ReEdgeGPT chatbot"""
+    #     if self.chatbot is None:
+    #         await self.create_chatbot()
+    #     response = await self.chatbot.ask(message, conversation_style=self.style)
+    #     await ctx.send(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
 
     @commands.command(name="copilotdraw")
     async def copilot_draw(self, ctx, *, prompt: str):
@@ -76,6 +76,26 @@ class Copilot(commands.Cog):
             await ctx.send("Conversation reset successfully. 😊")
         except Exception as error:
             await ctx.send(f"An error occurred while resetting the conversation: {error}")
+
+    # add the listener function
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Check if the bot is mentioned or replied to in any message"""
+        if message.author == self.bot.user:
+            return # ignore the bot's own messages
+        if message.reference and message.reference.resolved.author == self.bot.user:
+            # the message is a reply to the bot
+            await self.chat(message)
+        elif self.bot.user in message.mentions:
+            # the message mentions the bot
+            await self.chat(message)
+
+    async def chat(self, message):
+        """Chat with the ReEdgeGPT chatbot"""
+        if self.chatbot is None:
+            await self.create_chatbot()
+        response = await self.chatbot.ask(message.clean_content, conversation_style=self.style)
+        await message.channel.send(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
 
 # change the command prefix to only mention
 # add the intents argument
