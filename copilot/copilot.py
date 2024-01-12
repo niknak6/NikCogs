@@ -28,8 +28,8 @@ class Copilot(commands.Cog):
         response = await self.chatbot.ask(message)
         await ctx.send(response["item"]["messages"][1]["adaptiveCards"][0]["body"][0]["text"])
 
-    @commands.command()
-    async def draw(self, ctx, *, prompt: str):
+    @commands.command(name="copilotdraw")
+    async def copilot_draw(self, ctx, *, prompt: str):
         """Generate an image using the ReEdgeGPT image generator"""
         if self.imagegen is None:
             await self.create_imagegen()
