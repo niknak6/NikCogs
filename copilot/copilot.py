@@ -1,5 +1,6 @@
 from redbot.core import commands
 from re_edge_gpt import Chatbot, ImageGenAsync
+import json
 
 
 class Copilot(commands.Cog):
