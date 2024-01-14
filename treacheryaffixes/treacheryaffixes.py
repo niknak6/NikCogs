@@ -1,32 +1,33 @@
-import requests
-from lxml.html import fromstring
+# Import the required modules
 from redbot.core import commands
+import requests
+from bs4 import BeautifulSoup
 
+# Define the cog class
 class TreacheryAffixes(commands.Cog):
-    """A cog that scrapes mythic plus information from a website"""
+    """A cog that shows the current and upcoming affixes for Mythic+ dungeons."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.url = "https://mythicpl.us/"
-        self.response = requests.get(self.url)
-        self.root = fromstring(self.response.content)
+        self.url = "https://mythicpl.us/" # The website to scrape from
+        self.headers = {"User-Agent": "Red-DiscordBot/3.5.5"} # A custom user agent to avoid blocking
 
     @commands.command()
     async def affixes(self, ctx):
-        """Shows the affixes for the current, next, and week after next weeks"""
-        # Find the h1 element with id="thisweekus"
-        h1 = self.root.find(".//h1[@id='thisweekus']")
-        # Get the text content of the h1 element using XPath
-        current = " ".join(h1.xpath(".//text()"))
-        # Find the h4 element with id="nextweek"
-        h4 = self.root.find(".//h4[@id='nextweek']")
-        # Get the text content of the h4 element using XPath
-        next = " ".join(h4.xpath(".//text()"))
-        # Find the h4 element with id="weekafternext"
-        h4 = self.root.find(".//h4[@id='weekafternext']")
-        # Get the text content of the h4 element using XPath
-        weekafter = " ".join(h4.xpath(".//text()"))
-        # Format the text content with headings and line breaks
-        text = f"**Current:**\n{current}\n\n**Next Week:**\n{next}\n\n**Week After Next:**\n{weekafter}"
-        # Send the text to the channel
-        await ctx.send(text)
+        """Shows the current and upcoming affixes for Mythic+ dungeons."""
+        # Send a GET request to the website and parse the HTML response
+        response = requests.get(self.url, headers=self.headers)
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # Find the elements that contain the affixes
+        current_affixes = soup.find("h1", id="thisweekus").text.strip()
+        next_week_affixes = soup.find("h4", id="nextweek").text.strip()
+        week_after_next_affixes = soup.find("h4", id="weekafternext").text.strip()
+
+        # Format the output message
+        output = f"**Current:**\n{current_affixes}\n\n"
+        output += f"**Next Week:**\n{next_week_affixes}\n\n"
+        output += f"**Week After Next:**\n{week_after_next_affixes}"
+
+        # Send the output message to the channel
+        await ctx.send(output)
