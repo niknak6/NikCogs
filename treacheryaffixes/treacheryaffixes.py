@@ -16,16 +16,16 @@ class TreacheryAffixes(commands.Cog):
         """Shows the affixes for the current, next, and week after next weeks"""
         # Find the h1 element with id="thisweekus"
         h1 = self.root.find(".//h1[@id='thisweekus']")
-        # Get the text content of the h1 element
-        current = h1.text_content()
+        # Get the text content of the h1 element using XPath
+        current = " ".join(h1.xpath(".//text()"))
         # Find the h4 element with id="nextweek"
         h4 = self.root.find(".//h4[@id='nextweek']")
-        # Get the text content of the h4 element
-        next = h4.text_content()
+        # Get the text content of the h4 element using XPath
+        next = " ".join(h4.xpath(".//text()"))
         # Find the h4 element with id="weekafternext"
         h4 = self.root.find(".//h4[@id='weekafternext']")
-        # Get the text content of the h4 element
-        weekafter = h4.text_content()
+        # Get the text content of the h4 element using XPath
+        weekafter = " ".join(h4.xpath(".//text()"))
         # Format the text content with headings and line breaks
         text = f"**Current:**\n{current}\n\n**Next Week:**\n{next}\n\n**Week After Next:**\n{weekafter}"
         # Send the text to the channel
