@@ -20,12 +20,15 @@ class TreacheryAffixes(commands.Cog):
         soup = BeautifulSoup(response.text, "html.parser")
 
         # Find the elements that contain the affixes
-        current_affixes = soup.find("h1", id="thisweekus").text.strip()
+        current_affixes = soup.find("h1", id="thisweekus").find_all("span", class_="trn") # Use find_all to get all the span tags
         next_week_affixes = soup.find("h4", id="nextweek").text.strip()
         week_after_next_affixes = soup.find("h4", id="weekafternext").text.strip()
 
         # Format the output message
-        output = f"**Current:**\n{current_affixes}\n\n"
+        output = "**Current:**\n"
+        for affix in current_affixes: # Loop through the span tags and append the text
+            output += affix.text + " "
+        output += "\n\n"
         output += f"**Next Week:**\n{next_week_affixes}\n\n"
         output += f"**Week After Next:**\n{week_after_next_affixes}"
 
