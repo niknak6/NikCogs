@@ -27,7 +27,7 @@ class TreacheryAffixes(commands.Cog):
         # Format the output message
         output = "**Current:**\n"
         for affix in current_affixes: # Loop through the span tags and append the text
-            output += affix.text + " "
+            output += affix.text.strip() + " " # Strip the whitespace from the text
         output += "\n\n"
         output += f"**Next Week:**\n{next_week_affixes}\n\n"
         output += f"**Week After Next:**\n{week_after_next_affixes}"
