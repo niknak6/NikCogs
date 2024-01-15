@@ -1,36 +1,52 @@
 # Import the required modules
 from redbot.core import commands
-import requests
-from bs4 import BeautifulSoup
+import selenium
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import pandas as pd
 
-# Define the cog class
+# Define the scraping function
+def scrape_affixes():
+    # Create a driver and open the website
+    driver = webdriver.Chrome()
+    driver.get("https://mythicpl.us/")
+
+    # Locate the elements that contain the affix information
+    current_affixes = driver.find_element(By.ID, "thisweekus")
+    next_week_affixes = driver.find_element(By.ID, "nextweek")
+    week_after_next_affixes = driver.find_element(By.ID, "weekafternext")
+
+    # Extract the text from the elements and store them in lists
+    current_affixes_list = current_affixes.text.split()
+    next_week_affixes_list = next_week_affixes.text.split(", ")
+    week_after_next_affixes_list = week_after_next_affixes.text.split(", ")
+
+    # Close the driver
+    driver.close()
+
+    # Format the output as a data frame
+    output = pd.DataFrame({
+        "Current": current_affixes_list,
+        "Next Week": next_week_affixes_list,
+        "Week After Next": week_after_next_affixes_list
+    })
+
+    # Return the output as a string
+    return output.to_string(index=False)
+
+# Create a cog class that inherits from commands.Cog
 class TreacheryAffixes(commands.Cog):
-    """A cog that shows the current and upcoming affixes for Mythic+ dungeons."""
+    """A cog that scrapes affix information from mythicpl.us"""
 
+    # Define an __init__ method that takes the bot as an argument
     def __init__(self, bot):
         self.bot = bot
-        self.url = "https://mythicpl.us/" # The website to scrape from
-        self.headers = {"User-Agent": "Red-DiscordBot/3.5.5"} # A custom user agent to avoid blocking
 
+    # Create a command decorator that registers the affixes command
     @commands.command()
     async def affixes(self, ctx):
-        """Shows the current and upcoming affixes for Mythic+ dungeons."""
-        # Send a GET request to the website and parse the HTML response
-        response = requests.get(self.url, headers=self.headers)
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        # Find the elements that contain the affixes
-        current_affixes = soup.find("h1", id="thisweekus").find_all("span", class_="trn") # Use find_all to get all the span tags
-        next_week_affixes = soup.find("h4", id="nextweek").text.strip()
-        week_after_next_affixes = soup.find("h4", id="weekafternext").text.strip()
-
-        # Format the output message
-        output = "**Current:**\n"
-        for affix in current_affixes: # Loop through the span tags and append the text
-            output += affix.text.strip() + " " # Strip the whitespace from the text
-        output += "\n\n"
-        output += f"**Next Week:**\n{next_week_affixes}\n\n"
-        output += f"**Week After Next:**\n{week_after_next_affixes}"
-
-        # Send the output message to the channel
+        """Scrapes and displays the affix information from mythicpl.us"""
+        # Call the scraping function and store the output in a variable
+        output = scrape_affixes()
+        # Send the output to the context channel
         await ctx.send(output)
