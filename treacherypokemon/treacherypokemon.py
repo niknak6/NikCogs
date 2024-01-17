@@ -19,7 +19,7 @@ class TreacheryPokemon(commands.Cog):
         if response.ok:
             pokemon_data = response.json()
             self.current_pokemon = pokemon_data['name']
-            self.current_sprite = pokemon_data['sprites']['front_default']
+            self.current_sprite = pokemon_data['official-artwork']['front_default']
             embed = discord.Embed(title=f"A wild {self.current_pokemon.capitalize()} has appeared!")
             embed.set_image(url=self.current_sprite)
             await ctx.send(embed=embed)
