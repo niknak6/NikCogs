@@ -26,8 +26,8 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
-    @commands.command()
-    async def catch(self, ctx):
+    @commands.command(name="pokecatch")
+    async def pokecatch(self, ctx):
         """Catches the current Pokémon."""
         if self.current_pokemon:
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
