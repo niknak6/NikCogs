@@ -40,8 +40,8 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("There's no Pokémon to catch. Use the `spawn` command to spawn one.")
 
-    @commands.command(name="pickstarter")
-    async def pickstarter(self, ctx):
+    @commands.command(name="choosestarter")
+    async def choosestarter(self, ctx, pokemon: str = None):
         """Picks a starter Pokémon from a list of options."""
         # Get the user ID of the command author
         user_id = ctx.author.id
@@ -62,29 +62,26 @@ class TreacheryPokemon(commands.Cog):
             "Rowlet", "Litten", "Popplio",
             "Grookey", "Scorbunny", "Sobble"
         ]
-        # Create a message with the list of options
-        message = "Please pick a starter Pokémon from the following options:\n"
-        # Group the starters by generation and separate them by commas
-        for i in range(8):
-            message += f"Generation {i+1}: "
-            message += ", ".join(starters[i*3:(i+1)*3]) + "\n"
-        message += "Reply with the name of your choice."
-        # Send the message
-        await ctx.send(message)
-        # Wait for the user to reply with a valid choice
-        def check(message):
-            return message.author == ctx.author and message.content.lower() in starters
-        try:
-            message = await self.bot.wait_for("message", timeout=60.0, check=check)
-        except asyncio.TimeoutError:
-            await ctx.send("You took too long to pick a starter. Please try again.")
-        else:
-            # Get the name of the chosen starter from the message content
-            starter = message.content.lower()
+        # If the user did not provide an argument, send a message with the list of options and a reminder
+        if pokemon is None:
+            message = "Please pick a starter Pokémon from the following options:\n"
+            # Group the starters by generation and separate them by commas
+            for i in range(8):
+                message += f"Generation {i+1}: "
+                message += ", ".join(starters[i*3:(i+1)*3]) + "\n"
+            message += "Use the command `!choosestarter` followed by the name of your choice."
+            await ctx.send(message)
+            return
+        # If the user provided an argument, check if it is a valid choice
+        if pokemon.lower() in starters:
             # Store the starter Pokémon for this user in the config
-            await self.config.user(ctx.author).starter.set(starter)
+            await self.config.user(ctx.author).starter.set(pokemon.lower())
             # Inform the user of their choice
-            await ctx.send(f"You picked {starter.capitalize()} as your starter Pokémon!")
+            await ctx.send(f"You picked {pokemon.capitalize()} as your starter Pokémon!")
+        else:
+            # If the argument is not a valid choice, inform the user and return
+            await ctx.send(f"{pokemon} is not a valid starter Pokémon. Please choose from the list of options.")
+            return
 
 def setup(bot):
     bot.add_cog(TreacheryPokemon(bot))
