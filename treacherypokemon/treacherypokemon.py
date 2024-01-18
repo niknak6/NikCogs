@@ -62,27 +62,25 @@ class TreacheryPokemon(commands.Cog):
             "Rowlet", "Litten", "Popplio",
             "Grookey", "Scorbunny", "Sobble"
         ]
-        # Create a message with the list of options and a reaction menu
+        # Create a message with the list of options
         message = "Please pick a starter Pokémon from the following options:\n"
-        for i, starter in enumerate(starters):
-            message += f"{i+1}. {starter}\n"
-        message += "React with the corresponding number to make your choice."
-        # Send the message and add the number reactions
-        msg = await ctx.send(message)
-        for i in range(len(starters)):
-            await msg.add_reaction(str(i+1) + "\N{combining enclosing keycap}")
-        # Wait for the user to react with a valid choice
-        def check(reaction, user):
-            return user == ctx.author and reaction.message.id == msg.id and reaction.emoji in [str(i+1) + "\N{combining enclosing keycap}" for i in range(len(starters))]
+        # Group the starters by generation and separate them by commas
+        for i in range(8):
+            message += f"Generation {i+1}: "
+            message += ", ".join(starters[i*3:(i+1)*3]) + "\n"
+        message += "Reply with the name of your choice."
+        # Send the message
+        await ctx.send(message)
+        # Wait for the user to reply with a valid choice
+        def check(message):
+            return message.author == ctx.author and message.content.lower() in starters
         try:
-            reaction, user = await self.bot.wait_for("reaction_add", timeout=60.0, check=check)
+            message = await self.bot.wait_for("message", timeout=60.0, check=check)
         except asyncio.TimeoutError:
             await ctx.send("You took too long to pick a starter. Please try again.")
         else:
-            # Get the index of the chosen starter from the reaction emoji
-            index = int(reaction.emoji[0]) - 1
-            # Get the name of the chosen starter from the list
-            starter = starters[index]
+            # Get the name of the chosen starter from the message content
+            starter = message.content.lower()
             # Store the starter Pokémon for this user in the config
             await self.config.user(ctx.author).starter.set(starter)
             # Inform the user of their choice
