@@ -1,5 +1,4 @@
 from redbot.core import commands, config
-from redbot.core.commands import CaseInsensitiveLiteral # Import the converter
 import requests
 import random
 import discord
@@ -42,7 +41,7 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("There's no Pokémon to catch. Use the `spawn` command to spawn one.")
 
     @commands.command(name="choosestarter")
-    async def choosestarter(self, ctx, pokemon: CaseInsensitiveLiteral(*starters) = None): # Use the converter and pass the list of starters
+    async def choosestarter(self, ctx, pokemon: commands.Literal(*starters) = None): # Use the Literal converter
         """Picks a starter Pokémon from a list of options."""
         # Get the user ID of the command author
         user_id = ctx.author.id
@@ -52,29 +51,26 @@ class TreacheryPokemon(commands.Cog):
         if starter is not None:
             await ctx.send(f"You already have a starter Pokémon: {starter.capitalize()}.")
             return
-        # Otherwise, create a dictionary of starter Pokémon options by generation
-        starters = {
-            1: ["Bulbasaur", "Charmander", "Squirtle", "Pikachu", "Eevee"],
-            2: ["Chikorita", "Cyndaquil", "Totodile"],
-            3: ["Treecko", "Torchic", "Mudkip"],
-            4: ["Turtwig", "Chimchar", "Piplup"],
-            5: ["Snivy", "Tepig", "Oshawott"],
-            6: ["Chespin", "Fennekin", "Froakie"],
-            7: ["Rowlet", "Litten", "Popplio"],
-            8: ["Grookey", "Scorbunny", "Sobble"]
-        }
+        # Otherwise, create a list of starter Pokémon options by generation
+        starters = [
+            "Bulbasaur", "Charmander", "Squirtle", "Pikachu", "Eevee",
+            "Chikorita", "Cyndaquil", "Totodile",
+            "Treecko", "Torchic", "Mudkip",
+            "Turtwig", "Chimchar", "Piplup",
+            "Snivy", "Tepig", "Oshawott",
+            "Chespin", "Fennekin", "Froakie",
+            "Rowlet", "Litten", "Popplio",
+            "Grookey", "Scorbunny", "Sobble"
+        ]
         # If the user did not provide an argument, send a message with the list of options and a reminder
         if pokemon is None:
             message = "Please pick a starter Pokémon from the following options:\n"
-            # Loop through the dictionary keys and values
-            for generation, pokemon in starters.items():
-                message += f"Generation {generation}: "
-                message += ", ".join(pokemon) + "\n"
+            message += ", ".join(starters) + "\n"
             message += "Use the command `!choosestarter` followed by the name of your choice."
             await ctx.send(message)
             return
         # If the user provided an argument, check if it is a valid choice
-        if pokemon.lower() in [p for v in starters.values() for p in v]:
+        if pokemon.lower() in starters: # Convert the user input to lowercase
             # Store the starter Pokémon for this user in the config
             await self.config.user(ctx.author).starter.set(pokemon.lower())
             # Inform the user of their choice
