@@ -51,29 +51,29 @@ class TreacheryPokemon(commands.Cog):
         if starter is not None:
             await ctx.send(f"You already have a starter Pokémon: {starter.capitalize()}.")
             return
-        # Otherwise, create a list of starter Pokémon options
-        starters = [
-            "Bulbasaur", "Charmander", "Squirtle", "Pikachu", "Eevee",
-            "Chikorita", "Cyndaquil", "Totodile",
-            "Treecko", "Torchic", "Mudkip",
-            "Turtwig", "Chimchar", "Piplup",
-            "Snivy", "Tepig", "Oshawott",
-            "Chespin", "Fennekin", "Froakie",
-            "Rowlet", "Litten", "Popplio",
-            "Grookey", "Scorbunny", "Sobble"
-        ]
+        # Otherwise, create a dictionary of starter Pokémon options by generation
+        starters = {
+            1: ["Bulbasaur", "Charmander", "Squirtle", "Pikachu", "Eevee"],
+            2: ["Chikorita", "Cyndaquil", "Totodile"],
+            3: ["Treecko", "Torchic", "Mudkip"],
+            4: ["Turtwig", "Chimchar", "Piplup"],
+            5: ["Snivy", "Tepig", "Oshawott"],
+            6: ["Chespin", "Fennekin", "Froakie"],
+            7: ["Rowlet", "Litten", "Popplio"],
+            8: ["Grookey", "Scorbunny", "Sobble"]
+        }
         # If the user did not provide an argument, send a message with the list of options and a reminder
         if pokemon is None:
             message = "Please pick a starter Pokémon from the following options:\n"
-            # Group the starters by generation and separate them by commas
-            for i in range(8):
-                message += f"Generation {i+1}: "
-                message += ", ".join(starters[i*3:(i+1)*3]) + "\n"
+            # Loop through the dictionary keys and values
+            for generation, pokemon in starters.items():
+                message += f"Generation {generation}: "
+                message += ", ".join(pokemon) + "\n"
             message += "Use the command `!choosestarter` followed by the name of your choice."
             await ctx.send(message)
             return
         # If the user provided an argument, check if it is a valid choice
-        if pokemon.lower() in starters:
+        if pokemon.lower() in [p for v in starters.values() for p in v]:
             # Store the starter Pokémon for this user in the config
             await self.config.user(ctx.author).starter.set(pokemon.lower())
             # Inform the user of their choice
