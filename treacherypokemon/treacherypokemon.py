@@ -1,4 +1,5 @@
 from redbot.core import commands, config
+from redbot.core.commands import CaseInsensitiveLiteral # Import the converter
 import requests
 import random
 import discord
@@ -41,7 +42,7 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("There's no Pokémon to catch. Use the `spawn` command to spawn one.")
 
     @commands.command(name="choosestarter")
-    async def choosestarter(self, ctx, pokemon: str = None):
+    async def choosestarter(self, ctx, pokemon: CaseInsensitiveLiteral(*starters) = None): # Use the converter and pass the list of starters
         """Picks a starter Pokémon from a list of options."""
         # Get the user ID of the command author
         user_id = ctx.author.id
