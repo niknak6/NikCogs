@@ -3,6 +3,9 @@ from redbot.core import commands, Config
 import aiohttp
 import random
 import discord
+# Import the Paginator and BotEmbedPaginator classes
+from disputils import Paginator
+from simple_embed_pagination import BotEmbedPaginator
 
 class TreacheryPokemon(commands.Cog):
     """A cog for spawning and catching Pokémon with pokeapi.co"""
@@ -133,17 +136,60 @@ class TreacheryPokemon(commands.Cog):
         pokedex = await self.config.member(ctx.author).pokedex()
         # If the pokedex is not empty
         if pokedex:
-            # Create an embed to display the pokedex
-            embed = discord.Embed(
-                title=f"{ctx.author.name}'s Pokedex",
-                color=discord.Color.red()
-            )
+            # Create a constant variable for the number of pokemon per page
+            POKEMON_PER_PAGE = 10
+            # Create a list of embeds to paginate
+            embeds = []
+            # Create a Paginator object
+            paginator = Paginator(prefix='', suffix='')
             # For each Pokémon and its count in the pokedex
             for pokemon_name, pokemon_count in pokedex.items():
-                # Add a field to the embed with the Pokémon name and count
-                embed.add_field(name=pokemon_name, value=pokemon_count, inline=True)
-            # Send the embed to the context channel
-            await ctx.send(embed=embed)
+                # Get the sprite URL of the Pokémon from the pokeapi.co
+                pokemon_url = self.base_url + f"pokemon/{pokemon_name}"
+                # Create an aiohttp session
+                async with aiohttp.ClientSession() as session:
+                    # Make a GET request to the Pokémon API endpoint
+                    async with session.get(pokemon_url) as response:
+                        # If the response status is OK
+                        if response.status == 200:
+                            # Parse the JSON data from the response
+                            pokemon_data = await response.json()
+                            # Get the sprite URL of the Pokémon
+                            pokemon_sprite = pokemon_data['sprites']['other']['official-artwork']['front_default']
+                        # Otherwise
+                        else:
+                            # Use a default sprite URL
+                            pokemon_sprite = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png"
+                # Add a field to the paginator with the Pokémon name, sprite and count
+                paginator.add_field(name=pokemon_name, value=f"{pokemon_sprite} x{pokemon_count}", inline=True)
+                # If the paginator has reached the maximum number of fields per page
+                if len(paginator.fields) == POKEMON_PER_PAGE:
+                    # Create an embed with the current fields
+                    embed = discord.Embed(
+                        title=f"{ctx.author.name}'s Pokedex",
+                        color=discord.Color.red()
+                    )
+                    # Add the fields to the embed
+                    embed = paginator.build_page(embed)
+                    # Add the embed to the list of embeds
+                    embeds.append(embed)
+                    # Clear the fields of the paginator
+                    paginator.clear()
+            # If the paginator still has some fields left
+            if paginator.fields:
+                # Create an embed with the remaining fields
+                embed = discord.Embed(
+                    title=f"{ctx.author.name}'s Pokedex",
+                    color=discord.Color.red()
+                )
+                # Add the fields to the embed
+                embed = paginator.build_page(embed)
+                # Add the embed to the list of embeds
+                embeds.append(embed)
+            # Create a BotEmbedPaginator object with the left and right arrow emojis
+            bot_paginator = BotEmbedPaginator(ctx, embeds, left="◀️", right="▶️")
+            # Run the paginator
+            await bot_paginator.start()
         # Otherwise
         else:
             # Send a message that the pokedex is empty
