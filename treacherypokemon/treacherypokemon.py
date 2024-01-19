@@ -3,8 +3,7 @@ from redbot.core import commands, Config
 import aiohttp
 import random
 import discord
-# Import the Paginator and BotEmbedPaginator classes
-from disputils import Paginator
+# Import the BotEmbedPaginator class from Simple Embed Pagination
 from simple_embed_pagination import BotEmbedPaginator
 
 class TreacheryPokemon(commands.Cog):
@@ -140,8 +139,6 @@ class TreacheryPokemon(commands.Cog):
             POKEMON_PER_PAGE = 10
             # Create a list of embeds to paginate
             embeds = []
-            # Create a Paginator object
-            paginator = Paginator(prefix='', suffix='')
             # For each Pokémon and its count in the pokedex
             for pokemon_name, pokemon_count in pokedex.items():
                 # Get the sprite URL of the Pokémon from the pokeapi.co
@@ -160,30 +157,23 @@ class TreacheryPokemon(commands.Cog):
                         else:
                             # Use a default sprite URL
                             pokemon_sprite = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png"
-                # Add a field to the paginator with the Pokémon name, sprite and count
-                paginator.add_field(name=pokemon_name, value=f"{pokemon_sprite} x{pokemon_count}", inline=True)
-                # If the paginator has reached the maximum number of fields per page
-                if len(paginator.fields) == POKEMON_PER_PAGE:
-                    # Create an embed with the current fields
-                    embed = discord.Embed(
-                        title=f"{ctx.author.name}'s Pokedex",
-                        color=discord.Color.red()
-                    )
-                    # Add the fields to the embed
-                    embed = paginator.build_page(embed)
-                    # Add the embed to the list of embeds
-                    embeds.append(embed)
-                    # Clear the fields of the paginator
-                    paginator.clear()
-            # If the paginator still has some fields left
-            if paginator.fields:
-                # Create an embed with the remaining fields
+                # Create an embed with the Pokémon name, sprite and count
                 embed = discord.Embed(
                     title=f"{ctx.author.name}'s Pokedex",
                     color=discord.Color.red()
                 )
-                # Add the fields to the embed
-                embed = paginator.build_page(embed)
+                embed.add_field(name=pokemon_name, value=f"{pokemon_sprite} x{pokemon_count}", inline=True)
+                # If the embed has reached the maximum number of fields per page
+                if len(embed.fields) == POKEMON_PER_PAGE:
+                    # Add the embed to the list of embeds
+                    embeds.append(embed)
+                    # Create a new embed for the next page
+                    embed = discord.Embed(
+                        title=f"{ctx.author.name}'s Pokedex",
+                        color=discord.Color.red()
+                    )
+            # If the embed still has some fields left
+            if embed.fields:
                 # Add the embed to the list of embeds
                 embeds.append(embed)
             # Create a BotEmbedPaginator object with the left and right arrow emojis
