@@ -1,6 +1,6 @@
-from redbot.core import commands, Config
-import requests
 import random
+import requests
+from redbot.core import commands, Config
 import discord
 
 class TreacheryPokemon(commands.Cog):
@@ -26,8 +26,8 @@ class TreacheryPokemon(commands.Cog):
     @commands.command()
     async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter, spawn_rate: float):
         await self.config.guild(ctx.guild).spawn_channel.set(channel.id)
-        await self.config.guild(ctx.guild).spawn_rate.set(spawn_rate)
-        await ctx.send(f"Pokémon will now spawn in {channel.mention} with a spawn rate of {spawn_rate * 100}% per message.")
+        await self.config.guild(ctx.guild).spawn_rate.set(spawn_rate / 100)
+        await ctx.send(f"Pokémon will now spawn in {channel.mention} with a spawn rate of {spawn_rate}% per message.")
 
     @commands.command()
     @commands.is_owner()
@@ -68,7 +68,8 @@ class TreacheryPokemon(commands.Cog):
         spawn_channel = discord.utils.get(message.guild.channels, id=await self.config.guild(message.guild).spawn_channel())
         spawn_rate = await self.config.guild(message.guild).spawn_rate()
         if message.channel == spawn_channel and random.random() < spawn_rate:
-            await self.bot.get_command("spawn").invoke(message)
+            ctx = await self.bot.get_context(message)
+            await self.bot.get_command("spawn").invoke(ctx)
 
     @commands.guild_only()
     @commands.command(name="pokecatch")
