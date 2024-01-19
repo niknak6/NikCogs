@@ -1,8 +1,5 @@
-from redbot.core import commands, Config
-import requests
 import random
-import discord
-from discord.ext import menus
+from redbot.core import commands, Config
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -14,6 +11,7 @@ class TreacheryPokemon(commands.Cog):
         self.config = Config.get_conf(self, identifier=1234567890)
         default_guild = {
             "spawn_channel": None,
+            "spawn_rate": 0.0,
         }
         default_member = {
             "pokedex": {},
@@ -24,9 +22,10 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     @commands.command()
-    async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter):
+    async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter, spawn_rate: float):
         await self.config.guild(ctx.guild).spawn_channel.set(channel.id)
-        await ctx.send(f"Pokémon will now spawn in {channel.mention}")
+        await self.config.guild(ctx.guild).spawn_rate.set(spawn_rate)
+        await ctx.send(f"Pokémon will now spawn in {channel.mention} with a spawn rate of {spawn_rate * 100}% per message.")
 
     @commands.command()
     @commands.is_owner()
@@ -65,7 +64,8 @@ class TreacheryPokemon(commands.Cog):
         if message.author.bot or not message.guild:
             return
         spawn_channel = discord.utils.get(message.guild.channels, id=await self.config.guild(message.guild).spawn_channel())
-        if message.channel == spawn_channel:
+        spawn_rate = await self.config.guild(message.guild).spawn_rate()
+        if message.channel == spawn_channel and random.random() < spawn_rate:
             await self.bot.get_command("spawn").invoke(message)
 
     @commands.guild_only()
