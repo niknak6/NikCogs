@@ -173,7 +173,7 @@ class TreacheryPokemon(commands.Cog):
                     # Use a default sprite URL
                     pokemon_sprite = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png"
                 # Create a button object with the Pokémon name, count and sprite
-                button = PokedexButton(pokemon_name, pokemon_count, pokemon_sprite)
+                button = TreacheryPokemon.PokedexButton(pokemon_name, pokemon_count, pokemon_sprite)
                 # Add the button to the list of buttons
                 self.buttons.append(button)
             # Set the current page to 0
@@ -226,7 +226,7 @@ class TreacheryPokemon(commands.Cog):
         # If the pokedex is not empty
         if pokedex:
             # Create a view object with the pokedex
-            view = PokedexView(pokedex)
+            view = TreacheryPokemon.PokedexView(pokedex)
             # Send a message with the view
             await ctx.send(f"{ctx.author.name}'s Pokedex", view=view)
         # Otherwise
