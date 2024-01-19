@@ -60,7 +60,8 @@ class TreacheryPokemon(commands.Cog):
                         pokemon_data = await response.json()
                         # Get the name and sprite of the Pokémon
                         self.current_pokemon = pokemon_data['name']
-                        self.current_sprite = pokemon_data['sprites']['front_default']
+                        # Change this line to use the official artwork image
+                        self.current_sprite = pokemon_data['sprites']['other']['official-artwork']['front_default']
                         # Create an embed to display the Pokémon
                         embed = discord.Embed(title=f"A wild {self.current_pokemon.capitalize()} has appeared!")
                         embed.set_image(url=self.current_sprite)
