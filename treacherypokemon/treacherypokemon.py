@@ -1,8 +1,9 @@
 # Import the required modules
 from redbot.core import commands, Config
-import aiohttp
+import requests
 import random
 import discord
+from discord.ext import menus
 
 class TreacheryPokemon(commands.Cog):
     """A cog for spawning and catching Pokémon with pokeapi.co"""
@@ -12,13 +13,12 @@ class TreacheryPokemon(commands.Cog):
         self.current_pokemon = None
         self.current_sprite = None
         self.base_url = "https://pokeapi.co/api/v2/" # The base URL of the pokeapi.co
-        self.max_pokemon = 1025 # The maximum number of Pokémon as of Generation VIII
+        self.pokemon_list = None # The list of available Pokémon
         # Create a Config object to store the cog settings
         self.config = Config.get_conf(self, identifier=1234567890)
         # Register the default settings
         default_guild = {
             "spawn_channel": None, # The channel where Pokémon will spawn
-            "spawn_chance": 0.1, # The probability of a Pokémon spawning after a message
         }
         default_member = {
             "pokedex": {}, # The dictionary of caught Pokémon and their counts
@@ -40,37 +40,55 @@ class TreacheryPokemon(commands.Cog):
     # Define a command to spawn a Pokémon
     @commands.command()
     @commands.is_owner() # Only allow the bot owner to use this command
+    @commands.cooldown(1, 60, commands.BucketType.channel) # Limit the command to once per minute per channel
     async def spawn(self, ctx):
         """Spawns a random Pokémon."""
-        # Get the spawn channel ID from the config
-        spawn_channel = await self.config.guild(ctx.guild).spawn_channel()
+        # Get the spawn channel from the guild
+        spawn_channel = discord.utils.get(ctx.guild.channels, id=await self.config.guild(ctx.guild).spawn_channel())
         # If the context channel is the same as the spawn channel
-        if ctx.channel.id == spawn_channel:
-            # Generate a random Pokémon ID
-            pokemon_id = random.randint(1, self.max_pokemon)
-            # Construct the URL of the Pokémon API endpoint
-            pokemon_url = self.base_url + f"pokemon/{pokemon_id}"
-            # Create an aiohttp session
-            async with aiohttp.ClientSession() as session:
+        if ctx.channel == spawn_channel:
+            # If the Pokémon list is None
+            if self.pokemon_list is None:
                 # Make a GET request to the Pokémon API endpoint
-                async with session.get(pokemon_url) as response:
-                    # If the response status is OK
-                    if response.status == 200:
-                        # Parse the JSON data from the response
-                        pokemon_data = await response.json()
-                        # Get the name and sprite of the Pokémon
-                        self.current_pokemon = pokemon_data['name']
-                        # Change this line to use the official artwork image
-                        self.current_sprite = pokemon_data['sprites']['other']['official-artwork']['front_default']
-                        # Create an embed to display the Pokémon
-                        embed = discord.Embed(title=f"A wild {self.current_pokemon.capitalize()} has appeared!")
-                        embed.set_image(url=self.current_sprite)
-                        # Send the embed to the context channel
-                        await ctx.send(embed=embed)
-                    # Otherwise
-                    else:
-                        # Send an error message
-                        await ctx.send("Failed to spawn a Pokémon. Please try again.")
+                response = requests.get(self.base_url + "pokemon")
+                # If the response status is OK
+                if response.status_code == 200:
+                    # Parse the JSON data from the response
+                    pokemon_data = response.json()
+                    # Get the list of Pokémon results
+                    self.pokemon_list = pokemon_data['results']
+                # Otherwise
+                else:
+                    # Send an error message
+                    await ctx.send("Failed to get the list of Pokémon. Please try again.")
+                    # Return from the function
+                    return
+            # Select a random Pokémon from the list
+            pokemon = random.choice(self.pokemon_list)
+            # Get the name and URL of the Pokémon
+            self.current_pokemon = pokemon['name']
+            pokemon_url = pokemon['url']
+            # Make a GET request to the Pokémon URL
+            response = requests.get(pokemon_url)
+            # If the response status is OK
+            if response.status_code == 200:
+                # Parse the JSON data from the response
+                pokemon_data = response.json()
+                # Get the sprite of the Pokémon
+                self.current_sprite = pokemon_data['sprites']['other']['official-artwork']['front_default']
+                # Create a dictionary for the embed
+                embed_dict = {
+                    "title": f"A wild {self.current_pokemon.capitalize()} has appeared!",
+                    "image": {"url": self.current_sprite}
+                }
+                # Create an embed from the dictionary
+                embed = discord.Embed.from_dict(embed_dict)
+                # Send the embed to the context channel
+                await ctx.send(embed=embed)
+            # Otherwise
+            else:
+                # Send an error message
+                await ctx.send("Failed to spawn a Pokémon. Please try again.")
         # Otherwise
         else:
             # Send a message that the command can only be used in the spawn channel
@@ -82,18 +100,12 @@ class TreacheryPokemon(commands.Cog):
         # Ignore messages from bots or DMs
         if message.author.bot or not message.guild:
             return
-        # Get the spawn channel ID from the config
-        spawn_channel = await self.config.guild(message.guild).spawn_channel()
+        # Get the spawn channel from the guild
+        spawn_channel = discord.utils.get(message.guild.channels, id=await self.config.guild(message.guild).spawn_channel())
         # If the message is in the spawn channel
-        if message.channel.id == spawn_channel:
-            # Get the spawn chance from the config
-            spawn_chance = await self.config.guild(message.guild).spawn_chance()
-            # Generate a random number between 0 and 1
-            rand = random.random()
-            # If the random number is less than the spawn chance
-            if rand < spawn_chance:
-                # Invoke the spawn command with the message context
-                await self.bot.get_command("spawn").invoke(message)
+        if message.channel == spawn_channel:
+            # Invoke the spawn command with the message context
+            await self.bot.get_command("spawn").invoke(message)
 
     # Define a command to catch a Pokémon
     @commands.guild_only()
@@ -106,14 +118,8 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
             # Get the pokedex of the member from the config
             pokedex = await self.config.member(ctx.author).pokedex()
-            # If the Pokémon is already in the pokedex
-            if self.current_pokemon in pokedex:
-                # Increment the count of the Pokémon by 1
-                pokedex[self.current_pokemon] += 1
-            # Otherwise
-            else:
-                # Set the count of the Pokémon to 1
-                pokedex[self.current_pokemon] = 1
+            # Increment the count of the Pokémon by 1
+            pokedex[self.current_pokemon] = pokedex.get(self.current_pokemon, 0) + 1
             # Save the updated pokedex in the config
             await self.config.member(ctx.author).pokedex.set(pokedex)
             # Reset the current Pokémon and sprite to None
@@ -133,58 +139,32 @@ class TreacheryPokemon(commands.Cog):
         pokedex = await self.config.member(ctx.author).pokedex()
         # If the pokedex is not empty
         if pokedex:
-            # Create a constant variable for the maximum number of characters per embed
-            MAX_CHARS = 6000
-            # Create a list of embeds to send
-            embeds = []
-            # Create an empty string to store the embed description
-            description = ""
+            # Create a list of lines for the pokedex
+            lines = []
             # For each Pokémon and its count in the pokedex
             for pokemon_name, pokemon_count in pokedex.items():
                 # Get the sprite URL of the Pokémon from the pokeapi.co
                 pokemon_url = self.base_url + f"pokemon/{pokemon_name}"
-                # Create an aiohttp session
-                async with aiohttp.ClientSession() as session:
-                    # Make a GET request to the Pokémon API endpoint
-                    async with session.get(pokemon_url) as response:
-                        # If the response status is OK
-                        if response.status == 200:
-                            # Parse the JSON data from the response
-                            pokemon_data = await response.json()
-                            # Get the sprite URL of the Pokémon
-                            pokemon_sprite = pokemon_data['sprites']['other']['official-artwork']['front_default']
-                        # Otherwise
-                        else:
-                            # Use a default sprite URL
-                            pokemon_sprite = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png"
-                # Append a line to the description with the Pokémon name, sprite and count
-                description += f"{pokemon_sprite} {pokemon_name.capitalize()} x{pokemon_count}\n"
-                # If the length of the description exceeds the maximum number of characters per embed
-                if len(description) > MAX_CHARS:
-                    # Create an embed with the current description
-                    embed = discord.Embed(
-                        title=f"{ctx.author.name}'s Pokedex",
-                        description=description,
-                        color=discord.Color.red()
-                    )
-                    # Add the embed to the list of embeds
-                    embeds.append(embed)
-                    # Reset the description to an empty string
-                    description = ""
-            # If the description still has some lines left
-            if description:
-                # Create an embed with the remaining description
-                embed = discord.Embed(
-                    title=f"{ctx.author.name}'s Pokedex",
-                    description=description,
-                    color=discord.Color.red()
-                )
-                # Add the embed to the list of embeds
-                embeds.append(embed)
-            # For each embed in the list of embeds
-            for embed in embeds:
-                # Send the embed to the context channel
-                await ctx.send(embed=embed)
+                # Make a GET request to the Pokémon URL
+                response = requests.get(pokemon_url)
+                # If the response status is OK
+                if response.status_code == 200:
+                    # Parse the JSON data from the response
+                    pokemon_data = response.json()
+                    # Get the sprite URL of the Pokémon
+                    pokemon_sprite = pokemon_data['sprites']['other']['official-artwork']['front_default']
+                # Otherwise
+                else:
+                    # Use a default sprite URL
+                    pokemon_sprite = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png"
+                # Append a line to the list with the Pokémon name, sprite and count
+                lines.append(f"{pokemon_sprite} {pokemon_name.capitalize()} x{pokemon_count}")
+            # Create a paginator object with the lines
+            paginator = menus.Paginator(lines, per_page=10, prefix="", suffix="")
+            # Create a menu object with the paginator
+            menu = menus.MenuPages(paginator, delete_message_after=True)
+            # Start the menu in the context channel
+            await menu.start(ctx)
         # Otherwise
         else:
             # Send a message that the pokedex is empty
