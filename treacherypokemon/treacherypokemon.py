@@ -130,17 +130,32 @@ class TreacheryPokemon(commands.Cog):
             # Send a message that the input name is incorrect or there is no Pokémon to catch
             await ctx.send("That is not the correct Pokémon name or there is no Pokémon to catch. Use the `spawn` command to spawn one.")
 
-    # Define a command to view the pokedex
-    @commands.guild_only()
-    @commands.command()
-    async def pokedex(self, ctx):
-        """View your caught Pokémon"""
-        # Get the pokedex of the member from the config
-        pokedex = await self.config.member(ctx.author).pokedex()
-        # If the pokedex is not empty
-        if pokedex:
-            # Create a list of lines for the pokedex
-            lines = []
+    # Define a class for the pokedex buttons
+    class PokedexButton(discord.ui.Button):
+        # Initialize the button with the given attributes
+        def __init__(self, pokemon_name, pokemon_count, pokemon_sprite):
+            # Call the parent class constructor
+            super().__init__(style=discord.ButtonStyle.secondary, label=pokemon_name.capitalize(), emoji=pokemon_sprite)
+            # Store the additional attributes
+            self.pokemon_name = pokemon_name
+            self.pokemon_count = pokemon_count
+            self.pokemon_sprite = pokemon_sprite
+
+        # Define a callback method for the button
+        async def callback(self, interaction: discord.Interaction):
+            # Send a message with the details of the selected Pokémon
+            await interaction.response.send_message(f"You have {self.pokemon_count} {self.pokemon_name.capitalize()} in your pokedex.")
+
+    # Define a class for the pokedex view
+    class PokedexView(discord.ui.View):
+        # Initialize the view with the given attributes
+        def __init__(self, pokedex, timeout=60):
+            # Call the parent class constructor
+            super().__init__(timeout=timeout)
+            # Store the pokedex attribute
+            self.pokedex = pokedex
+            # Create a list of buttons for the pokedex
+            self.buttons = []
             # For each Pokémon and its count in the pokedex
             for pokemon_name, pokemon_count in pokedex.items():
                 # Get the sprite URL of the Pokémon from the pokeapi.co
@@ -157,14 +172,63 @@ class TreacheryPokemon(commands.Cog):
                 else:
                     # Use a default sprite URL
                     pokemon_sprite = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png"
-                # Append a line to the list with the Pokémon name, sprite and count
-                lines.append(f"{pokemon_sprite} {pokemon_name.capitalize()} x{pokemon_count}")
-            # Create a paginator object with the lines
-            paginator = menus.Paginator(lines, per_page=10, prefix="", suffix="")
-            # Create a menu object with the paginator
-            menu = menus.MenuPages(paginator, delete_message_after=True)
-            # Start the menu in the context channel
-            await menu.start(ctx)
+                # Create a button object with the Pokémon name, count and sprite
+                button = PokedexButton(pokemon_name, pokemon_count, pokemon_sprite)
+                # Add the button to the list of buttons
+                self.buttons.append(button)
+            # Set the current page to 0
+            self.current_page = 0
+            # Add the buttons for the first page to the view
+            self.add_buttons(0)
+
+        # Define a method to add the buttons for a given page to the view
+        def add_buttons(self, page):
+            # Clear the current items from the view
+            self.clear_items()
+            # Calculate the start and end indices of the buttons for the page
+            start = page * 10
+            end = min((page + 1) * 10, len(self.buttons))
+            # For each index in the range
+            for i in range(start, end):
+                # Add the button at the index to the view
+                self.add_item(self.buttons[i])
+            # Add the previous and next page buttons to the view
+            self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, row=1, disabled=page == 0, custom_id="previous"))
+            self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, row=1, disabled=page == len(self.buttons) // 10, custom_id="next"))
+
+        # Define a method to handle the previous page button
+        @discord.ui.button(label="Previous", style=discord.ButtonStyle.primary, row=1, custom_id="previous")
+        async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
+            # Decrement the current page by 1
+            self.current_page -= 1
+            # Add the buttons for the previous page to the view
+            self.add_buttons(self.current_page)
+            # Edit the original message with the updated view
+            await interaction.message.edit(view=self)
+
+        # Define a method to handle the next page button
+        @discord.ui.button(label="Next", style=discord.ButtonStyle.primary, row=1, custom_id="next")
+        async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
+            # Increment the current page by 1
+            self.current_page += 1
+            # Add the buttons for the next page to the view
+            self.add_buttons(self.current_page)
+            # Edit the original message with the updated view
+            await interaction.message.edit(view=self)
+
+    # Define a command to view the pokedex
+    @commands.guild_only()
+    @commands.command()
+    async def pokedex(self, ctx):
+        """View your caught Pokémon"""
+        # Get the pokedex of the member from the config
+        pokedex = await self.config.member(ctx.author).pokedex()
+        # If the pokedex is not empty
+        if pokedex:
+            # Create a view object with the pokedex
+            view = PokedexView(pokedex)
+            # Send a message with the view
+            await ctx.send(f"{ctx.author.name}'s Pokedex", view=view)
         # Otherwise
         else:
             # Send a message that the pokedex is empty
