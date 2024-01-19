@@ -3,8 +3,6 @@ from redbot.core import commands, Config
 import aiohttp
 import random
 import discord
-# Import the BotEmbedPaginator class from Simple Embed Pagination
-from simple_embed_pagination import BotEmbedPaginator
 
 class TreacheryPokemon(commands.Cog):
     """A cog for spawning and catching Pokémon with pokeapi.co"""
@@ -135,10 +133,12 @@ class TreacheryPokemon(commands.Cog):
         pokedex = await self.config.member(ctx.author).pokedex()
         # If the pokedex is not empty
         if pokedex:
-            # Create a constant variable for the number of pokemon per page
-            POKEMON_PER_PAGE = 10
-            # Create a list of embeds to paginate
+            # Create a constant variable for the maximum number of characters per embed
+            MAX_CHARS = 6000
+            # Create a list of embeds to send
             embeds = []
+            # Create an empty string to store the embed description
+            description = ""
             # For each Pokémon and its count in the pokedex
             for pokemon_name, pokemon_count in pokedex.items():
                 # Get the sprite URL of the Pokémon from the pokeapi.co
@@ -157,29 +157,34 @@ class TreacheryPokemon(commands.Cog):
                         else:
                             # Use a default sprite URL
                             pokemon_sprite = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png"
-                # Create an embed with the Pokémon name, sprite and count
-                embed = discord.Embed(
-                    title=f"{ctx.author.name}'s Pokedex",
-                    color=discord.Color.red()
-                )
-                embed.add_field(name=pokemon_name, value=f"{pokemon_sprite} x{pokemon_count}", inline=True)
-                # If the embed has reached the maximum number of fields per page
-                if len(embed.fields) == POKEMON_PER_PAGE:
-                    # Add the embed to the list of embeds
-                    embeds.append(embed)
-                    # Create a new embed for the next page
+                # Append a line to the description with the Pokémon name, sprite and count
+                description += f"{pokemon_sprite} {pokemon_name.capitalize()} x{pokemon_count}\n"
+                # If the length of the description exceeds the maximum number of characters per embed
+                if len(description) > MAX_CHARS:
+                    # Create an embed with the current description
                     embed = discord.Embed(
                         title=f"{ctx.author.name}'s Pokedex",
+                        description=description,
                         color=discord.Color.red()
                     )
-            # If the embed still has some fields left
-            if embed.fields:
+                    # Add the embed to the list of embeds
+                    embeds.append(embed)
+                    # Reset the description to an empty string
+                    description = ""
+            # If the description still has some lines left
+            if description:
+                # Create an embed with the remaining description
+                embed = discord.Embed(
+                    title=f"{ctx.author.name}'s Pokedex",
+                    description=description,
+                    color=discord.Color.red()
+                )
                 # Add the embed to the list of embeds
                 embeds.append(embed)
-            # Create a BotEmbedPaginator object with the left and right arrow emojis
-            bot_paginator = BotEmbedPaginator(ctx, embeds, left="◀️", right="▶️")
-            # Run the paginator
-            await bot_paginator.start()
+            # For each embed in the list of embeds
+            for embed in embeds:
+                # Send the embed to the context channel
+                await ctx.send(embed=embed)
         # Otherwise
         else:
             # Send a message that the pokedex is empty
