@@ -1,5 +1,7 @@
-import random
 from redbot.core import commands, Config
+import requests
+import random
+import discord
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
