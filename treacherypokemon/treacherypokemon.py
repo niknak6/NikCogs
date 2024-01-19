@@ -149,11 +149,12 @@ class TreacheryPokemon(commands.Cog):
     # Define a class for the pokedex view
     class PokedexView(discord.ui.View):
         # Initialize the view with the given attributes
-        def __init__(self, pokedex, timeout=60):
+        def __init__(self, pokedex, base_url, timeout=60):
             # Call the parent class constructor
             super().__init__(timeout=timeout)
-            # Store the pokedex attribute
+            # Store the pokedex and base_url attributes
             self.pokedex = pokedex
+            self.base_url = base_url
             # Create a list of buttons for the pokedex
             self.buttons = []
             # For each Pokémon and its count in the pokedex
@@ -225,8 +226,8 @@ class TreacheryPokemon(commands.Cog):
         pokedex = await self.config.member(ctx.author).pokedex()
         # If the pokedex is not empty
         if pokedex:
-            # Create a view object with the pokedex
-            view = TreacheryPokemon.PokedexView(pokedex)
+            # Create a view object with the pokedex and base_url
+            view = TreacheryPokemon.PokedexView(pokedex, self.base_url)
             # Send a message with the view
             await ctx.send(f"{ctx.author.name}'s Pokedex", view=view)
         # Otherwise
