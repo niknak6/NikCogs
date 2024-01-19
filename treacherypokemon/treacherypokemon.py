@@ -39,6 +39,7 @@ class TreacheryPokemon(commands.Cog):
 
     # Define a command to spawn a Pokémon
     @commands.command()
+    @commands.is_owner() # Only allow the bot owner to use this command
     async def spawn(self, ctx):
         """Spawns a random Pokémon."""
         # Get the spawn channel ID from the config
@@ -73,6 +74,25 @@ class TreacheryPokemon(commands.Cog):
         else:
             # Send a message that the command can only be used in the spawn channel
             await ctx.send(f"This command can only be used in the spawn channel. Please use the `setpokemonspawn` command to set the spawn channel first.")
+
+    # Define a listener for message events
+    @commands.Cog.listener()
+    async def on_message_without_command(self, message):
+        # Ignore messages from bots or DMs
+        if message.author.bot or not message.guild:
+            return
+        # Get the spawn channel ID from the config
+        spawn_channel = await self.config.guild(message.guild).spawn_channel()
+        # If the message is in the spawn channel
+        if message.channel.id == spawn_channel:
+            # Get the spawn chance from the config
+            spawn_chance = await self.config.guild(message.guild).spawn_chance()
+            # Generate a random number between 0 and 1
+            rand = random.random()
+            # If the random number is less than the spawn chance
+            if rand < spawn_chance:
+                # Invoke the spawn command with the message context
+                await self.bot.get_command("spawn").invoke(message)
 
     # Define a command to catch a Pokémon
     @commands.guild_only()
