@@ -91,7 +91,15 @@ class TreacheryPokemon(commands.Cog):
             self.pokemon_count = pokemon_count
 
         async def callback(self, interaction: discord.Interaction):
-            await interaction.response.send_message(f"You have {self.pokemon_count} {self.pokemon_name.capitalize()} in your pokedex.")
+            # Fetch the Pokémon's data from the API
+            response = requests.get(self.base_url + f"pokemon/{self.pokemon_name}")
+            if response.status_code == 200:
+                pokemon_data = response.json()
+                sprite_url = pokemon_data['sprites']['other']['official-artwork']['front_default']
+                # Include the sprite URL in the response
+                await interaction.response.send_message(f"You have {self.pokemon_count} {self.pokemon_name.capitalize()} in your pokedex. Here's what it looks like: {sprite_url}")
+            else:
+                await interaction.response.send_message(f"You have {self.pokemon_count} {self.pokemon_name.capitalize()} in your pokedex.")
 
     class PokedexView(discord.ui.View):
         def __init__(self, pokedex, timeout=60):
