@@ -109,6 +109,23 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("You have not caught any Pokémon yet.")
 
+    @commands.command()
+    @commands.is_owner()
+    async def sqcheck(self, ctx):
+        # Execute the PRAGMA database_list command
+        self.cur.execute("PRAGMA database_list")
+        # Fetch the results as a list of tuples
+        rows = self.cur.fetchall()
+        # Iterate over the results to find the filename of the main database
+        for id_, name, filename in rows:
+            if name == "main" and filename is not None:
+                # Print the filename to the console
+                print(f"The path of the database file is: {filename}")
+                # Send a message to the user
+                await ctx.send(f"The path of the database file has been printed to the console.")
+                # Break the loop
+                break
+
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
         super().__init__(timeout=None)
@@ -158,24 +175,6 @@ class PokedexView(discord.ui.View):
                 await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
             except Exception as e:
                 print(e)
-
-    # Added the sqcheck command to check the path of the database file and print it to the console
-    @commands.command()
-    @commands.is_owner()
-    async def sqcheck(self, ctx):
-        # Execute the PRAGMA database_list command
-        self.cur.execute("PRAGMA database_list")
-        # Fetch the results as a list of tuples
-        rows = self.cur.fetchall()
-        # Iterate over the results to find the filename of the main database
-        for id_, name, filename in rows:
-            if name == "main" and filename is not None:
-                # Print the filename to the console
-                print(f"The path of the database file is: {filename}")
-                # Send a message to the user
-                await ctx.send(f"The path of the database file has been printed to the console.")
-                # Break the loop
-                break
 
 def setup(bot):
     bot.add_cog(TreacheryPokemon(bot))
