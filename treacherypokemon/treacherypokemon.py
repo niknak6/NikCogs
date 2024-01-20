@@ -107,16 +107,17 @@ class TreacheryPokemon(commands.Cog):
             end = min((page + 1) * 10, len(self.buttons))
             for i in range(start, end):
                 self.add_item(self.buttons[i])
-            self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, row=1, disabled=page == 0, custom_id="previous"))
-            self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, row=1, disabled=page == len(self.buttons) // 10, custom_id="next"))
+            # Add row=5 argument to the Previous and Next buttons to make sure they are in the last row
+            self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, row=5, disabled=page == 0, custom_id="previous"))
+            self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, row=5, disabled=page == len(self.buttons) // 10, custom_id="next"))
 
-        @discord.ui.button(label="Previous", style=discord.ButtonStyle.primary, row=1, custom_id="previous")
+        @discord.ui.button(label="Previous", style=discord.ButtonStyle.primary, row=5, custom_id="previous")
         async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
             self.current_page -= 1
             self.add_buttons(self.current_page)
             await interaction.message.edit(view=self)
 
-        @discord.ui.button(label="Next", style=discord.ButtonStyle.primary, row=1, custom_id="next")
+        @discord.ui.button(label="Next", style=discord.ButtonStyle.primary, row=5, custom_id="next")
         async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
             self.current_page += 1
             self.add_buttons(self.current_page)
