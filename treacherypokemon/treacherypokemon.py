@@ -4,7 +4,7 @@ from redbot.core import commands, Config
 import discord
 from io import BytesIO
 import traceback
-from Paginator import Paginator # import the Paginator class
+from discord.py_pagination import Paginator # import the Paginator class
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
