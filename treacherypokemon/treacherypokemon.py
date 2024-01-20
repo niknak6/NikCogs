@@ -104,6 +104,15 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("You have not caught any Pokémon yet.")
 
+    @commands.Cog.listener()
+    async def on_interaction(self, interaction):
+        # check if the interaction is a button click
+        if interaction.type == discord.InteractionType.component:
+            # get the view from the message
+            view = interaction.message.view
+            # process the interaction with the view
+            await view.process_interaction(interaction)
+
 # a custom view class for pagination
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds):
@@ -168,16 +177,6 @@ class PokedexView(discord.ui.View):
                 await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
             except Exception as e:
                 print(e) # print the exception to the console
-
-# define the on_interaction event
-@bot.event
-async def on_interaction(interaction):
-    # check if the interaction is a button click
-    if interaction.type == discord.InteractionType.component:
-        # get the view from the message
-        view = interaction.message.view
-        # process the interaction with the view
-        await view.process_interaction(interaction)
 
 def setup(bot):
     bot.add_cog(TreacheryPokemon(bot))
