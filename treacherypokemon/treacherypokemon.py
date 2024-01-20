@@ -130,10 +130,16 @@ class PokedexView(discord.ui.View):
             # update the embed footer
             self.update_footer()
             # edit the message with the new embed
-            await interaction.message.edit(embed=self.embeds[self.current])
+            try:
+                await interaction.message.edit(embed=self.embeds[self.current])
+            except Exception as e:
+                print(e) # print the exception to the console
         else:
             # send an error message if the user is not the author
-            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
+            try:
+                await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
+            except Exception as e:
+                print(e) # print the exception to the console
 
     # a button for going to the next page
     @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
@@ -148,10 +154,26 @@ class PokedexView(discord.ui.View):
             # update the embed footer
             self.update_footer()
             # edit the message with the new embed
-            await interaction.message.edit(embed=self.embeds[self.current])
+            try:
+                await interaction.message.edit(embed=self.embeds[self.current])
+            except Exception as e:
+                print(e) # print the exception to the console
         else:
             # send an error message if the user is not the author
-            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
+            try:
+                await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
+            except Exception as e:
+                print(e) # print the exception to the console
+
+# define the on_interaction event
+@bot.event
+async def on_interaction(interaction):
+    # check if the interaction is a button click
+    if interaction.type == discord.InteractionType.component:
+        # get the view from the message
+        view = interaction.message.view
+        # process the interaction with the view
+        await view.process_interaction(interaction)
 
 def setup(bot):
     bot.add_cog(TreacheryPokemon(bot))
