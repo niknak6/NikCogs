@@ -99,23 +99,27 @@ class TreacheryPokemon(commands.Cog):
                 for pokemon_name, pokemon_count in chunk:
                     embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value="\u200b", inline=True)
                 embeds.append(embed)
-            view = PokedexView(ctx, embeds, pokemon_per_page)
+            # This is the line that I changed.
+            view = PokedexView(ctx, embeds, pokemon_per_page, pokedex)
             await ctx.send(embed=embeds[0], view=view)
         else:
             await ctx.send("You have not caught any Pokémon yet.")
 
 class PokedexView(discord.ui.View):
-    def __init__(self, ctx, embeds, pokemon_per_page):
+    def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
         super().__init__(timeout=None)
         self.ctx = ctx
         self.embeds = embeds
         self.current = 0
         self.pokemon_per_page = pokemon_per_page
-        self.total = math.ceil(len(pokedex) / pokemon_per_page)
+        # This is the line that I changed.
+        self.pokedex = pokedex # Assign the pokedex argument to an attribute
+        # This is the line that I changed.
+        self.total = math.ceil(len(self.pokedex) / pokemon_per_page) # Use self.pokedex instead of pokedex
         self.update_footer()
 
     def update_footer(self):
-        self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * self.pokemon_per_page + 1} - {min((self.current + 1) * self.pokemon_per_page, len(pokedex))} of {len(pokedex)}")
+        self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * self.pokemon_per_page + 1} - {min((self.current + 1) * self.pokemon_per_page, len(self.pokedex))} of {len(self.pokedex)}")
 
     @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
     async def previous(self, interaction, button):
