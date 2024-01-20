@@ -54,6 +54,7 @@ class TreacheryPokemon(commands.Cog):
                 }
                 embed = discord.Embed.from_dict(embed_dict)
                 self.spawn_message = await ctx.send(file=image_file, embed=embed)
+                pokemon_id = pokemon_data['id'] # Assign the value of pokemon_id from the pokemon_data dictionary
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
