@@ -4,6 +4,8 @@ from redbot.core import commands, Config
 import discord
 from io import BytesIO
 import traceback
+import itertools
+import math
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -55,8 +57,6 @@ class TreacheryPokemon(commands.Cog):
                 self.spawn_message = await ctx.send(file=image_file, embed=embed)
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
-        else:
-            await ctx.send(f"This command can only be used in the spawn channel. Please use the `setpokemonspawn` command to set the spawn channel first.")
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message):
@@ -91,92 +91,67 @@ class TreacheryPokemon(commands.Cog):
     async def pokedex(self, ctx):
         pokedex = await self.config.member(ctx.author).pokedex()
         if pokedex:
-            # create a list of embeds to paginate
             embeds = []
-            for pokemon_name, pokemon_count in pokedex.items():
-                embed = discord.Embed(title=f"{pokemon_name.capitalize()} x {pokemon_count}", color=discord.Color.random())
-                embed.set_image(url=self.base_url + pokemon_name + "/")
+            pokemon_per_page = 10
+            for chunk in itertools.zip_longest(*[iter(pokedex.items())] * pokemon_per_page):
+                embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
+                for pokemon_name, pokemon_count in chunk:
+                    if pokemon_name:
+                        embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value="\u200b", inline=True)
                 embeds.append(embed)
-            # create a custom view for pagination
-            view = PokedexView(ctx, embeds)
-            # send the first embed with the view
+            view = PokedexView(ctx, embeds, pokemon_per_page)
             await ctx.send(embed=embeds[0], view=view)
         else:
             await ctx.send("You have not caught any Pokémon yet.")
 
-    @commands.Cog.listener()
-    async def on_interaction(self, interaction):
-        # check if the interaction is a button click
-        if interaction.type == discord.InteractionType.component:
-            # get the view from the message
-            view = interaction.message.view
-            # process the interaction with the view
-            await view.process_interaction(interaction)
-
-# a custom view class for pagination
 class PokedexView(discord.ui.View):
-    def __init__(self, ctx, embeds):
+    def __init__(self, ctx, embeds, pokemon_per_page):
         super().__init__(timeout=None)
-        self.ctx = ctx # the context of the command
-        self.embeds = embeds # the list of embeds to paginate
-        self.current = 0 # the current page index
-        self.total = len(embeds) # the total number of pages
+        self.ctx = ctx
+        self.embeds = embeds
+        self.current = 0
+        self.pokemon_per_page = pokemon_per_page
+        self.total = math.ceil(len(pokedex) / pokemon_per_page)
+        self.update_footer()
 
-    # a helper method to update the embed footer
     def update_footer(self):
-        self.embeds[self.current].set_footer(text=f"Page {self.current + 1} of {self.total}")
+        self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * self.pokemon_per_page + 1} - {min((self.current + 1) * self.pokemon_per_page, len(pokedex))} of {len(pokedex)}")
 
-    # a button for going to the previous page
     @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
     async def previous(self, interaction, button):
-        # check if the user is the author of the command
         if interaction.user == self.ctx.author:
-            # defer the interaction
             await interaction.response.defer()
-            # decrement the current page index
             self.current -= 1
-            # wrap around if it goes below zero
             if self.current < 0:
                 self.current = self.total - 1
-            # update the embed footer
             self.update_footer()
-            # edit the message with the new embed
             try:
                 await interaction.message.edit(embed=self.embeds[self.current])
             except Exception as e:
-                print(e) # print the exception to the console
+                print(e)
         else:
-            # send an error message if the user is not the author
             try:
                 await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
             except Exception as e:
-                print(e) # print the exception to the console
+                print(e)
 
-    # a button for going to the next page
     @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
     async def next(self, interaction, button):
-        # check if the user is the author of the command
         if interaction.user == self.ctx.author:
-            # defer the interaction
             await interaction.response.defer()
-            # increment the current page index
             self.current += 1
-            # wrap around if it goes above the total
             if self.current >= self.total:
                 self.current = 0
-            # update the embed footer
             self.update_footer()
-            # edit the message with the new embed
             try:
                 await interaction.message.edit(embed=self.embeds[self.current])
             except Exception as e:
-                print(e) # print the exception to the console
+                print(e)
         else:
-            # send an error message if the user is not the author
             try:
                 await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
             except Exception as e:
-                print(e) # print the exception to the console
+                print(e)
 
 def setup(bot):
     bot.add_cog(TreacheryPokemon(bot))
