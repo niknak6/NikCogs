@@ -108,8 +108,8 @@ class TreacheryPokemon(commands.Cog):
             end = min((page + 1) * 10, len(self.buttons))
             for i in range(start, end):
                 self.add_item(self.buttons[i])
-            self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, row=4, disabled=page == 0, custom_id="previous"))
-            self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, row=4, disabled=page == len(self.buttons) // 10, custom_id="next"))
+            self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, row=4, disabled=page == 0, custom_id=f"previous_{page}"))
+            self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, row=4, disabled=page == len(self.buttons) // 10, custom_id=f"next_{page}"))
 
         @discord.ui.button(label="Previous", style=discord.ButtonStyle.primary, row=4, custom_id="previous")
         async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
