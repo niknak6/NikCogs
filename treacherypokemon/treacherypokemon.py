@@ -111,17 +111,19 @@ class TreacheryPokemon(commands.Cog):
             self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, row=4, disabled=page == 0, custom_id=f"previous_{page}"))
             self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, row=4, disabled=page == len(self.buttons) // 10, custom_id=f"next_{page}"))
 
-        @discord.ui.button(custom_id="previous")
+        # Added the following two lines
+        @discord.ui.button(custom_id="previous_[0-9]+") # Added this line
         async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
             self.current_page -= 1
             self.add_buttons(self.current_page)
-            await interaction.message.edit(view=self)
+            await interaction.response.edit_message(view=self) # Changed this line
 
-        @discord.ui.button(custom_id="next")
+        # Added the following two lines
+        @discord.ui.button(custom_id="next_[0-9]+") # Added this line
         async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
             self.current_page += 1
             self.add_buttons(self.current_page)
-            await interaction.message.edit(view=self)
+            await interaction.response.edit_message(view=self) # Changed this line
 
     @commands.guild_only()
     @commands.command()
