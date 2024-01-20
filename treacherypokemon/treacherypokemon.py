@@ -97,10 +97,7 @@ class TreacheryPokemon(commands.Cog):
         def __init__(self, pokedex, timeout=60):
             super().__init__(timeout=timeout)
             self.pokedex = pokedex
-            self.buttons = []
-            for pokemon_name, pokemon_count in pokedex.items():
-                button = TreacheryPokemon.PokedexButton(pokemon_name, pokemon_count)
-                self.buttons.append(button)
+            self.buttons = [TreacheryPokemon.PokedexButton(pokemon_name, pokemon_count) for pokemon_name, pokemon_count in pokedex.items()] # Use list comprehension to create buttons
             self.current_page = 0
             self.add_buttons(0)
 
