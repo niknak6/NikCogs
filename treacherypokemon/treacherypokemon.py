@@ -9,8 +9,8 @@ class TreacheryPokemon(commands.Cog):
         self.bot = bot
         self.current_pokemon = None
         self.current_sprite = None
-        self.base_url = "https://pokeapi.co/api/v2/"
-        self.pokemon_list = None
+        self.base_url = "https://pokeapi.co/api/v2/pokemon/" # Change the base url to the pokemon endpoint
+        self.pokemon_count = 1025 # Add an attribute to store the total number of pokemon
         self.config = Config.get_conf(self, identifier=1234567890)
         default_guild = {
             "spawn_channel": None,
@@ -37,20 +37,15 @@ class TreacheryPokemon(commands.Cog):
     async def spawn(self, ctx):
         spawn_channel = discord.utils.get(ctx.guild.channels, id=await self.config.guild(ctx.guild).spawn_channel())
         if ctx.channel == spawn_channel:
-            if self.pokemon_list is None:
-                response = requests.get(self.base_url + "pokemon")
-                if response.status_code == 200:
-                    pokemon_data = response.json()
-                    self.pokemon_list = pokemon_data['results']
-                else:
-                    await ctx.send("Failed to get the list of Pokémon. Please try again.")
-                    return
-            pokemon = random.choice(self.pokemon_list)
-            self.current_pokemon = pokemon['name']
-            pokemon_url = pokemon['url']
+            # Generate a random id between 1 and 1025
+            pokemon_id = random.randint(1, self.pokemon_count)
+            # Use the base url and the id to get the pokemon url
+            pokemon_url = self.base_url + str(pokemon_id)
             response = requests.get(pokemon_url)
             if response.status_code == 200:
                 pokemon_data = response.json()
+                # Get the pokemon name and sprite from the json data
+                self.current_pokemon = pokemon_data['name']
                 self.current_sprite = pokemon_data['sprites']['other']['official-artwork']['front_default']
                 # Use BytesIO to convert the image data to bytes
                 image_data = BytesIO (requests.get (self.current_sprite).content)
