@@ -5,6 +5,7 @@ import discord
 from io import BytesIO
 import math
 import sqlite3
+from redbot.core.data_manager import cog_data_path
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -20,7 +21,7 @@ class TreacheryPokemon(commands.Cog):
         }
         self.config.register_guild(**default_guild)
         self.spawn_message = None
-        self.conn = sqlite3.connect('pokemon.db')
+        self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, pokemon_count INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.conn.commit()
