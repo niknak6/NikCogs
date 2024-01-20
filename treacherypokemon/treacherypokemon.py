@@ -2,6 +2,7 @@ import random
 import requests
 from redbot.core import commands, Config
 import discord
+from io import BytesIO # Import BytesIO to convert image data to bytes
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -50,12 +51,19 @@ class TreacheryPokemon(commands.Cog):
             if response.status_code == 200:
                 pokemon_data = response.json()
                 self.current_sprite = pokemon_data['sprites']['other']['official-artwork']['front_default']
+                # Use BytesIO to convert the image data to bytes
+                image_data = BytesIO (requests.get (self.current_sprite).content)
+                # Use discord.File to create a file object from the image data
+                image_file = discord.File (image_data, filename="pokemon.png")
+                # Change the embed title to "A wild Pokemon has appeared!"
                 embed_dict = {
-                    "title": f"A wild {self.current_pokemon.capitalize()} has appeared!",
-                    "image": {"url": self.current_sprite}
+                    "title": "A wild Pokemon has appeared!",
+                    # Use the file object as the image url
+                    "image": {"url": "attachment://pokemon.png"}
                 }
                 embed = discord.Embed.from_dict(embed_dict)
-                await ctx.send(embed=embed)
+                # Send the embed and the file object together
+                await ctx.send(file=image_file, embed=embed)
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
         else:
@@ -97,7 +105,7 @@ class TreacheryPokemon(commands.Cog):
         def __init__(self, pokedex, timeout=60):
             super().__init__(timeout=timeout)
             self.pokedex = pokedex
-            self.buttons = [TreacheryPokemon.PokedexButton(pokemon_name, pokemon_count) for pokemon_name, pokemon_count in pokedex.items()] # Use list comprehension to create buttons
+            self.buttons = [TreacheryPokemon.PokedexButton(pokemon_name, pokemon_count) for pokemon_name, pokemon_count in pokedex.items()]
             self.current_page = 0
             self.add_buttons(0)
 
@@ -107,7 +115,6 @@ class TreacheryPokemon(commands.Cog):
             end = min((page + 1) * 10, len(self.buttons))
             for i in range(start, end):
                 self.add_item(self.buttons[i])
-            # Change row=5 argument to row=4 for the Previous and Next buttons to make sure they are in a valid row
             self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, row=4, disabled=page == 0, custom_id="previous"))
             self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, row=4, disabled=page == len(self.buttons) // 10, custom_id="next"))
 
