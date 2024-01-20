@@ -93,7 +93,7 @@ class TreacheryPokemon(commands.Cog):
         if pokedex:
             embeds = []
             pokemon_per_page = 10
-            for chunk in itertools.zip_longest(*[iter(pokedex.items())] * pokemon_per_page, fillvalue=()): # This is the line that I changed.
+            for chunk in itertools.zip_longest(*[iter(pokedex.items())] * pokemon_per_page, fillvalue=None): # This is the line that I changed.
                 embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
                 for pokemon_name, pokemon_count in chunk:
                     if pokemon_name:
