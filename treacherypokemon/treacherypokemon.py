@@ -21,6 +21,7 @@ class TreacheryPokemon(commands.Cog):
         }
         self.config.register_guild(**default_guild)
         self.config.register_member(**default_member)
+        self.spawn_message = None # Add an attribute to store the spawn message object
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
@@ -63,7 +64,7 @@ class TreacheryPokemon(commands.Cog):
                 }
                 embed = discord.Embed.from_dict(embed_dict)
                 # Send the embed and the file object together
-                await ctx.send(file=image_file, embed=embed)
+                self.spawn_message = await ctx.send(file=image_file, embed=embed) # Assign the message object to the spawn_message attribute
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
         else:
@@ -87,8 +88,13 @@ class TreacheryPokemon(commands.Cog):
             pokedex = await self.config.member(ctx.author).pokedex()
             pokedex[self.current_pokemon] = pokedex.get(self.current_pokemon, 0) + 1
             await self.config.member(ctx.author).pokedex.set(pokedex)
+            # Edit the spawn embed to remove the image and change the title and description
+            if self.spawn_message: # Check if the spawn_message attribute is not None
+                new_embed = discord.Embed(title="Pokemon Caught", description=f"{self.current_pokemon.capitalize()} was caught by {ctx.author.name}.") # Create a new embed object with the updated information
+                await self.spawn_message.edit(embed=new_embed) # Edit the spawn message with the new embed object
             self.current_pokemon = None
             self.current_sprite = None
+            self.spawn_message = None # Reset the spawn_message attribute to None
         else:
             await ctx.send("That is not the correct Pokémon name or there is no Pokémon to catch. Use the `spawn` command to spawn one.")
 
