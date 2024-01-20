@@ -119,10 +119,8 @@ class TreacheryPokemon(commands.Cog):
         # Iterate over the results to find the filename of the main database
         for id_, name, filename in rows:
             if name == "main" and filename is not None:
-                # Print the filename to the console
-                print(f"The path of the database file is: {filename}")
                 # Send a message to the user
-                await ctx.send(f"The path of the database file has been printed to the console.")
+                await ctx.send(f"The path of the database file is: {filename}")
                 # Break the loop
                 break
 
