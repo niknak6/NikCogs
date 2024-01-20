@@ -4,7 +4,6 @@ from redbot.core import commands, Config
 import discord
 from io import BytesIO
 import traceback
-from discord.py_pagination import Paginator # import the Paginator class
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -98,10 +97,61 @@ class TreacheryPokemon(commands.Cog):
                 embed = discord.Embed(title=f"{pokemon_name.capitalize()} x {pokemon_count}", color=discord.Color.random())
                 embed.set_image(url=self.base_url + pokemon_name + "/")
                 embeds.append(embed)
-            # use the Paginator class to create a paginator
-            await Paginator.Simple().start(ctx, embeds=embeds) # pass the embeds argument
+            # create a custom view for pagination
+            view = PokedexView(ctx, embeds)
+            # send the first embed with the view
+            await ctx.send(embed=embeds[0], view=view)
         else:
             await ctx.send("You have not caught any Pokémon yet.")
+
+# a custom view class for pagination
+class PokedexView(discord.ui.View):
+    def __init__(self, ctx, embeds):
+        super().__init__()
+        self.ctx = ctx # the context of the command
+        self.embeds = embeds # the list of embeds to paginate
+        self.current = 0 # the current page index
+        self.total = len(embeds) # the total number of pages
+
+    # a helper method to update the embed footer
+    def update_footer(self):
+        self.embeds[self.current].set_footer(text=f"Page {self.current + 1} of {self.total}")
+
+    # a button for going to the previous page
+    @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
+    async def previous(self, button, interaction):
+        # check if the user is the author of the command
+        if interaction.user == self.ctx.author:
+            # decrement the current page index
+            self.current -= 1
+            # wrap around if it goes below zero
+            if self.current < 0:
+                self.current = self.total - 1
+            # update the embed footer
+            self.update_footer()
+            # edit the message with the new embed
+            await interaction.message.edit(embed=self.embeds[self.current])
+        else:
+            # send an error message if the user is not the author
+            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
+
+    # a button for going to the next page
+    @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
+    async def next(self, button, interaction):
+        # check if the user is the author of the command
+        if interaction.user == self.ctx.author:
+            # increment the current page index
+            self.current += 1
+            # wrap around if it goes above the total
+            if self.current >= self.total:
+                self.current = 0
+            # update the embed footer
+            self.update_footer()
+            # edit the message with the new embed
+            await interaction.message.edit(embed=self.embeds[self.current])
+        else:
+            # send an error message if the user is not the author
+            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
 
 def setup(bot):
     bot.add_cog(TreacheryPokemon(bot))
