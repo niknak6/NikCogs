@@ -78,6 +78,8 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command(name="pokecatch")
     async def pokecatch(self, ctx, *, pokemon: str):
+        # Replace the space with a hyphen
+        pokemon = pokemon.replace(" ", "-") # This is the change I suggested to fix the issue with spaces in the pokemon name
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
             pokedex = await self.config.member(ctx.author).pokedex()
