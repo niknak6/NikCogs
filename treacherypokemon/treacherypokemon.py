@@ -97,7 +97,8 @@ class TreacheryPokemon(commands.Cog):
 
     class PokedexButton(discord.ui.Button):
         def __init__(self, pokemon_name, pokemon_count):
-            super().__init__(style=discord.ButtonStyle.secondary, label=pokemon_name.capitalize(), emoji="🐾")
+            # Add a custom ID to the button
+            super().__init__(style=discord.ButtonStyle.secondary, label=pokemon_name.capitalize(), emoji="🐾", custom_id=f"pokedex_{pokemon_name}")
             self.pokemon_name = pokemon_name
             self.pokemon_count = pokemon_count
 
@@ -106,7 +107,8 @@ class TreacheryPokemon(commands.Cog):
 
     class PokedexView(discord.ui.View):
         def __init__(self, pokedex, timeout=60):
-            super().__init__(timeout=timeout)
+            # Change the timeout to None
+            super().__init__(timeout=None)
             self.pokedex = pokedex
             self.buttons = [TreacheryPokemon.PokedexButton(pokemon_name, pokemon_count) for pokemon_name, pokemon_count in pokedex.items()]
             self.current_page = 0
@@ -118,9 +120,11 @@ class TreacheryPokemon(commands.Cog):
             end = min((page + 1) * 10, len(self.buttons))
             for i in range(start, end):
                 self.add_item(self.buttons[i])
+            # Add custom IDs to the previous and next buttons
             self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, row=4, disabled=page == 0, custom_id="previous"))
             self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, row=4, disabled=page == len(self.buttons) // 10, custom_id="next"))
 
+        # Use the discord.ui.button decorator to handle button clicks
         @discord.ui.button(label="Previous", style=discord.ButtonStyle.primary, row=4, custom_id="previous")
         async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
             self.current_page -= 1
