@@ -99,7 +99,7 @@ class TreacheryPokemon(commands.Cog):
                 embed.set_image(url=self.base_url + pokemon_name + "/")
                 embeds.append(embed)
             # use the Paginator class to create a paginator
-            await Paginator.Simple().start(ctx, pages=embeds)
+            await Paginator.Simple().start(ctx, embeds=embeds) # pass the embeds argument
         else:
             await ctx.send("You have not caught any Pokémon yet.")
 
