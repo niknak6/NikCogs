@@ -24,7 +24,7 @@ class TreacheryPokemon(commands.Cog):
         self.cur = self.conn.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, pokemon_count INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.conn.commit()
-        self.pokemon_id = None # Added this attribute to store the current pokemon id
+        self.pokemon_id = None
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
@@ -55,7 +55,7 @@ class TreacheryPokemon(commands.Cog):
                 }
                 embed = discord.Embed.from_dict(embed_dict)
                 self.spawn_message = await ctx.send(file=image_file, embed=embed)
-                self.pokemon_id = pokemon_data['id'] # Changed this line to store the value of pokemon_id as an attribute of the cog class
+                self.pokemon_id = pokemon_data['id']
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
@@ -75,12 +75,12 @@ class TreacheryPokemon(commands.Cog):
         pokemon = pokemon.replace(" ", "-")
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
-            self.cur.execute('SELECT pokemon_count FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id)) # Changed this line to use self.pokemon_id instead of pokemon_id
+            self.cur.execute('SELECT pokemon_count FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id))
             row = self.cur.fetchone()
             if row is None:
-                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, pokemon_count) VALUES (?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, 1)) # Changed this line to use self.pokemon_id instead of pokemon_id
+                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, pokemon_count) VALUES (?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, 1))
             else:
-                self.cur.execute('UPDATE pokedex SET pokemon_count = ? WHERE member_id = ? AND pokemon_id = ?', (row[0] + 1, ctx.author.id, self.pokemon_id)) # Changed this line to use self.pokemon_id instead of pokemon_id
+                self.cur.execute('UPDATE pokedex SET pokemon_count = ? WHERE member_id = ? AND pokemon_id = ?', (row[0] + 1, ctx.author.id, self.pokemon_id))
             self.conn.commit()
             if self.spawn_message:
                 new_embed = discord.Embed(title="Pokemon Caught", description=f"{self.current_pokemon.capitalize()} was caught by {ctx.author.name}.")
