@@ -4,6 +4,7 @@ from redbot.core import commands, Config
 import discord
 from io import BytesIO
 import traceback
+from Paginator import Paginator # import the Paginator class
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -86,56 +87,19 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("That is not the correct Pokémon name or there is no Pokémon to catch. Use the `spawn` command to spawn one.")
 
-    class PokedexButton(discord.ui.Button):
-        def __init__(self, pokemon_name, pokemon_count, page):
-            super().__init__(style=discord.ButtonStyle.secondary, label=pokemon_name.capitalize(), emoji="🐾", custom_id=f"pokedex_{pokemon_name}_{page}")
-            self.pokemon_name = pokemon_name
-            self.pokemon_count = pokemon_count
-            self.page = page
-
-        async def callback(self, interaction: discord.Interaction):
-            try:
-                await interaction.response.send_message(f"You have {self.pokemon_count} {self.pokemon_name.capitalize()} in your pokedex.")
-            except Exception as e:
-                print(f"Interaction failed: {e}")
-                print(traceback.format_exc())
-
-    class PokedexView(discord.ui.View):
-        def __init__(self, pokedex, timeout=None):
-            super().__init__(timeout=timeout)
-            self.pokedex = pokedex
-            self.buttons = [TreacheryPokemon.PokedexButton(pokemon_name, pokemon_count, page) for page in range((len(pokedex) - 1) // 10 + 1) for pokemon_name, pokemon_count in pokedex.items()]
-            self.current_page = 0
-            self.add_buttons(0)
-
-        def add_buttons(self, page):
-            self.clear_items()
-            start = page * 10
-            end = min((page + 1) * 10, len(self.buttons))
-            for i in range(start, end):
-                self.add_item(self.buttons[i])
-            self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, row=4, disabled=page == 0, custom_id=f"previous_{page}_{len(self.buttons) // 10}"))
-            self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, row=4, disabled=page == len(self.buttons) // 10, custom_id=f"next_{page}_{len(self.buttons) // 10}"))
-
-        @discord.ui.button(custom_id="previous_[0-9]+_[0-9]+")
-        async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
-            self.current_page -= 1
-            self.add_buttons(self.current_page)
-            await interaction.response.edit_message(view=self)
-
-        @discord.ui.button(custom_id="next_[0-9]+_[0-9]+")
-        async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
-            self.current_page += 1
-            self.add_buttons(self.current_page)
-            await interaction.response.edit_message(view=self)
-
     @commands.guild_only()
     @commands.command()
     async def pokedex(self, ctx):
         pokedex = await self.config.member(ctx.author).pokedex()
         if pokedex:
-            view = TreacheryPokemon.PokedexView(pokedex)
-            await ctx.send(f"{ctx.author.name}'s Pokedex", view=view)
+            # create a list of embeds to paginate
+            embeds = []
+            for pokemon_name, pokemon_count in pokedex.items():
+                embed = discord.Embed(title=f"{pokemon_name.capitalize()} x {pokemon_count}", color=discord.Color.random())
+                embed.set_image(url=self.base_url + pokemon_name + "/")
+                embeds.append(embed)
+            # use the Paginator class to create a paginator
+            await Paginator.Simple().start(ctx, pages=embeds)
         else:
             await ctx.send("You have not caught any Pokémon yet.")
 
