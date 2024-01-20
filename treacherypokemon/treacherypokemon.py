@@ -107,7 +107,7 @@ class TreacheryPokemon(commands.Cog):
 # a custom view class for pagination
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds):
-        super().__init__()
+        super().__init__(timeout=None) # this will make the view last indefinitely
         self.ctx = ctx # the context of the command
         self.embeds = embeds # the list of embeds to paginate
         self.current = 0 # the current page index
@@ -119,7 +119,7 @@ class PokedexView(discord.ui.View):
 
     # a button for going to the previous page
     @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
-    async def previous(self, button, interaction):
+    async def previous(self, interaction, button): # change the order of parameters
         # check if the user is the author of the command
         if interaction.user == self.ctx.author:
             # decrement the current page index
@@ -143,7 +143,7 @@ class PokedexView(discord.ui.View):
 
     # a button for going to the next page
     @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
-    async def next(self, button, interaction):
+    async def next(self, interaction, button): # change the order of parameters
         # check if the user is the author of the command
         if interaction.user == self.ctx.author:
             # increment the current page index
