@@ -159,5 +159,23 @@ class PokedexView(discord.ui.View):
             except Exception as e:
                 print(e)
 
+    # Added the sqcheck command to check the path of the database file and print it to the console
+    @commands.command()
+    @commands.is_owner()
+    async def sqcheck(self, ctx):
+        # Execute the PRAGMA database_list command
+        self.cur.execute("PRAGMA database_list")
+        # Fetch the results as a list of tuples
+        rows = self.cur.fetchall()
+        # Iterate over the results to find the filename of the main database
+        for id_, name, filename in rows:
+            if name == "main" and filename is not None:
+                # Print the filename to the console
+                print(f"The path of the database file is: {filename}")
+                # Send a message to the user
+                await ctx.send(f"The path of the database file has been printed to the console.")
+                # Break the loop
+                break
+
 def setup(bot):
     bot.add_cog(TreacheryPokemon(bot))
