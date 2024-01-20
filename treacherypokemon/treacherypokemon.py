@@ -3,7 +3,7 @@ import requests
 from redbot.core import commands, Config
 import discord
 from io import BytesIO
-import traceback # Added this line
+import traceback
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -95,9 +95,9 @@ class TreacheryPokemon(commands.Cog):
         async def callback(self, interaction: discord.Interaction):
             try:
                 await interaction.response.send_message(f"You have {self.pokemon_count} {self.pokemon_name.capitalize()} in your pokedex.")
-            except Exception as e: # Added this line
-                print(f"Interaction failed: {e}") # Added this line
-                print(traceback.format_exc()) # Added this line
+            except Exception as e:
+                print(f"Interaction failed: {e}")
+                print(traceback.format_exc())
 
     class PokedexView(discord.ui.View):
         def __init__(self, pokedex, timeout=60):
@@ -116,19 +116,17 @@ class TreacheryPokemon(commands.Cog):
             self.add_item(discord.ui.Button(label="Previous", style=discord.ButtonStyle.primary, row=4, disabled=page == 0, custom_id=f"previous_{page}"))
             self.add_item(discord.ui.Button(label="Next", style=discord.ButtonStyle.primary, row=4, disabled=page == len(self.buttons) // 10, custom_id=f"next_{page}"))
 
-        # Added the following two lines
-        @discord.ui.button(custom_id="previous_[0-9]+") # Added this line
+        @discord.ui.button(custom_id="previous_[0-9]+")
         async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
             self.current_page -= 1
             self.add_buttons(self.current_page)
-            await interaction.response.edit_message(view=self) # Changed this line
+            await interaction.response.edit_message(view=self)
 
-        # Added the following two lines
-        @discord.ui.button(custom_id="next_[0-9]+") # Added this line
+        @discord.ui.button(custom_id="next_[0-9]+")
         async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
             self.current_page += 1
             self.add_buttons(self.current_page)
-            await interaction.response.edit_message(view=self) # Changed this line
+            await interaction.response.edit_message(view=self)
 
     @commands.guild_only()
     @commands.command()
