@@ -34,51 +34,10 @@ class TreacheryPokemon(commands.Cog):
         self.spawn_message = None
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
-        self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), pokemon_count INTEGER, PRIMARY KEY (member_id, pokemon_id))') # Add a column for poketag
+        # Create the pokedex table with all the columns
+        self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), pokemon_count INTEGER, experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.conn.commit()
         self.pokemon_id = None
-
-    @commands.command()
-    @commands.is_owner()
-    @commands.cooldown(1, 60, commands.BucketType.guild) # Limit the command to once per minute per guild
-    async def fixdb(self, ctx):
-        """Fix the database schema by adding the poketag and experience columns if they do not exist"""
-        # Check if the poketag and experience columns already exist in the pokedex table
-        self.cur.execute("PRAGMA table_info(pokedex)")
-        columns = self.cur.fetchall()
-        column_names = [column[1] for column in columns]
-        if "poketag" not in column_names:
-            # If the poketag column does not exist, add it using the ALTER TABLE statement
-            try:
-                self.cur.execute("ALTER TABLE pokedex ADD COLUMN poketag VARCHAR (5)")
-                self.conn.commit()
-                await ctx.send("The poketag column has been added to the pokedex table.")
-                logger.info("The poketag column has been added to the pokedex table.")
-            except sqlite3.Error as e:
-                # If an error occurs, rollback the changes and send a message
-                self.conn.rollback()
-                await ctx.send(f"An error occurred while adding the poketag column: {e}")
-                logger.error(f"An error occurred while adding the poketag column: {e}")
-        else:
-            # If the poketag column already exists, send a message
-            await ctx.send("The poketag column already exists in the pokedex table.")
-            logger.info("The poketag column already exists in the pokedex table.")
-        if "experience" not in column_names:
-            # If the experience column does not exist, add it using the ALTER TABLE statement
-            try:
-                self.cur.execute("ALTER TABLE pokedex ADD COLUMN experience INTEGER") # Add a new column for experience
-                self.conn.commit()
-                await ctx.send("The experience column has been added to the pokedex table.")
-                logger.info("The experience column has been added to the pokedex table.")
-            except sqlite3.Error as e:
-                # If an error occurs, rollback the changes and send a message
-                self.conn.rollback()
-                await ctx.send(f"An error occurred while adding the experience column: {e}")
-                logger.error(f"An error occurred while adding the experience column: {e}")
-        else:
-            # If the experience column already exists, send a message
-            await ctx.send("The experience column already exists in the pokedex table.")
-            logger.info("The experience column already exists in the pokedex table.")
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
@@ -129,13 +88,14 @@ class TreacheryPokemon(commands.Cog):
         pokemon = pokemon.replace(" ", "-")
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
-            self.cur.execute('SELECT pokemon_count, poketag FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id))
+            self.cur.execute('SELECT pokemon_count, poketag, experience FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id))
             row = self.cur.fetchone()
             if row is None:
                 poketag = secrets.token_hex(3) # Generate a random 5-character id for the pokemon by passing 3 directly
-                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, pokemon_count) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, 1)) # Insert the poketag into the database
+                experience = 0 # Set the initial experience to zero
+                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, pokemon_count, experience) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, 1, experience)) # Insert the poketag and experience into the database
             else:
-                self.cur.execute('UPDATE pokedex SET pokemon_count = ? WHERE member_id = ? AND pokemon_id = ?', (row[0] + 1, ctx.author.id, self.pokemon_id))
+                self.cur.execute('UPDATE pokedex SET pokemon_count = ?, experience = ? WHERE member_id = ? AND pokemon_id = ?', (row[0] + 1, row[2] + 10, ctx.author.id, self.pokemon_id)) # Increase the pokemon count and experience by 10
             self.conn.commit()
             if self.spawn_message:
                 new_embed = discord.Embed(title="Pokemon Caught", description=f"{self.current_pokemon.capitalize()} was caught by {ctx.author.name}.")
@@ -149,20 +109,20 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command()
     async def pokedex(self, ctx):
-        self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, pokemon_count FROM pokedex WHERE member_id = ?', (ctx.author.id,)) # Select the poketag from the database
+        self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, pokemon_count, experience FROM pokedex WHERE member_id = ?', (ctx.author.id,)) # Select the poketag and experience from the database
         pokedex = self.cur.fetchall()
         if pokedex:
             embeds = []
             pokemon_per_page = 10
             for chunk in (pokedex[i:i+pokemon_per_page] for i in range(0, len(pokedex), pokemon_per_page)):
                 embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
-                for pokemon_id, pokemon_name, poketag, pokemon_count in chunk:
+                for pokemon_id, pokemon_name, poketag, pokemon_count, experience in chunk:
                     # Check if the poketag is None, and if so, generate a new one and update the database
                     if poketag is None:
                         poketag = secrets.token_hex(3) # Generate a random 5-character id for the pokemon by passing 3 directly
                         self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id)) # Update the poketag in the database
                         self.conn.commit()
-                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"ID: {poketag.upper()}", inline=True) # Show the poketag in the embed
+                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"ID: {poketag.upper()}\nEXP: {experience}", inline=True) # Show the poketag and experience in the embed
                 embeds.append(embed)
             view = PokedexView(ctx, embeds, pokemon_per_page, pokedex)
             await ctx.send(embed=embeds[0], view=view)
