@@ -129,7 +129,7 @@ class TreacheryPokemon(commands.Cog):
         pokemon = pokemon.replace(" ", "-")
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
-            self.cur.execute('SELECT pokemon_count FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id))
+            self.cur.execute('SELECT pokemon_count, poketag FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id))
             row = self.cur.fetchone()
             if row is None:
                 poketag = secrets.token_hex(3) # Generate a random 5-character id for the pokemon by passing 3 directly
@@ -157,8 +157,12 @@ class TreacheryPokemon(commands.Cog):
             for chunk in (pokedex[i:i+pokemon_per_page] for i in range(0, len(pokedex), pokemon_per_page)):
                 embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
                 for pokemon_id, pokemon_name, poketag, pokemon_count in chunk:
-                    # Check if the poketag is None, and if so, generate a new one on the fly
-                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"ID: {poketag.upper() if poketag else secrets.token_hex(3).upper()}", inline=True) # Show the poketag in the embed
+                    # Check if the poketag is None, and if so, generate a new one and update the database
+                    if poketag is None:
+                        poketag = secrets.token_hex(3) # Generate a random 5-character id for the pokemon by passing 3 directly
+                        self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id)) # Update the poketag in the database
+                        self.conn.commit()
+                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"ID: {poketag.upper()}", inline=True) # Show the poketag in the embed
                 embeds.append(embed)
             view = PokedexView(ctx, embeds, pokemon_per_page, pokedex)
             await ctx.send(embed=embeds[0], view=view)
