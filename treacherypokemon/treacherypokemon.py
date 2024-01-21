@@ -1,12 +1,7 @@
-import random
-import requests
+import random, requests, logging, sqlite3, secrets, discord
 from redbot.core import commands, Config
-import discord
-from io import BytesIO
 from redbot.core.data_manager import cog_data_path
-import secrets
-import sqlite3
-import logging
+from io import BytesIO
 
 logger = logging.getLogger("red.treacherypokemon")
 logger.setLevel(logging.INFO)
@@ -16,23 +11,12 @@ logger.addHandler(handler)
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot
-        self.current_pokemon = None
-        self.current_sprite = None
-        self.base_url = "https://pokeapi.co/api/v2/pokemon/"
-        self.pokemon_count = 1025
-        self.config = Config.get_conf(self, identifier=1234567890)
-        default_guild = {
-            "spawn_channel": None,
-            "spawn_rate": 0.0,
-        }
-        self.config.register_guild(**default_guild)
-        self.spawn_message = None
-        self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
-        self.cur = self.conn.cursor()
+        self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
+        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
+        self.config.register_guild(spawn_channel=None, spawn_rate=0.0)
+        self.spawn_message, self.conn, self.cur, self.pokemon_id = None, sqlite3.connect(cog_data_path(self) / 'pokemon.db'), self.conn.cursor(), None
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), pokemon_count INTEGER, experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.conn.commit()
-        self.pokemon_id = None
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
@@ -53,17 +37,12 @@ class TreacheryPokemon(commands.Cog):
             response = requests.get(pokemon_url)
             if response.status_code == 200:
                 pokemon_data = response.json()
-                self.current_pokemon = pokemon_data['name']
-                self.current_sprite = pokemon_data['sprites']['other']['official-artwork']['front_default']
+                self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
                 image_data = BytesIO (requests.get (self.current_sprite).content)
                 image_file = discord.File (image_data, filename="pokemon.png")
-                embed_dict = {
-                    "title": "A wild Pokemon has appeared!",
-                    "image": {"url": "attachment://pokemon.png"}
-                }
+                embed_dict = {"title": "A wild Pokemon has appeared!", "image": {"url": "attachment://pokemon.png"}}
                 embed = discord.Embed.from_dict(embed_dict)
-                self.spawn_message = await ctx.send(file=image_file, embed=embed)
-                self.pokemon_id = pokemon_data['id']
+                self.spawn_message, self.pokemon_id = await ctx.send(file=image_file, embed=embed), pokemon_data['id']
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
@@ -86,8 +65,7 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT pokemon_count, poketag, experience FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id))
             row = self.cur.fetchone()
             if row is None:
-                poketag = secrets.token_hex(3)
-                experience = 0
+                poketag, experience = secrets.token_hex(3), 0
                 self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, pokemon_count, experience) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, 1, experience))
             else:
                 pokemon_count, poketag, experience = row
@@ -96,9 +74,7 @@ class TreacheryPokemon(commands.Cog):
             if self.spawn_message:
                 new_embed = discord.Embed(title="Pokemon Caught", description=f"{self.current_pokemon.capitalize()} was caught by {ctx.author.name}.")
                 await self.spawn_message.edit(embed=new_embed)
-            self.current_pokemon = None
-            self.current_sprite = None
-            self.spawn_message = None
+            self.current_pokemon, self.current_sprite, self.spawn_message = None, None, None
         else:
             await ctx.send("That is not the correct Pokémon name or there is no Pokémon to catch. Use the `spawn` command to spawn one.")
 
@@ -127,12 +103,8 @@ class TreacheryPokemon(commands.Cog):
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
         super().__init__(timeout=None)
-        self.ctx = ctx
-        self.embeds = embeds
-        self.current = 0
-        self.pokemon_per_page = pokemon_per_page
-        self.pokedex = pokedex
-        self.total = (len(self.pokedex) + pokemon_per_page - 1) // pokemon_per_page  # This line is changed
+        self.ctx, self.embeds, self.current, self.pokemon_per_page, self.pokedex = ctx, embeds, 0, pokemon_per_page, pokedex
+        self.total = (len(self.pokedex) + pokemon_per_page - 1) // pokemon_per_page
         self.update_footer()
 
     def update_footer(self):
