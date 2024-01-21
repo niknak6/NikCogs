@@ -4,8 +4,8 @@ from redbot.core import commands, Config
 import discord
 from io import BytesIO
 import math
-import sqlite3
 from redbot.core.data_manager import cog_data_path
+import secrets # Import the secrets module to generate random ids
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -23,7 +23,7 @@ class TreacheryPokemon(commands.Cog):
         self.spawn_message = None
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
-        self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, pokemon_count INTEGER, PRIMARY KEY (member_id, pokemon_id))')
+        self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), pokemon_count INTEGER, PRIMARY KEY (member_id, pokemon_id))') # Add a column for poketag
         self.conn.commit()
         self.pokemon_id = None
 
@@ -79,7 +79,8 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT pokemon_count FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id))
             row = self.cur.fetchone()
             if row is None:
-                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, pokemon_count) VALUES (?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, 1))
+                poketag = secrets.token_hex(2.5) # Generate a random 5-character id for the pokemon
+                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, pokemon_count) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, 1)) # Insert the poketag into the database
             else:
                 self.cur.execute('UPDATE pokedex SET pokemon_count = ? WHERE member_id = ? AND pokemon_id = ?', (row[0] + 1, ctx.author.id, self.pokemon_id))
             self.conn.commit()
@@ -95,35 +96,20 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command()
     async def pokedex(self, ctx):
-        self.cur.execute('SELECT pokemon_id, pokemon_name, pokemon_count FROM pokedex WHERE member_id = ?', (ctx.author.id,))
+        self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, pokemon_count FROM pokedex WHERE member_id = ?', (ctx.author.id,)) # Select the poketag from the database
         pokedex = self.cur.fetchall()
         if pokedex:
             embeds = []
             pokemon_per_page = 10
             for chunk in (pokedex[i:i+pokemon_per_page] for i in range(0, len(pokedex), pokemon_per_page)):
                 embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
-                for pokemon_id, pokemon_name, pokemon_count in chunk:
-                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value="\u200b", inline=True)
+                for pokemon_id, pokemon_name, poketag, pokemon_count in chunk:
+                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"ID: {poketag.upper()}", inline=True) # Show the poketag in the embed
                 embeds.append(embed)
             view = PokedexView(ctx, embeds, pokemon_per_page, pokedex)
             await ctx.send(embed=embeds[0], view=view)
         else:
             await ctx.send("You have not caught any Pokémon yet.")
-
-    @commands.command()
-    @commands.is_owner()
-    async def sqcheck(self, ctx):
-        # Execute the PRAGMA database_list command
-        self.cur.execute("PRAGMA database_list")
-        # Fetch the results as a list of tuples
-        rows = self.cur.fetchall()
-        # Iterate over the results to find the filename of the main database
-        for id_, name, filename in rows:
-            if name == "main" and filename is not None:
-                # Send a message to the user
-                await ctx.send(f"The path of the database file is: {filename}")
-                # Break the loop
-                break
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
