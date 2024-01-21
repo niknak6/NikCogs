@@ -39,30 +39,46 @@ class TreacheryPokemon(commands.Cog):
         self.pokemon_id = None
 
     @commands.command()
-    @commands.is_owner()
-    @commands.cooldown(1, 60, commands.BucketType.guild) # Limit the command to once per minute per guild
-    async def fixdb(self, ctx):
-        """Fix the database schema by adding the poketag column if it does not exist"""
-        # Check if the poketag column already exists in the pokedex table
-        self.cur.execute("PRAGMA table_info(pokedex)")
-        columns = self.cur.fetchall()
-        column_names = [column[1] for column in columns]
-        if "poketag" not in column_names:
-            # If the column does not exist, add it using the ALTER TABLE statement
-            try:
-                self.cur.execute("ALTER TABLE pokedex ADD COLUMN poketag VARCHAR (5)")
-                self.conn.commit()
-                await ctx.send("The poketag column has been added to the pokedex table.")
-                logger.info("The poketag column has been added to the pokedex table.")
-            except sqlite3.Error as e:
-                # If an error occurs, rollback the changes and send a message
-                self.conn.rollback()
-                await ctx.send(f"An error occurred while adding the poketag column: {e}")
-                logger.error(f"An error occurred while adding the poketag column: {e}")
-        else:
-            # If the column already exists, send a message
-            await ctx.send("The poketag column already exists in the pokedex table.")
-            logger.info("The poketag column already exists in the pokedex table.")
+@commands.is_owner()
+@commands.cooldown(1, 60, commands.BucketType.guild) # Limit the command to once per minute per guild
+async def fixdb(self, ctx):
+    """Fix the database schema by adding the poketag and experience columns if they do not exist"""
+    # Check if the poketag and experience columns already exist in the pokedex table
+    self.cur.execute("PRAGMA table_info(pokedex)")
+    columns = self.cur.fetchall()
+    column_names = [column[1] for column in columns]
+    if "poketag" not in column_names:
+        # If the poketag column does not exist, add it using the ALTER TABLE statement
+        try:
+            self.cur.execute("ALTER TABLE pokedex ADD COLUMN poketag VARCHAR (5)")
+            self.conn.commit()
+            await ctx.send("The poketag column has been added to the pokedex table.")
+            logger.info("The poketag column has been added to the pokedex table.")
+        except sqlite3.Error as e:
+            # If an error occurs, rollback the changes and send a message
+            self.conn.rollback()
+            await ctx.send(f"An error occurred while adding the poketag column: {e}")
+            logger.error(f"An error occurred while adding the poketag column: {e}")
+    else:
+        # If the poketag column already exists, send a message
+        await ctx.send("The poketag column already exists in the pokedex table.")
+        logger.info("The poketag column already exists in the pokedex table.")
+    if "experience" not in column_names:
+        # If the experience column does not exist, add it using the ALTER TABLE statement
+        try:
+            self.cur.execute("ALTER TABLE pokedex ADD COLUMN experience INTEGER") # Add a new column for experience
+            self.conn.commit()
+            await ctx.send("The experience column has been added to the pokedex table.")
+            logger.info("The experience column has been added to the pokedex table.")
+        except sqlite3.Error as e:
+            # If an error occurs, rollback the changes and send a message
+            self.conn.rollback()
+            await ctx.send(f"An error occurred while adding the experience column: {e}")
+            logger.error(f"An error occurred while adding the experience column: {e}")
+    else:
+        # If the experience column already exists, send a message
+        await ctx.send("The experience column already exists in the pokedex table.")
+        logger.info("The experience column already exists in the pokedex table.")
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
