@@ -3,19 +3,15 @@ import requests
 from redbot.core import commands, Config
 import discord
 from io import BytesIO
-import math
 from redbot.core.data_manager import cog_data_path
-import secrets # Import the secrets module to generate random ids
-import sqlite3 # Import the sqlite3 module to use the database
-import logging # Import the logging module to create a logger
+import secrets
+import sqlite3
+import logging
 
-# Create a logger for the cog
 logger = logging.getLogger("red.treacherypokemon")
 logger.setLevel(logging.INFO)
-# Create a file handler for the logger
 handler = logging.FileHandler(filename="treacherypokemon.log", encoding="utf-8", mode="w")
 handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
-# Add the handler to the logger
 logger.addHandler(handler)
 
 class TreacheryPokemon(commands.Cog):
@@ -34,7 +30,6 @@ class TreacheryPokemon(commands.Cog):
         self.spawn_message = None
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
-        # Create the pokedex table with all the columns
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), pokemon_count INTEGER, experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.conn.commit()
         self.pokemon_id = None
@@ -91,11 +86,12 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT pokemon_count, poketag, experience FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id))
             row = self.cur.fetchone()
             if row is None:
-                poketag = secrets.token_hex(3) # Generate a random 5-character id for the pokemon by passing 3 directly
-                experience = 0 # Set the initial experience to zero
-                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, pokemon_count, experience) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, 1, experience)) # Insert the poketag and experience into the database
+                poketag = secrets.token_hex(3)
+                experience = 0
+                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, pokemon_count, experience) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, 1, experience))
             else:
-                self.cur.execute('UPDATE pokedex SET pokemon_count = ?, experience = ? WHERE member_id = ? AND pokemon_id = ?', (row[0] + 1, row[2] + 10, ctx.author.id, self.pokemon_id)) # Increase the pokemon count and experience by 10
+                pokemon_count, poketag, experience = row
+                self.cur.execute('UPDATE pokedex SET pokemon_count = ?, experience = ? WHERE member_id = ? AND pokemon_id = ?', (pokemon_count + 1, experience + 10, ctx.author.id, self.pokemon_id))
             self.conn.commit()
             if self.spawn_message:
                 new_embed = discord.Embed(title="Pokemon Caught", description=f"{self.current_pokemon.capitalize()} was caught by {ctx.author.name}.")
@@ -109,25 +105,24 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command()
     async def pokedex(self, ctx):
-        self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, pokemon_count, experience FROM pokedex WHERE member_id = ?', (ctx.author.id,)) # Select the poketag and experience from the database
+        self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, pokemon_count, experience FROM pokedex WHERE member_id = ?', (ctx.author.id,))
         pokedex = self.cur.fetchall()
         if pokedex:
-            embeds = []
-            pokemon_per_page = 10
-            for chunk in (pokedex[i:i+pokemon_per_page] for i in range(0, len(pokedex), pokemon_per_page)):
-                embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
-                for pokemon_id, pokemon_name, poketag, pokemon_count, experience in chunk:
-                    # Check if the poketag is None, and if so, generate a new one and update the database
-                    if poketag is None:
-                        poketag = secrets.token_hex(3) # Generate a random 5-character id for the pokemon by passing 3 directly
-                        self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id)) # Update the poketag in the database
-                        self.conn.commit()
-                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"Poketag: {poketag.upper()}\nEXP: {experience}", inline=True) # Show the poketag and experience in the embed
-                embeds.append(embed)
-            view = PokedexView(ctx, embeds, pokemon_per_page, pokedex)
+            embeds = [self.create_embed(chunk) for chunk in (pokedex[i:i+10] for i in range(0, len(pokedex), 10))]
+            view = PokedexView(ctx, embeds, 10, pokedex)
             await ctx.send(embed=embeds[0], view=view)
         else:
             await ctx.send("You have not caught any Pokémon yet.")
+
+    def create_embed(self, chunk):
+        embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
+        for pokemon_id, pokemon_name, poketag, pokemon_count, experience in chunk:
+            if poketag is None:
+                poketag = secrets.token_hex(3)
+                self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id))
+                self.conn.commit()
+            embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"Poketag: {poketag.upper()}\nEXP: {experience}", inline=True)
+        return embed
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
@@ -137,7 +132,7 @@ class PokedexView(discord.ui.View):
         self.current = 0
         self.pokemon_per_page = pokemon_per_page
         self.pokedex = pokedex
-        self.total = math.ceil(len(self.pokedex) / pokemon_per_page)
+        self.total = len(self.pokedex) // pokemon_per_page
         self.update_footer()
 
     def update_footer(self):
