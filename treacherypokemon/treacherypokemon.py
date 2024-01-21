@@ -6,7 +6,17 @@ from io import BytesIO
 import math
 from redbot.core.data_manager import cog_data_path
 import secrets # Import the secrets module to generate random ids
-import sqlite3
+import sqlite3 # Import the sqlite3 module to use the database
+import logging # Import the logging module to create a logger
+
+# Create a logger for the cog
+logger = logging.getLogger("red.treacherypokemon")
+logger.setLevel(logging.INFO)
+# Create a file handler for the logger
+handler = logging.FileHandler(filename="treacherypokemon.log", encoding="utf-8", mode="w")
+handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
+# Add the handler to the logger
+logger.addHandler(handler)
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -27,6 +37,32 @@ class TreacheryPokemon(commands.Cog):
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), pokemon_count INTEGER, PRIMARY KEY (member_id, pokemon_id))') # Add a column for poketag
         self.conn.commit()
         self.pokemon_id = None
+
+    @commands.command()
+    @commands.is_owner()
+    @commands.cooldown(1, 60, commands.BucketType.guild) # Limit the command to once per minute per guild
+    async def fixdb(self, ctx):
+        """Fix the database schema by adding the poketag column if it does not exist"""
+        # Check if the poketag column already exists in the pokedex table
+        self.cur.execute("PRAGMA table_info(pokedex)")
+        columns = self.cur.fetchall()
+        column_names = [column[1] for column in columns]
+        if "poketag" not in column_names:
+            # If the column does not exist, add it using the ALTER TABLE statement
+            try:
+                self.cur.execute("ALTER TABLE pokedex ADD COLUMN poketag VARCHAR (5)")
+                self.conn.commit()
+                await ctx.send("The poketag column has been added to the pokedex table.")
+                logger.info("The poketag column has been added to the pokedex table.")
+            except sqlite3.Error as e:
+                # If an error occurs, rollback the changes and send a message
+                self.conn.rollback()
+                await ctx.send(f"An error occurred while adding the poketag column: {e}")
+                logger.error(f"An error occurred while adding the poketag column: {e}")
+        else:
+            # If the column already exists, send a message
+            await ctx.send("The poketag column already exists in the pokedex table.")
+            logger.info("The poketag column already exists in the pokedex table.")
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
@@ -161,6 +197,3 @@ class PokedexView(discord.ui.View):
                 await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
             except Exception as e:
                 print(e)
-
-def setup(bot):
-    bot.add_cog(TreacheryPokemon(bot))
