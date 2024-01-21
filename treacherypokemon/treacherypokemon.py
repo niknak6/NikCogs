@@ -17,7 +17,8 @@ class TreacheryPokemon(commands.Cog):
         self.spawn_message, self.pokemon_id = None, None
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
-        self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), pokemon_count INTEGER, experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
+        # Removed the pokemon_count column from the table
+        self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.conn.commit()
 
     @commands.guild_only()
@@ -44,7 +45,7 @@ class TreacheryPokemon(commands.Cog):
                 image_file = discord.File (image_data, filename="pokemon.png")
                 embed_dict = {"title": "A wild Pokemon has appeared!", "image": {"url": "attachment://pokemon.png"}}
                 embed = discord.Embed.from_dict(embed_dict)
-                self.spawn_message, self.pokemon_id = await ctx.send(file=image_file, embed=embed), pokemon_data['id']
+                self.spawn_message, self.pokemon_id = await ctx.send(file=image_file, embed=embed)
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
@@ -64,14 +65,10 @@ class TreacheryPokemon(commands.Cog):
         pokemon = pokemon.replace(" ", "-")
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
-            self.cur.execute('SELECT pokemon_count, poketag, experience FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id))
-            row = self.cur.fetchone()
-            if row is None:
-                poketag, experience = secrets.token_hex(3), 0
-                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, pokemon_count, experience) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, 1, experience))
-            else:
-                pokemon_count, poketag, experience = row
-                self.cur.execute('UPDATE pokedex SET pokemon_count = ?, experience = ? WHERE member_id = ? AND pokemon_id = ?', (pokemon_count + 1, experience + 10, ctx.author.id, self.pokemon_id))
+            # Removed the pokemon_count variable and the if-else statement
+            # Always generate a new poketag and insert a new row into the database
+            poketag, experience = secrets.token_hex(3), 0
+            self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, experience) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, experience))
             self.conn.commit()
             if self.spawn_message:
                 new_embed = discord.Embed(title="Pokemon Caught", description=f"{self.current_pokemon.capitalize()} was caught by {ctx.author.name}.")
@@ -83,7 +80,7 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command()
     async def pokedex(self, ctx):
-        self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, pokemon_count, experience FROM pokedex WHERE member_id = ?', (ctx.author.id,))
+        self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, experience FROM pokedex WHERE member_id = ?', (ctx.author.id,))
         pokedex = self.cur.fetchall()
         if pokedex:
             embeds = [self.create_embed(chunk) for chunk in (pokedex[i:i+10] for i in range(0, len(pokedex), 10))]
@@ -94,12 +91,14 @@ class TreacheryPokemon(commands.Cog):
 
     def create_embed(self, chunk):
         embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
-        for pokemon_id, pokemon_name, poketag, pokemon_count, experience in chunk:
+        for pokemon_id, pokemon_name, poketag, experience in chunk:
             if poketag is None:
                 poketag = secrets.token_hex(3)
                 self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id))
                 self.conn.commit()
-            embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"Poketag: {poketag.upper()}\nEXP: {experience}", inline=True)
+            # Removed the pokemon_count variable and the x {pokemon_count} part from the field name
+            # Just show the pokemon name as the field name
+            embed.add_field(name=f"{pokemon_name.capitalize()}", value=f"Poketag: {poketag.upper()}\nEXP: {experience}", inline=True)
         return embed
 
 class PokedexView(discord.ui.View):
