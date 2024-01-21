@@ -45,7 +45,11 @@ class TreacheryPokemon(commands.Cog):
                 image_file = discord.File (image_data, filename="pokemon.png")
                 embed_dict = {"title": "A wild Pokemon has appeared!", "image": {"url": "attachment://pokemon.png"}}
                 embed = discord.Embed.from_dict(embed_dict)
-                self.spawn_message, self.pokemon_id = await ctx.send(file=image_file, embed=embed)
+                # Assign the message object to a single variable
+                message = await ctx.send(file=image_file, embed=embed)
+                # Extract the attributes you need from the message object
+                self.spawn_message = message
+                self.pokemon_id = message.embeds[0].description # Assuming the pokemon_id is in the embed description
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
