@@ -132,7 +132,7 @@ class PokedexView(discord.ui.View):
         self.current = 0
         self.pokemon_per_page = pokemon_per_page
         self.pokedex = pokedex
-        self.total = len(self.pokedex) // pokemon_per_page
+        self.total = (len(self.pokedex) + pokemon_per_page - 1) // pokemon_per_page  # This line is changed
         self.update_footer()
 
     def update_footer(self):
