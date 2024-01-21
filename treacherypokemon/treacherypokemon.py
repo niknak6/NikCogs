@@ -141,7 +141,8 @@ class TreacheryPokemon(commands.Cog):
             for chunk in (pokedex[i:i+pokemon_per_page] for i in range(0, len(pokedex), pokemon_per_page)):
                 embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
                 for pokemon_id, pokemon_name, poketag, pokemon_count in chunk:
-                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"ID: {poketag.upper()}", inline=True) # Show the poketag in the embed
+                    # Check if the poketag is None, and if so, generate a new one on the fly
+                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"ID: {poketag.upper() if poketag else secrets.token_hex(3).upper()}", inline=True) # Show the poketag in the embed
                 embeds.append(embed)
             view = PokedexView(ctx, embeds, pokemon_per_page, pokedex)
             await ctx.send(embed=embeds[0], view=view)
