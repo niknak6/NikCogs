@@ -122,7 +122,7 @@ class TreacheryPokemon(commands.Cog):
                         poketag = secrets.token_hex(3) # Generate a random 5-character id for the pokemon by passing 3 directly
                         self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id)) # Update the poketag in the database
                         self.conn.commit()
-                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"ID: {poketag.upper()}\nEXP: {experience}", inline=True) # Show the poketag and experience in the embed
+                    embed.add_field(name=f"{pokemon_name.capitalize()} x {pokemon_count}", value=f"Poketag: {poketag.upper()}\nEXP: {experience}", inline=True) # Show the poketag and experience in the embed
                 embeds.append(embed)
             view = PokedexView(ctx, embeds, pokemon_per_page, pokedex)
             await ctx.send(embed=embeds[0], view=view)
