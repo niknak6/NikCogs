@@ -80,7 +80,7 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT pokemon_count FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, self.pokemon_id))
             row = self.cur.fetchone()
             if row is None:
-                poketag = secrets.token_hex(2.5) # Generate a random 5-character id for the pokemon
+                poketag = secrets.token_hex(3) # Generate a random 5-character id for the pokemon by passing 3 directly
                 self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, pokemon_count) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, 1)) # Insert the poketag into the database
             else:
                 self.cur.execute('UPDATE pokedex SET pokemon_count = ? WHERE member_id = ? AND pokemon_id = ?', (row[0] + 1, ctx.author.id, self.pokemon_id))
