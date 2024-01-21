@@ -14,7 +14,9 @@ class TreacheryPokemon(commands.Cog):
         self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
         self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
         self.config.register_guild(spawn_channel=None, spawn_rate=0.0)
-        self.spawn_message, self.conn, self.cur, self.pokemon_id = None, sqlite3.connect(cog_data_path(self) / 'pokemon.db'), self.conn.cursor(), None
+        self.spawn_message, self.pokemon_id = None, None
+        self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
+        self.cur = self.conn.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), pokemon_count INTEGER, experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.conn.commit()
 
