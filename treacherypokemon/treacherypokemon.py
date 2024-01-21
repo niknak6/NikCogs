@@ -6,6 +6,7 @@ from io import BytesIO
 import math
 from redbot.core.data_manager import cog_data_path
 import secrets # Import the secrets module to generate random ids
+import sqlite3
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
