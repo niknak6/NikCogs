@@ -68,6 +68,7 @@ class TreacheryPokemon(commands.Cog):
             # Removed the pokemon_count variable and the if-else statement
             # Always generate a new poketag and insert a new row into the database
             poketag, experience = secrets.token_hex(3), 0
+            # Removed the pokemon_count variable from the database query
             self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, experience) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, experience))
             self.conn.commit()
             if self.spawn_message:
