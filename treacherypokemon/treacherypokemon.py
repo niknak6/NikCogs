@@ -24,7 +24,7 @@ class TreacheryPokemon(commands.Cog):
         self.conn.commit()
 
     @commands.guild_only()
-    @commands.admin_or_permissions(manage_guild=True)
+    @commands.has_permissions(manage_guild=True)
     @commands.command()
     async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter, spawn_rate: float):
         await self.config.guild(ctx.guild).spawn_channel.set(channel.id)
