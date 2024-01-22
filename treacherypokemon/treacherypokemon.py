@@ -2,6 +2,7 @@ import random, requests, logging, sqlite3, secrets, discord
 from discord.ext import commands
 from discord.ext.commands import Bot
 from redbot.core import Config
+from redbot.core.data_manager import cog_data_path
 import asyncio
 import json
 import os
