@@ -1,7 +1,7 @@
 import random, requests, logging, sqlite3, secrets, discord
 from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
-from io import BytesIO
+from party import party # Import the party command from the party.py file
 
 logger = logging.getLogger("red.treacherypokemon")
 logger.setLevel(logging.INFO)
