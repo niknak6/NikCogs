@@ -1,6 +1,9 @@
 import random, requests, logging, sqlite3, secrets, discord
-from redbot.core import commands, Config
-from redbot.core.data_manager import cog_data_path
+from discord.ext import commands
+from discord.ext.commands import Bot
+import asyncio
+import json
+import os
 
 logger = logging.getLogger("red.treacherypokemon")
 logger.setLevel(logging.INFO)
@@ -14,14 +17,9 @@ class TreacheryPokemon(commands.Cog):
         self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
         self.config.register_guild(spawn_channel=None, spawn_rate=0.0)
         self.spawn_message, self.pokemon_id = None, None
-        # Moved the database connection and cursor creation to the init method
-        # Removed the createparty command and the party table creation
-        # Create the pokedex and party tables on init
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
-        # Removed the pokemon_count column from the pokedex table
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
-        # Create the party table with the TEXT columns
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT)')
         self.conn.commit()
 
@@ -49,11 +47,9 @@ class TreacheryPokemon(commands.Cog):
                 image_file = discord.File (image_data, filename="pokemon.png")
                 embed_dict = {"title": "A wild Pokemon has appeared!", "image": {"url": "attachment://pokemon.png"}}
                 embed = discord.Embed.from_dict(embed_dict)
-                # Assign the message object to a single variable
                 message = await ctx.send(file=image_file, embed=embed)
-                # Extract the attributes you need from the message object
                 self.spawn_message = message
-                self.pokemon_id = message.embeds[0].description # Assuming the pokemon_id is in the embed description
+                self.pokemon_id = message.embeds[0].description
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
@@ -73,10 +69,7 @@ class TreacheryPokemon(commands.Cog):
         pokemon = pokemon.replace(" ", "-")
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
-            # Removed the pokemon_count variable and the if-else statement
-            # Always generate a new poketag and insert a new row into the database
             poketag, experience = secrets.token_hex(3), 0
-            # Removed the pokemon_count variable from the database query
             self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, experience) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, experience))
             self.conn.commit()
             if self.spawn_message:
@@ -105,8 +98,6 @@ class TreacheryPokemon(commands.Cog):
                 poketag = secrets.token_hex(3)
                 self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id))
                 self.conn.commit()
-            # Removed the pokemon_count variable and the x {pokemon_count} part from the field name
-            # Just show the pokemon name as the field name
             embed.add_field(name=f"{pokemon_name.capitalize()}", value=f"Poketag: {poketag.upper()}\nEXP: {experience}", inline=True)
         return embed
 
@@ -155,107 +146,3 @@ class PokedexView(discord.ui.View):
                 await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
             except Exception as e:
                 print(e)
-
-@commands.guild_only()
-@commands.command()
-async def party(self, ctx, *poketags):
-    # Check if the user has provided any poketags
-    if poketags:
-        # Check if the user has provided exactly 5 poketags
-        if len(poketags) == 5:
-            # Check if the user has all the poketags in their pokedex
-            self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
-            user_poketags = [row[0] for row in self.cur.fetchall()]
-            if all(poketag in user_poketags for poketag in poketags):
-                # Update the party table with the poketags in the given order
-                self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*poketags, ctx.author.id))
-                self.conn.commit()
-                await ctx.send("Your party has been updated.")
-            else:
-                await ctx.send("You do not have all the poketags in your pokedex. Please use valid poketags.")
-        else:
-            # Check if the user has less than 5 poketags in their pokedex
-            self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
-            user_poketags = [row[0] for row in self.cur.fetchall()]
-            if all(poketag in user_poketags for poketag in poketags):
-                # Get the current party of the user
-                self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
-                current_party = self.cur.fetchone()
-                # Create a dictionary to store the positions and poketags
-                positions = {f"position{i}": poketag for i, poketag in enumerate(current_party, 1)}
-                # Create a list to store the available positions
-                available = [f"position{i}" for i in range(1, 6) if positions[f"position{i}"] is None]
-                # Create an embed to show the current party and the poketags to be added
-                embed = discord.Embed(title="Your Party", color=discord.Color.random())
-                for position, poketag in positions.items():
-                    if poketag is None:
-                        embed.add_field(name=position, value="Empty", inline=True)
-                    else:
-                        embed.add_field(name=position, value=poketag.upper(), inline=True)
-                embed.add_field(name="Poketags to be added", value=", ".join(poketag.upper() for poketag in poketags), inline=False)
-                # Send the embed and ask the user to choose the positions for each poketag
-                await ctx.send(embed=embed)
-                await ctx.send("Please choose the positions for each poketag. For example, if you want to put the first poketag in position 2, type 2. If you want to skip a poketag, type 0.")
-                # Loop through the poketags and wait for the user input
-                for index, poketag in enumerate(poketags, 1):
-                    # Define a check function to validate the user input
-                    def check(message):
-                        # Check if the message is from the same author and channel as the command
-                        if message.author != ctx.author or message.channel != ctx.channel:
-                            return False
-                        # Check if the message is a valid number
-                        try:
-                            position = int(message.content)
-                        except ValueError:
-                            return False
-                        # Check if the number is between 0 and 5
-                        if position < 0 or position > 5:
-                            return False
-                        # Check if the number is 0 or the position is available
-                        if position == 0 or f"position{position}" in available:
-                            return True
-                        # Otherwise, return False
-                        return False
-                    # Wait for the user input that passes the check function
-                    try:
-                        message = await self.bot.wait_for("message", check=check, timeout=60)
-                    except asyncio.TimeoutError:
-                        # If the user does not respond within 60 seconds, cancel the command
-                        await ctx.send("You did not respond in time. The command has been cancelled.")
-                        return
-                    # Get the position number from the message content
-                    position = int(message.content)
-                    # Check if the position is 0
-                    if position == 0:
-                        # Skip the current poketag and move to the next one
-                        await ctx.send(f"Skipped {poketag.upper()}.")
-                    else:
-                        # Update the positions and available lists
-                        positions[f"position{position}"] = poketag
-                        available.remove(f"position{position}")
-                        await ctx.send(f"Set {poketag.upper()} to position {position}.")
-                # Update the party table with the new positions
-                self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*positions.values(), ctx.author.id))
-                self.conn.commit()
-                # Create an embed to show the updated party
-                embed = discord.Embed(title="Your Party", color=discord.Color.random())
-                for position, poketag in positions.items():
-                    if poketag is None:
-                        embed.add_field(name=position, value="Empty", inline=True)
-                    else:
-                        embed.add_field(name=position, value=poketag.upper(), inline=True)
-                # Send the embed
-                await ctx.send(embed=embed)
-    else:
-        # Get the current party of the user
-        self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
-        current_party = self.cur.fetchone()
-        # Create an embed to show the current party
-        embed = discord.Embed(title="Your Party", color=discord.Color.random())
-        for position, poketag in enumerate(current_party, 1):
-            if poketag is None:
-                embed.add_field(name=f"position{position}", value="Empty", inline=True)
-            else:
-                embed.add_field(name=f"position{position}", value=poketag.upper(), inline=True)
-        # Send the embed
-        await ctx.send(embed=embed)
