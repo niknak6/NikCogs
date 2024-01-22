@@ -196,11 +196,56 @@ async def party(self, ctx, *poketags):
                 # Send the embed and ask the user to choose the positions for each poketag
                 await ctx.send(embed=embed)
                 await ctx.send("Please choose the positions for each poketag. For example, if you want to put the first poketag in position 2, type 2. If you want to skip a poketag, type 0.")
-                # Create a view to handle the user input
-                view = PartyView(ctx, poketags, positions, available)
-                await ctx.send("Waiting for your input...", view=view)
-            else:
-                await ctx.send("You do not have all the poketags in your pokedex. Please use valid poketags.")
+                # Loop through the poketags and wait for the user input
+                for index, poketag in enumerate(poketags, 1):
+                    # Define a check function to validate the user input
+                    def check(message):
+                        # Check if the message is from the same author and channel as the command
+                        if message.author != ctx.author or message.channel != ctx.channel:
+                            return False
+                        # Check if the message is a valid number
+                        try:
+                            position = int(message.content)
+                        except ValueError:
+                            return False
+                        # Check if the number is between 0 and 5
+                        if position < 0 or position > 5:
+                            return False
+                        # Check if the number is 0 or the position is available
+                        if position == 0 or f"position{position}" in available:
+                            return True
+                        # Otherwise, return False
+                        return False
+                    # Wait for the user input that passes the check function
+                    try:
+                        message = await self.bot.wait_for("message", check=check, timeout=60)
+                    except asyncio.TimeoutError:
+                        # If the user does not respond within 60 seconds, cancel the command
+                        await ctx.send("You did not respond in time. The command has been cancelled.")
+                        return
+                    # Get the position number from the message content
+                    position = int(message.content)
+                    # Check if the position is 0
+                    if position == 0:
+                        # Skip the current poketag and move to the next one
+                        await ctx.send(f"Skipped {poketag.upper()}.")
+                    else:
+                        # Update the positions and available lists
+                        positions[f"position{position}"] = poketag
+                        available.remove(f"position{position}")
+                        await ctx.send(f"Set {poketag.upper()} to position {position}.")
+                # Update the party table with the new positions
+                self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*positions.values(), ctx.author.id))
+                self.conn.commit()
+                # Create an embed to show the updated party
+                embed = discord.Embed(title="Your Party", color=discord.Color.random())
+                for position, poketag in positions.items():
+                    if poketag is None:
+                        embed.add_field(name=position, value="Empty", inline=True)
+                    else:
+                        embed.add_field(name=position, value=poketag.upper(), inline=True)
+                # Send the embed
+                await ctx.send(embed=embed)
     else:
         # Get the current party of the user
         self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
