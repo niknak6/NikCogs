@@ -1,11 +1,15 @@
-import random, requests, logging, sqlite3, secrets, discord
+import discord
 from discord.ext import commands
 from discord.ext.commands import Bot
-from redbot.core import Config
-from redbot.core.data_manager import cog_data_path
 import asyncio
 import json
 import os
+import random
+import requests
+import logging
+import sqlite3
+import secrets
+from io import BytesIO
 
 logger = logging.getLogger("red.treacherypokemon")
 logger.setLevel(logging.INFO)
@@ -13,6 +17,7 @@ handler = logging.FileHandler(filename="treacherypokemon.log", encoding="utf-8",
 handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
 logger.addHandler(handler)
 
+# Make the class inherit from commands.Cog
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
         self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
@@ -148,3 +153,7 @@ class PokedexView(discord.ui.View):
                 await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
             except Exception as e:
                 print(e)
+
+# Add a setup function to register the cog with the bot
+def setup(bot):
+    bot.add_cog(TreacheryPokemon(bot))
