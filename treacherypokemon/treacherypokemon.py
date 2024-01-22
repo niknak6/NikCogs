@@ -110,19 +110,20 @@ class TreacheryPokemon(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def createparty(self, ctx):
-        # Connect to the pokemon.db file
-        connection = sqlite3.connect('pokemon.db')
-        cursor = connection.cursor()
+        # Use the self.conn and self.cur objects
+        # Use the cog_data_path(self) to get the path of the pokemon.db file
+        self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
+        self.cur = self.conn.cursor()
 
         # Check if the party table exists
         query = "SELECT name FROM sqlite_master WHERE type='table' AND name='party'"
-        cursor.execute(query)
-        result = cursor.fetchone()
+        self.cur.execute(query)
+        result = self.cur.fetchone()
 
         # If the party table does not exist, create it
         if result is None:
             # Drop the party table if it exists
-            cursor.execute("DROP TABLE IF EXISTS party")
+            self.cur.execute("DROP TABLE IF EXISTS party")
 
             # Create the party table with the TEXT columns
             query = """CREATE TABLE party (
@@ -133,13 +134,13 @@ class TreacheryPokemon(commands.Cog):
                 position4 TEXT,
                 position5 TEXT
             )"""
-            cursor.execute(query)
+            self.cur.execute(query)
 
             # Commit the changes
-            connection.commit()
+            self.conn.commit()
 
             # Close the connection
-            connection.close()
+            self.conn.close()
 
             await ctx.send("Party table created successfully.")
         # If the party table exists, do not create it
