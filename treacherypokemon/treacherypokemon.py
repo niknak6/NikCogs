@@ -106,6 +106,36 @@ class TreacheryPokemon(commands.Cog):
             embed.add_field(name=f"{pokemon_name.capitalize()}", value=f"Poketag: {poketag.upper()}\nEXP: {experience}", inline=True)
         return embed
 
+    # Added the createparty command and the party table creation
+    @commands.command()
+    @commands.is_owner()
+    async def createparty(self, ctx):
+        # Connect to the pokemon.db file
+        connection = sqlite3.connect('pokemon.db')
+        cursor = connection.cursor()
+
+        # Drop the party table if it exists
+        cursor.execute("DROP TABLE IF EXISTS party")
+
+        # Create the party table with the TEXT columns
+        query = """CREATE TABLE party (
+            member_id INTEGER,
+            position1 TEXT,
+            position2 TEXT,
+            position3 TEXT,
+            position4 TEXT,
+            position5 TEXT
+        )"""
+        cursor.execute(query)
+
+        # Commit the changes
+        connection.commit()
+
+        # Close the connection
+        connection.close()
+
+        await ctx.send("Party table created successfully.")
+
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
         super().__init__(timeout=None)
