@@ -20,6 +20,9 @@ class TreacheryPokemon(commands.Cog):
         # Removed the pokemon_count column from the table
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.conn.commit()
+        # Added the party table creation
+        self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, PRIMARY KEY (member_id))')
+        self.conn.commit()
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
