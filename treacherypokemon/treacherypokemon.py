@@ -114,27 +114,37 @@ class TreacheryPokemon(commands.Cog):
         connection = sqlite3.connect('pokemon.db')
         cursor = connection.cursor()
 
-        # Drop the party table if it exists
-        cursor.execute("DROP TABLE IF EXISTS party")
-
-        # Create the party table with the TEXT columns
-        query = """CREATE TABLE party (
-            member_id INTEGER,
-            position1 TEXT,
-            position2 TEXT,
-            position3 TEXT,
-            position4 TEXT,
-            position5 TEXT
-        )"""
+        # Check if the party table exists
+        query = "SELECT name FROM sqlite_master WHERE type='table' AND name='party'"
         cursor.execute(query)
+        result = cursor.fetchone()
 
-        # Commit the changes
-        connection.commit()
+        # If the party table does not exist, create it
+        if result is None:
+            # Drop the party table if it exists
+            cursor.execute("DROP TABLE IF EXISTS party")
 
-        # Close the connection
-        connection.close()
+            # Create the party table with the TEXT columns
+            query = """CREATE TABLE party (
+                member_id INTEGER,
+                position1 TEXT,
+                position2 TEXT,
+                position3 TEXT,
+                position4 TEXT,
+                position5 TEXT
+            )"""
+            cursor.execute(query)
 
-        await ctx.send("Party table created successfully.")
+            # Commit the changes
+            connection.commit()
+
+            # Close the connection
+            connection.close()
+
+            await ctx.send("Party table created successfully.")
+        # If the party table exists, do not create it
+        else:
+            await ctx.send("Party table already exists. Do not run the createparty command again.")
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
