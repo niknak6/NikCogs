@@ -113,47 +113,47 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command()
     async def party(self, ctx, *args):
-    # Check if the user provided any arguments
-    if args:
-        # Check if the user provided exactly 5 arguments
-        if len(args) == 5:
-            # Check if the user has the poketags in their pokedex
-            valid = True
-            for arg in args:
-                self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, arg.upper()))
-                result = self.cur.fetchone()
-                if not result:
-                    # The user does not have this poketag
-                    valid = False
-                    await ctx.send(f"You do not have a Pokémon with the poketag {arg.upper()}.")
-                    break
-            if valid:
-                # The user has all the poketags
-                # Update the party table with the new party
-                self.cur.execute('REPLACE INTO party (member_id, position1, position2, position3, position4, position5) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, *args))
-                self.conn.commit()
-                await ctx.send("Your party has been updated.")
+        # Check if the user provided any arguments
+        if args:
+            # Check if the user provided exactly 5 arguments
+            if len(args) == 5:
+                # Check if the user has the poketags in their pokedex
+                valid = True
+                for arg in args:
+                    self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, arg.upper()))
+                    result = self.cur.fetchone()
+                    if not result:
+                        # The user does not have this poketag
+                        valid = False
+                        await ctx.send(f"You do not have a Pokémon with the poketag {arg.upper()}.")
+                        break
+                if valid:
+                    # The user has all the poketags
+                    # Update the party table with the new party
+                    self.cur.execute('REPLACE INTO party (member_id, position1, position2, position3, position4, position5) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, *args))
+                    self.conn.commit()
+                    await ctx.send("Your party has been updated.")
+            else:
+                # The user provided an invalid number of arguments
+                await ctx.send("You need to provide exactly 5 poketags to set your party.")
         else:
-            # The user provided an invalid number of arguments
-            await ctx.send("You need to provide exactly 5 poketags to set your party.")
-    else:
-        # The user did not provide any arguments
-        # List the user's current party
-        self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
-        party = self.cur.fetchone()
-        if party:
-            # The user has a party
-            # Resolve the poketags to pokemon names
-            names = []
-            for poketag in party:
-                self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag))
-                name = self.cur.fetchone()[0]
-                names.append(name)
-            # Create an embed to display the party
-            embed = discord.Embed(title="Your Party", color=discord.Color.random())
-            for i, (poketag, name) in enumerate(zip(party, names), 1):
-                embed.add_field(name=f"Position {i}", value=f"{name.capitalize()} ({poketag.upper()})", inline=True)
-            await ctx.send(embed=embed)
-        else:
-            # The user does not have a party
-            await ctx.send("You have not set a party yet.")
+            # The user did not provide any arguments
+            # List the user's current party
+            self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
+            party = self.cur.fetchone()
+            if party:
+                # The user has a party
+                # Resolve the poketags to pokemon names
+                names = []
+                for poketag in party:
+                    self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag))
+                    name = self.cur.fetchone()[0]
+                    names.append(name)
+                # Create an embed to display the party
+                embed = discord.Embed(title="Your Party", color=discord.Color.random())
+                for i, (poketag, name) in enumerate(zip(party, names), 1):
+                    embed.add_field(name=f"Position {i}", value=f"{name.capitalize()} ({poketag.upper()})", inline=True)
+                await ctx.send(embed=embed)
+            else:
+                # The user does not have a party
+                await ctx.send("You have not set a party yet.")
