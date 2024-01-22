@@ -2,10 +2,6 @@ import random, requests, logging, sqlite3, secrets, discord
 from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
 
-# Create an instance of Intents and enable the message_content attribute
-intents = discord.Intents.default()
-intents.message_content = True
-
 logger = logging.getLogger("red.treacherypokemon")
 logger.setLevel(logging.INFO)
 handler = logging.FileHandler(filename="treacherypokemon.log", encoding="utf-8", mode="w")
@@ -161,7 +157,7 @@ class PokedexView(discord.ui.View):
                 print(e)
 
 @commands.guild_only()
-@commands.command(name="pokeparty")
+@commands.command()
 async def party(self, ctx, *poketags):
     # Check if the user has provided any poketags
     if poketags:
@@ -171,8 +167,8 @@ async def party(self, ctx, *poketags):
             self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
             user_poketags = [row[0] for row in self.cur.fetchall()]
             if all(poketag in user_poketags for poketag in poketags):
-                # Update the pokeparty table with the poketags in the given order
-                self.cur.execute('UPDATE pokeparty SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*poketags, ctx.author.id))
+                # Update the party table with the poketags in the given order
+                self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*poketags, ctx.author.id))
                 self.conn.commit()
                 await ctx.send("Your party has been updated.")
             else:
@@ -183,7 +179,7 @@ async def party(self, ctx, *poketags):
             user_poketags = [row[0] for row in self.cur.fetchall()]
             if all(poketag in user_poketags for poketag in poketags):
                 # Get the current party of the user
-                self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM pokeparty WHERE member_id = ?', (ctx.author.id,))
+                self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
                 current_party = self.cur.fetchone()
                 # Create a dictionary to store the positions and poketags
                 positions = {f"position{i}": poketag for i, poketag in enumerate(current_party, 1)}
@@ -238,8 +234,8 @@ async def party(self, ctx, *poketags):
                         positions[f"position{position}"] = poketag
                         available.remove(f"position{position}")
                         await ctx.send(f"Set {poketag.upper()} to position {position}.")
-                # Update the pokeparty table with the new positions
-                self.cur.execute('UPDATE pokeparty SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*positions.values(), ctx.author.id))
+                # Update the party table with the new positions
+                self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*positions.values(), ctx.author.id))
                 self.conn.commit()
                 # Create an embed to show the updated party
                 embed = discord.Embed(title="Your Party", color=discord.Color.random())
@@ -252,7 +248,7 @@ async def party(self, ctx, *poketags):
                 await ctx.send(embed=embed)
     else:
         # Get the current party of the user
-        self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM pokeparty WHERE member_id = ?', (ctx.author.id,))
+        self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
         current_party = self.cur.fetchone()
         # Create an embed to show the current party
         embed = discord.Embed(title="Your Party", color=discord.Color.random())
