@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord.ext.commands import Bot
+from redbot.core import Config
 import asyncio
 import json
 import os
