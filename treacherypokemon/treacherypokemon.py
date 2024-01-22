@@ -1,7 +1,6 @@
 import random, requests, logging, sqlite3, secrets, discord
 from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
-from party import party # Import the party command from the party.py file
 
 logger = logging.getLogger("red.treacherypokemon")
 logger.setLevel(logging.INFO)
@@ -15,14 +14,9 @@ class TreacheryPokemon(commands.Cog):
         self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
         self.config.register_guild(spawn_channel=None, spawn_rate=0.0)
         self.spawn_message, self.pokemon_id = None, None
-        # Moved the database connection and cursor creation to the init method
-        # Removed the createparty command and the party table creation
-        # Create the pokedex and party tables on init
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
-        # Removed the pokemon_count column from the pokedex table
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
-        # Create the party table with the TEXT columns
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT)')
         self.conn.commit()
 
@@ -50,11 +44,9 @@ class TreacheryPokemon(commands.Cog):
                 image_file = discord.File (image_data, filename="pokemon.png")
                 embed_dict = {"title": "A wild Pokemon has appeared!", "image": {"url": "attachment://pokemon.png"}}
                 embed = discord.Embed.from_dict(embed_dict)
-                # Assign the message object to a single variable
                 message = await ctx.send(file=image_file, embed=embed)
-                # Extract the attributes you need from the message object
                 self.spawn_message = message
-                self.pokemon_id = message.embeds[0].description # Assuming the pokemon_id is in the embed description
+                self.pokemon_id = message.embeds[0].description
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
@@ -74,10 +66,7 @@ class TreacheryPokemon(commands.Cog):
         pokemon = pokemon.replace(" ", "-")
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
-            # Removed the pokemon_count variable and the if-else statement
-            # Always generate a new poketag and insert a new row into the database
             poketag, experience = secrets.token_hex(3), 0
-            # Removed the pokemon_count variable from the database query
             self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, experience) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, experience))
             self.conn.commit()
             if self.spawn_message:
@@ -106,10 +95,53 @@ class TreacheryPokemon(commands.Cog):
                 poketag = secrets.token_hex(3)
                 self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id))
                 self.conn.commit()
-            # Removed the pokemon_count variable and the x {pokemon_count} part from the field name
-            # Just show the pokemon name as the field name
             embed.add_field(name=f"{pokemon_name.capitalize()}", value=f"Poketag: {poketag.upper()}\nEXP: {experience}", inline=True)
         return embed
+
+    @commands.guild_only()
+    @commands.command()
+    async def party(self, ctx, *poketags):
+        if poketags:
+            if len(poketags) == 5:
+                self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
+                user_poketags = [row[0] for row in self.cur.fetchall()]
+                if all(poketag in user_poketags for poketag in poketags):
+                    self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*poketags, ctx.author.id))
+                    self.conn.commit()
+                    await ctx.send("Your party has been updated.")
+                else:
+                    await ctx.send("You do not have all the poketags in your pokedex. Please use valid poketags.")
+            else:
+                self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
+                user_poketags = [row[0] for row in self.cur.fetchall()]
+                if all(poketag in user_poketags for poketag in poketags):
+                    self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
+                    current_party = self.cur.fetchone()
+                    positions = {f"position{i}": poketag for i, poketag in enumerate(current_party, 1)}
+                    available = [f"position{i}" for i in range(1, 6) if positions[f"position{i}"] is None]
+                    embed = discord.Embed(title="Your Party", color=discord.Color.random())
+                    for position, poketag in positions.items():
+                        if poketag is None:
+                            embed.add_field(name=position, value="Empty", inline=True)
+                        else:
+                            embed.add_field(name=position, value=poketag.upper(), inline=True)
+                    embed.add_field(name="Poketags to be added", value=", ".join(poketag.upper() for poketag in poketags), inline=False)
+                    await ctx.send(embed=embed)
+                    await ctx.send("Please choose the positions for each poketag. For example, if you want to put the first poketag in position 2, type 2. If you want to skip a poketag, type 0.")
+                    view = PartyView(ctx, poketags, positions, available)
+                    await ctx.send("Waiting for your input...", view=view)
+                else:
+                    await ctx.send("You do not have all the poketags in your pokedex. Please use valid poketags.")
+        else:
+            self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
+            current_party = self.cur.fetchone()
+            embed = discord.Embed(title="Your Party", color=discord.Color.random())
+            for position, poketag in enumerate(current_party, 1):
+                if poketag is None:
+                    embed.add_field(name=f"position{position}", value="Empty", inline=True)
+                else:
+                    embed.add_field(name=f"position{position}", value=poketag.upper(), inline=True)
+            await ctx.send(embed=embed)
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
