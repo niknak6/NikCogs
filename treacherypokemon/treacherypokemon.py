@@ -156,8 +156,8 @@ class PokedexView(discord.ui.View):
             except Exception as e:
                 print(e)
 
-# Remove the import statement for the party module and the TreacheryPokemon class from the party.py file
 # Copy the contents of the party.py file and paste it at the end of the treacherypokemon.py file
+# Remove the import statement for the party module and the TreacheryPokemon class from the party.py file
 
 @commands.guild_only()
 @commands.command()
@@ -198,8 +198,8 @@ async def party(self, ctx, *poketags):
                 embed.add_field(name="Poketags to be added", value=", ".join(poketag.upper() for poketag in poketags), inline=False)
                 # Send the embed and ask the user to choose the positions for each poketag
                 await ctx.send(embed=embed)
-                await ctx.send("Please choose the positions for each poketag. For example, if you want to put the first poketag in position 2, type 2. If you want to skip a poketag, type 0.")
-                # Create a view to handle the user input
+                await ctx.send("Please choose the positions for each poketag by clicking on the buttons below.")
+                # Create a view to handle the button clicks
                 view = PartyView(ctx, poketags, positions, available)
                 await ctx.send("Waiting for your input...", view=view)
             else:
@@ -222,43 +222,39 @@ class PartyView(discord.ui.View):
     def __init__(self, ctx, poketags, positions, available):
         super().__init__(timeout=60)
         self.ctx, self.poketags, self.positions, self.available, self.index = ctx, poketags, positions, available, 0
-        self.add_item(discord.ui.MessageInput(placeholder="Enter a position number (1-5) or 0 to skip"))
+        # Create a list of buttons for each position
+        self.buttons = [discord.ui.Button(label=f"Position {i}", style=discord.ButtonStyle.blurple, custom_id=f"position{i}") for i in range(1, 6)]
+        # Add the buttons to the view
+        for button in self.buttons:
+            self.add_item(button)
 
     async def interaction_check(self, interaction):
         if interaction.user == self.ctx.author:
             return True
         else:
-            await interaction.response.send_message("Only the author of the command can use this input.", ephemeral=True)
+            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
             return False
 
-    @discord.ui.message_input()
-    async def on_message_input(self, interaction, message):
-        # Check if the message is a valid number
-        try:
-            position = int(message.content)
-        except ValueError:
-            await interaction.response.send_message("Please enter a valid number.", ephemeral=True)
-            return
-        # Check if the number is between 0 and 5
-        if position < 0 or position > 5:
-            await interaction.response.send_message("Please enter a number between 0 and 5.", ephemeral=True)
-            return
-        # Check if the number is 0
-        if position == 0:
-            # Skip the current poketag and move to the next one
-            await interaction.response.send_message(f"Skipped {self.poketags[self.index].upper()}.", ephemeral=True)
+    # Define a callback for each button using the button decorator
+    @discord.ui.button(label="Position 1", style=discord.ButtonStyle.blurple, custom_id="position1")
+    async def position1(self, button, interaction):
+        # Check if the position is available
+        if button.custom_id in self.available:
+            # Update the positions and available lists
+            self.positions[button.custom_id] = self.poketags[self.index]
+            self.available.remove(button.custom_id)
+            # Disable the button and change its color to green
+            button.disabled = True
+            button.style = discord.ButtonStyle.green
+            # Update the view with the new button state
+            await interaction.response.edit_message(view=self)
+            # Send a message to confirm the choice
+            await interaction.followup.send(f"Set {self.poketags[self.index].upper()} to {button.label}.", ephemeral=True)
             self.index += 1
         else:
-            # Check if the position is available
-            if f"position{position}" in self.available:
-                # Update the positions and available lists
-                self.positions[f"position{position}"] = self.poketags[self.index]
-                self.available.remove(f"position{position}")
-                await interaction.response.send_message(f"Set {self.poketags[self.index].upper()} to position {position}.", ephemeral=True)
-                self.index += 1
-            else:
-                await interaction.response.send_message(f"Position {position} is already occupied. Please choose another position.", ephemeral=True)
-                return
+            # Send a message to inform the user that the position is occupied
+            await interaction.response.send_message(f"{button.label} is already occupied. Please choose another position.", ephemeral=True)
+            return
         # Check if all the poketags have been assigned
         if self.index == len(self.poketags):
             # Update the party table with the new positions
@@ -272,9 +268,169 @@ class PartyView(discord.ui.View):
                 else:
                     embed.add_field(name=position, value=poketag.upper(), inline=True)
             # Send the embed and stop the view
-            await interaction.response.send_message("Your party has been updated.", ephemeral=True)
+            await interaction.followup.send("Your party has been updated.", ephemeral=True)
             await interaction.channel.send(embed=embed)
             self.stop()
         else:
             # Ask the user to choose the position for the next poketag
-            await interaction.response.send_message(f"Please choose the position for {self.poketags[self.index].upper()}.", ephemeral=True)
+            await interaction.followup.send(f"Please choose the position for {self.poketags[self.index].upper()} by clicking on the buttons below.", ephemeral=True)
+
+    # Repeat the same callback for the other buttons, changing the button label and custom_id accordingly
+    @discord.ui.button(label="Position 2", style=discord.ButtonStyle.blurple, custom_id="position2")
+    async def position2(self, button, interaction):
+        # Check if the position is available
+        if button.custom_id in self.available:
+            # Update the positions and available lists
+            self.positions[button.custom_id] = self.poketags[self.index]
+            self.available.remove(button.custom_id)
+            # Disable the button and change its color to green
+            button.disabled = True
+            button.style = discord.ButtonStyle.green
+            # Update the view with the new button state
+            await interaction.response.edit_message(view=self)
+            # Send a message to confirm the choice
+            await interaction.followup.send(f"Set {self.poketags[self.index].upper()} to {button.label}.", ephemeral=True)
+            self.index += 1
+        else:
+            # Send a message to inform the user that the position is occupied
+            await interaction.response.send_message(f"{button.label} is already occupied. Please choose another position.", ephemeral=True)
+            return
+        # Check if all the poketags have been assigned
+        if self.index == len(self.poketags):
+            # Update the party table with the new positions
+            self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*self.positions.values(), self.ctx.author.id))
+            self.conn.commit()
+            # Create an embed to show the updated party
+            embed = discord.Embed(title="Your Party", color=discord.Color.random())
+            for position, poketag in self.positions.items():
+                if poketag is None:
+                    embed.add_field(name=position, value="Empty", inline=True)
+                else:
+                    embed.add_field(name=position, value=poketag.upper(), inline=True)
+            # Send the embed and stop the view
+            await interaction.followup.send("Your party has been updated.", ephemeral=True)
+            await interaction.channel.send(embed=embed)
+            self.stop()
+        else:
+            # Ask the user to choose the position for the next poketag
+            await interaction.followup.send(f"Please choose the position for {self.poketags[self.index].upper()} by clicking on the buttons below.", ephemeral=True)
+
+    # Repeat the same callback for the other buttons, changing the button label and custom_id accordingly
+    @discord.ui.button(label="Position 3", style=discord.ButtonStyle.blurple, custom_id="position3")
+    async def position3(self, button, interaction):
+        # Check if the position is available
+        if button.custom_id in self.available:
+            # Update the positions and available lists
+            self.positions[button.custom_id] = self.poketags[self.index]
+            self.available.remove(button.custom_id)
+            # Disable the button and change its color to green
+            button.disabled = True
+            button.style = discord.ButtonStyle.green
+            # Update the view with the new button state
+            await interaction.response.edit_message(view=self)
+            # Send a message to confirm the choice
+            await interaction.followup.send(f"Set {self.poketags[self.index].upper()} to {button.label}.", ephemeral=True)
+            self.index += 1
+        else:
+            # Send a message to inform the user that the position is occupied
+            await interaction.response.send_message(f"{button.label} is already occupied. Please choose another position.", ephemeral=True)
+            return
+        # Check if all the poketags have been assigned
+        if self.index == len(self.poketags):
+            # Update the party table with the new positions
+            self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*self.positions.values(), self.ctx.author.id))
+            self.conn.commit()
+            # Create an embed to show the updated party
+            embed = discord.Embed(title="Your Party", color=discord.Color.random())
+            for position, poketag in self.positions.items():
+                if poketag is None:
+                    embed.add_field(name=position, value="Empty", inline=True)
+                else:
+                    embed.add_field(name=position, value=poketag.upper(), inline=True)
+            # Send the embed and stop the view
+            await interaction.followup.send("Your party has been updated.", ephemeral=True)
+            await interaction.channel.send(embed=embed)
+            self.stop()
+        else:
+            # Ask the user to choose the position for the next poketag
+            await interaction.followup.send(f"Please choose the position for {self.poketags[self.index].upper()} by clicking on the buttons below.", ephemeral=True)
+
+    # Repeat the same callback for the other buttons, changing the button label and custom_id accordingly
+    @discord.ui.button(label="Position 4", style=discord.ButtonStyle.blurple, custom_id="position4")
+    async def position4(self, button, interaction):
+        # Check if the position is available
+        if button.custom_id in self.available:
+            # Update the positions and available lists
+            self.positions[button.custom_id] = self.poketags[self.index]
+            self.available.remove(button.custom_id)
+            # Disable the button and change its color to green
+            button.disabled = True
+            button.style = discord.ButtonStyle.green
+            # Update the view with the new button state
+            await interaction.response.edit_message(view=self)
+            # Send a message to confirm the choice
+            await interaction.followup.send(f"Set {self.poketags[self.index].upper()} to {button.label}.", ephemeral=True)
+            self.index += 1
+        else:
+            # Send a message to inform the user that the position is occupied
+            await interaction.response.send_message(f"{button.label} is already occupied. Please choose another position.", ephemeral=True)
+            return
+        # Check if all the poketags have been assigned
+        if self.index == len(self.poketags):
+            # Update the party table with the new positions
+            self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*self.positions.values(), self.ctx.author.id))
+            self.conn.commit()
+            # Create an embed to show the updated party
+            embed = discord.Embed(title="Your Party", color=discord.Color.random())
+            for position, poketag in self.positions.items():
+                if poketag is None:
+                    embed.add_field(name=position, value="Empty", inline=True)
+                else:
+                    embed.add_field(name=position, value=poketag.upper(), inline=True)
+            # Send the embed and stop the view
+            await interaction.followup.send("Your party has been updated.", ephemeral=True)
+            await interaction.channel.send(embed=embed)
+            self.stop()
+        else:
+            # Ask the user to choose the position for the next poketag
+            await interaction.followup.send(f"Please choose the position for {self.poketags[self.index].upper()} by clicking on the buttons below.", ephemeral=True)
+
+    # Repeat the same callback for the other buttons, changing the button label and custom_id accordingly
+    @discord.ui.button(label="Position 5", style=discord.ButtonStyle.blurple, custom_id="position5")
+    async def position5(self, button, interaction):
+        # Check if the position is available
+        if button.custom_id in self.available:
+            # Update the positions and available lists
+            self.positions[button.custom_id] = self.poketags[self.index]
+            self.available.remove(button.custom_id)
+            # Disable the button and change its color to green
+            button.disabled = True
+            button.style = discord.ButtonStyle.green
+            # Update the view with the new button state
+            await interaction.response.edit_message(view=self)
+            # Send a message to confirm the choice
+            await interaction.followup.send(f"Set {self.poketags[self.index].upper()} to {button.label}.", ephemeral=True)
+            self.index += 1
+        else:
+            # Send a message to inform the user that the position is occupied
+            await interaction.response.send_message(f"{button.label} is already occupied. Please choose another position.", ephemeral=True)
+            return
+        # Check if all the poketags have been assigned
+        if self.index == len(self.poketags):
+            # Update the party table with the new positions
+            self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', (*self.positions.values(), self.ctx.author.id))
+            self.conn.commit()
+            # Create an embed to show the updated party
+            embed = discord.Embed(title="Your Party", color=discord.Color.random())
+            for position, poketag in self.positions.items():
+                if poketag is None:
+                    embed.add_field(name=position, value="Empty", inline=True)
+                else:
+                    embed.add_field(name=position, value=poketag.upper(), inline=True)
+            # Send the embed and stop the view
+            await interaction.followup.send("Your party has been updated.", ephemeral=True)
+            await interaction.channel.send(embed=embed)
+            self.stop()
+        else:
+            # Ask the user to choose the position for the next poketag
+            await interaction.followup.send(f"Please choose the position for {self.poketags[self.index].upper()} by clicking on the buttons below.", ephemeral=True)
