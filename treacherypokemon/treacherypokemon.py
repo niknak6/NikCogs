@@ -15,10 +15,15 @@ class TreacheryPokemon(commands.Cog):
         self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
         self.config.register_guild(spawn_channel=None, spawn_rate=0.0)
         self.spawn_message, self.pokemon_id = None, None
+        # Moved the database connection and cursor creation to the init method
+        # Removed the createparty command and the party table creation
+        # Create the pokedex and party tables on init
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
-        # Removed the pokemon_count column from the table
+        # Removed the pokemon_count column from the pokedex table
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
+        # Create the party table with the TEXT columns
+        self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT)')
         self.conn.commit()
 
     @commands.guild_only()
@@ -105,47 +110,6 @@ class TreacheryPokemon(commands.Cog):
             # Just show the pokemon name as the field name
             embed.add_field(name=f"{pokemon_name.capitalize()}", value=f"Poketag: {poketag.upper()}\nEXP: {experience}", inline=True)
         return embed
-
-    # Added the createparty command and the party table creation
-    @commands.command()
-    @commands.is_owner()
-    async def createparty(self, ctx):
-        # Use the self.conn and self.cur objects
-        # Use the cog_data_path(self) to get the path of the pokemon.db file
-        self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
-        self.cur = self.conn.cursor()
-
-        # Check if the party table exists
-        query = "SELECT name FROM sqlite_master WHERE type='table' AND name='party'"
-        self.cur.execute(query)
-        result = self.cur.fetchone()
-
-        # If the party table does not exist, create it
-        if result is None:
-            # Drop the party table if it exists
-            self.cur.execute("DROP TABLE IF EXISTS party")
-
-            # Create the party table with the TEXT columns
-            query = """CREATE TABLE party (
-                member_id INTEGER,
-                position1 TEXT,
-                position2 TEXT,
-                position3 TEXT,
-                position4 TEXT,
-                position5 TEXT
-            )"""
-            self.cur.execute(query)
-
-            # Commit the changes
-            self.conn.commit()
-
-            # Close the connection
-            self.conn.close()
-
-            await ctx.send("Party table created successfully.")
-        # If the party table exists, do not create it
-        else:
-            await ctx.send("Party table already exists. Do not run the createparty command again.")
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
