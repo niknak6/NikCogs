@@ -103,7 +103,15 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command()
     async def party(self, ctx, *poketags: str):
-        if len(poketags) != 5:
+        if len(poketags) == 0:
+            # Fetch and send the current party if no poketags were provided
+            self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
+            current_party = self.cur.fetchone()
+            if current_party is not None:
+                await ctx.send(f"Your current party is: {', '.join(current_party)}")
+            else:
+                await ctx.send("You don't have a party yet.")
+        elif len(poketags) != 5:
             await ctx.send("You must provide exactly 5 poketags.")
         else:
             self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
