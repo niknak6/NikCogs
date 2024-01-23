@@ -109,15 +109,14 @@ class TreacheryPokemon(commands.Cog):
             current_party = self.cur.fetchone()
             if current_party is not None:
                 # Use a LEFT JOIN query to get the pokemon_name for each poketag in the party
-                # Use position1 as the column name in the party table to join with the poketag column in the pokedex table
-                self.cur.execute('SELECT pokemon_name FROM party LEFT JOIN pokedex ON party.position1 = pokedex.poketag WHERE party.member_id = ?', (ctx.author.id,))
+                # Use the COALESCE function to replace any NULL values with "Unknown"
+                self.cur.execute('SELECT COALESCE(pokemon_name, "Unknown") FROM party LEFT JOIN pokedex ON party.position1 = pokedex.poketag WHERE party.member_id = ?', (ctx.author.id,))
                 pokemon_names = [row[0] for row in self.cur.fetchall()]
                 # Create a new embed object with a title and a color
                 embed = discord.Embed(title="Your Party", color=discord.Color.random())
                 # Loop through the party and add a field for each poketag with the pokemon_name and the poketag as the value
                 for i, poketag in enumerate(current_party):
-                    # If the pokemon_name is None, use a default value
-                    pokemon_name = pokemon_names[i] or "Unknown"
+                    pokemon_name = pokemon_names[i]
                     embed.add_field(name=f"Position {i+1}", value=f"{pokemon_name.capitalize()} ({poketag.upper()})", inline=True)
                 # Send the embed to the user
                 await ctx.send(embed=embed)
@@ -138,7 +137,6 @@ class TreacheryPokemon(commands.Cog):
                 await ctx.send("Your party has been updated.")
             else:
                 await ctx.send("You do not have all of these Pokétags in your pokedex.")
-
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
         super().__init__(timeout=None)
