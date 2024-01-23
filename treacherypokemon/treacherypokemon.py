@@ -84,13 +84,13 @@ class TreacheryPokemon(commands.Cog):
         self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, experience FROM pokedex WHERE member_id = ?', (ctx.author.id,))
         pokedex = self.cur.fetchall()
         if pokedex:
-            embeds = [self.create_embed(chunk) for chunk in (pokedex[i:i+10] for i in range(0, len(pokedex), 10))]
+            embeds = [self.create_embed(ctx, chunk) for chunk in (pokedex[i:i+10] for i in range(0, len(pokedex), 10))]
             view = PokedexView(ctx, embeds, 10, pokedex)
             await ctx.send(embed=embeds[0], view=view)
         else:
             await ctx.send("You have not caught any Pokémon yet.")
 
-    def create_embed(self, chunk):
+    def create_embed(self, ctx, chunk):
         embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
         for pokemon_id, pokemon_name, poketag, experience in chunk:
             if poketag is None:
