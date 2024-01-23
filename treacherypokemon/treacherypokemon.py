@@ -44,7 +44,7 @@ class TreacheryPokemon(commands.Cog):
                 self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
                 image_data = BytesIO (requests.get (self.current_sprite).content)
                 image_file = discord.File (image_data, filename="pokemon.png")
-                embed_dict = {"title": "A wild Pokemon has appeared!", "image": {"url": "attachment://pokemon.png"}}
+                embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
                 embed = discord.Embed.from_dict(embed_dict)
                 message = await ctx.send(file=image_file, embed=embed)
                 self.spawn_message = message
@@ -91,7 +91,7 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("You have not caught any Pokémon yet.")
 
     def create_embed(self, ctx, chunk):
-        embed = discord.Embed(title="Your Pokedex", color=discord.Color.random())
+        embed = discord.Embed(title="Your Pokédex", color=discord.Color.random())
         for pokemon_id, pokemon_name, poketag, experience in chunk:
             if poketag is None:
                 poketag = secrets.token_hex(3)
@@ -112,7 +112,7 @@ class TreacheryPokemon(commands.Cog):
             else:
                 await ctx.send("You don't have a party yet.")
         elif len(poketags) != 5:
-            await ctx.send("You must provide exactly 5 poketags.")
+            await ctx.send("You must provide exactly 5 Pokétags.")
         else:
             self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
             user_poketags = [row[0] for row in self.cur.fetchall()]
@@ -125,7 +125,7 @@ class TreacheryPokemon(commands.Cog):
                 self.conn.commit()
                 await ctx.send("Your party has been updated.")
             else:
-                await ctx.send("You do not have all of these poketags in your pokedex.")
+                await ctx.send("You do not have all of these Pokétags in your pokedex.")
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
