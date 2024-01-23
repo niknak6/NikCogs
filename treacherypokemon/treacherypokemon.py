@@ -63,7 +63,7 @@ class TreacheryPokemon(commands.Cog):
             await self.bot.get_command("spawn").invoke(ctx)
 
     @commands.guild_only()
-    @commands.command(name="pokecatch")
+    @commands.command(name="catch")
     async def pokecatch(self, ctx, *, pokemon: str):
         pokemon = pokemon.replace(" ", "-")
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
