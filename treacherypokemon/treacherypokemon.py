@@ -120,8 +120,8 @@ class TreacheryPokemon(commands.Cog):
                 self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
                 current_party = self.cur.fetchone() or ['-', '-', '-', '-', '-']
                 new_party = [poketag if poketag != '-' else current_party[i] for i, poketag in enumerate(poketags)]
-                self.cur.execute('INSERT OR REPLACE INTO party (member_id, position1, position2, position3, position4, position5) VALUES (?, ?, ?, ?, ?, ?)', 
-                                 (ctx.author.id, *new_party))
+                self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', 
+                                 (*new_party, ctx.author.id))
                 self.conn.commit()
                 await ctx.send("Your party has been updated.")
             else:
