@@ -108,19 +108,7 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
             current_party = self.cur.fetchone()
             if current_party is not None:
-                # Query the pokemon names from the pokedex table using the poketags
-                pokemon_names = []
-                for poketag in current_party:
-                    self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag))
-                    pokemon_name = self.cur.fetchone()
-                    if pokemon_name is not None:
-                        pokemon_names.append(f"{pokemon_name[0].capitalize()} - {poketag.upper()}")
-                    else:
-                        pokemon_names.append(f"Unknown - {poketag.upper()}")
-                # Create an embed object with the party information
-                embed = discord.Embed(title="Your Party", description="\n".join(pokemon_names), color=discord.Color.random())
-                # Send the embed object to the user
-                await ctx.send(embed=embed)
+                await ctx.send(f"Your current party is: {' '.join(current_party)}")
             else:
                 await ctx.send("You don't have a party yet.")
         elif len(poketags) != 5:
@@ -133,7 +121,7 @@ class TreacheryPokemon(commands.Cog):
                 current_party = self.cur.fetchone() or ['-', '-', '-', '-', '-']
                 new_party = [poketag if poketag != '-' else current_party[i] for i, poketag in enumerate(poketags)]
                 self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', 
-                                (*new_party, ctx.author.id))
+                                 (*new_party, ctx.author.id))
                 self.conn.commit()
                 await ctx.send("Your party has been updated.")
             else:
