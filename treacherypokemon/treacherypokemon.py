@@ -109,8 +109,8 @@ class TreacheryPokemon(commands.Cog):
             current_party = self.cur.fetchone()
             if current_party is not None:
                 # Use a LEFT JOIN query to get the pokemon_name for each poketag in the party
-                # Use the CASE expression to replace any empty or invalid poketags with "-"
-                self.cur.execute('SELECT COALESCE(pokemon_name, "Unknown") FROM party LEFT JOIN pokedex ON CASE WHEN party.position1 IS NULL OR party.position1 NOT IN (SELECT poketag FROM pokedex) THEN "-" ELSE party.position1 END = pokedex.poketag WHERE party.member_id = ?', (ctx.author.id,))
+                # Use the GROUP BY clause to aggregate the pokemon_name for each poketag in the party
+                self.cur.execute('SELECT COALESCE(MAX(pokemon_name), "Unknown") FROM party LEFT JOIN pokedex ON CASE WHEN party.position1 IS NULL OR party.position1 NOT IN (SELECT poketag FROM pokedex) THEN "-" ELSE party.position1 END = pokedex.poketag WHERE party.member_id = ? GROUP BY party.position1', (ctx.author.id,))
                 pokemon_names = [row[0] for row in self.cur.fetchall()]
                 # Create a new embed object with a title and a color
                 embed = discord.Embed(title="Your Party", color=discord.Color.random())
