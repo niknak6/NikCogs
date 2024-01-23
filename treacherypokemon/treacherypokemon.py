@@ -108,7 +108,7 @@ class TreacheryPokemon(commands.Cog):
         else:
             self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
             user_poketags = [row[0] for row in self.cur.fetchall()]
-            if all(poketag in user_poketags or poketag == '-' for poketag in poketags):
+            if all(poketag.lower() in user_poketags or poketag == '-' for poketag in poketags):
                 self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
                 current_party = self.cur.fetchone() or ['-', '-', '-', '-', '-']
                 new_party = [poketag if poketag != '-' else current_party[i] for i, poketag in enumerate(poketags)]
