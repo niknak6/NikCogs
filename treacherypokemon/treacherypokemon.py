@@ -108,7 +108,7 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
             current_party = self.cur.fetchone()
             if current_party is not None:
-                await ctx.send(f"Your current party is: {', '.join(current_party)}")
+                await ctx.send(f"Your current party is: {' '.join(current_party)}")
             else:
                 await ctx.send("You don't have a party yet.")
         elif len(poketags) != 5:
