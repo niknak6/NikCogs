@@ -108,17 +108,18 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
             current_party = self.cur.fetchone()
             if current_party is not None:
-                # Use a LEFT JOIN query to get the pokemon_name for each poketag in the party
-                # Use the GROUP BY clause to aggregate the pokemon_name for each poketag in the party
-                self.cur.execute('SELECT COALESCE(MAX(pokemon_name), "Unknown") FROM party LEFT JOIN pokedex ON CASE WHEN party.position1 IS NULL OR party.position1 NOT IN (SELECT poketag FROM pokedex) THEN "-" ELSE party.position1 END = pokedex.poketag WHERE party.member_id = ? GROUP BY party.position1', (ctx.author.id,))
-                pokemon_names = [row[0] for row in self.cur.fetchall()]
-                # Create a new embed object with a title and a color
-                embed = discord.Embed(title="Your Party", color=discord.Color.random())
-                # Loop through the party and add a field for each poketag with the pokemon_name and the poketag as the value
-                for i, poketag in enumerate(current_party):
-                    pokemon_name = pokemon_names[i]
-                    embed.add_field(name=f"Position {i+1}", value=f"{pokemon_name.capitalize()} ({poketag.upper()})", inline=True)
-                # Send the embed to the user
+                # Query the pokemon names from the pokedex table using the poketags
+                pokemon_names = []
+                for poketag in current_party:
+                    self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag))
+                    pokemon_name = self.cur.fetchone()
+                    if pokemon_name is not None:
+                        pokemon_names.append(f"{pokemon_name[0].capitalize()} - {poketag.upper()}")
+                    else:
+                        pokemon_names.append(f"Unknown - {poketag.upper()}")
+                # Create an embed object with the party information
+                embed = discord.Embed(title="Your Party", description="\n".join(pokemon_names), color=discord.Color.random())
+                # Send the embed object to the user
                 await ctx.send(embed=embed)
             else:
                 await ctx.send("You don't have a party yet.")
@@ -137,7 +138,7 @@ class TreacheryPokemon(commands.Cog):
                 await ctx.send("Your party has been updated.")
             else:
                 await ctx.send("You do not have all of these Pokétags in your pokedex.")
-                
+
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
         super().__init__(timeout=None)
