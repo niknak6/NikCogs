@@ -108,7 +108,16 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
             current_party = self.cur.fetchone()
             if current_party is not None:
-                await ctx.send(f"Your current party is: {' '.join(current_party)}")
+                # Query the pokedex table to get the pokemon_name for each poketag in the party
+                self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag IN (?, ?, ?, ?, ?)', (ctx.author.id, *current_party))
+                pokemon_names = [row[0] for row in self.cur.fetchall()]
+                # Create a new embed object with a title and a color
+                embed = discord.Embed(title="Your Party", color=discord.Color.random())
+                # Loop through the party and add a field for each poketag with the pokemon_name and the poketag as the value
+                for i, poketag in enumerate(current_party):
+                    embed.add_field(name=f"Position {i+1}", value=f"{pokemon_names[i].capitalize()} ({poketag.upper()})", inline=True)
+                # Send the embed to the user
+                await ctx.send(embed=embed)
             else:
                 await ctx.send("You don't have a party yet.")
         elif len(poketags) != 5:
@@ -121,7 +130,7 @@ class TreacheryPokemon(commands.Cog):
                 current_party = self.cur.fetchone() or ['-', '-', '-', '-', '-']
                 new_party = [poketag if poketag != '-' else current_party[i] for i, poketag in enumerate(poketags)]
                 self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', 
-                                 (*new_party, ctx.author.id))
+                                (*new_party, ctx.author.id))
                 self.conn.commit()
                 await ctx.send("Your party has been updated.")
             else:
