@@ -42,13 +42,16 @@ class TreacheryPokemon(commands.Cog):
             if response.status_code == 200:
                 pokemon_data = response.json()
                 self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
+                # Add this line to assign the pokemon_id to the actual id from the PokeAPI
+                self.pokemon_id = pokemon_data['id']
                 image_data = BytesIO (requests.get (self.current_sprite).content)
                 image_file = discord.File (image_data, filename="pokemon.png")
                 embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
                 embed = discord.Embed.from_dict(embed_dict)
                 message = await ctx.send(file=image_file, embed=embed)
                 self.spawn_message = message
-                self.pokemon_id = message.embeds[0].description
+                # Remove this line as it assigns the wrong value to the pokemon_id
+                # self.pokemon_id = message.embeds[0].description
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
@@ -69,7 +72,6 @@ class TreacheryPokemon(commands.Cog):
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
             poketag, experience = secrets.token_hex(3), 0
-            # Add the self.pokemon_id attribute as an argument
             self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, experience) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, experience))
             self.conn.commit()
             if self.spawn_message:
