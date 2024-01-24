@@ -72,10 +72,12 @@ class TreacheryPokemon(commands.Cog):
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
             poketag, experience = secrets.token_hex(3), 0
-            self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, experience) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, experience))
+            # Add this line to capitalize the pokemon_name
+            pokemon_name = self.current_pokemon.title()
+            self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, experience) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, pokemon_name, poketag, experience))
             self.conn.commit()
             if self.spawn_message:
-                new_embed = discord.Embed(title="Pokemon Caught", description=f"{self.current_pokemon.capitalize()} was caught by {ctx.author.name}.")
+                new_embed = discord.Embed(title="Pokemon Caught", description=f"{pokemon_name} was caught by {ctx.author.name}.")
                 await self.spawn_message.edit(embed=new_embed)
             self.current_pokemon, self.current_sprite, self.spawn_message = None, None, None
         else:
