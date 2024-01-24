@@ -109,7 +109,7 @@ class TreacheryPokemon(commands.Cog):
             current_party = self.cur.fetchone()
             if current_party is not None:
                 # Get the pokemon names from the pokedex table using the poketags
-                pokemon_names = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag)).fetchone()[0] for poketag in current_party]
+                pokemon_names = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone()[0] for poketag in current_party]
                 # Pair up the poketags and pokemon names
                 pairs = zip(current_party, pokemon_names)
                 # Format the output as a string
