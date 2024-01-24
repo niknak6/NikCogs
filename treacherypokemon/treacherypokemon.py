@@ -69,6 +69,7 @@ class TreacheryPokemon(commands.Cog):
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
             poketag, experience = secrets.token_hex(3), 0
+            # Add the self.pokemon_id attribute as an argument
             self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, experience) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, self.current_pokemon, poketag, experience))
             self.conn.commit()
             if self.spawn_message:
