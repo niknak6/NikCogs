@@ -17,7 +17,7 @@ class TreacheryPokemon(commands.Cog):
         self.spawn_message, self.pokemon_id = None, None
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
-        self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
+        self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, level INTEGER, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.conn.commit()
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, PRIMARY KEY (member_id))')
         self.conn.commit()
