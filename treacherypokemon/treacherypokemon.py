@@ -81,7 +81,7 @@ class TreacheryPokemon(commands.Cog):
                 await self.spawn_message.edit(embed=new_embed)
             self.current_pokemon, self.current_sprite, self.spawn_message = None, None, None
         else:
-            await ctx.send("That is not the correct Pokémon name or there is no Pokémon to catch. Use the `spawn` command to spawn one.")
+            await ctx.send("That is not the correct Pokémon name or there is no Pokémon to catch.")
 
     @commands.guild_only()
     @commands.command()
