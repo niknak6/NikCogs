@@ -141,13 +141,13 @@ class TreacheryPokemon(commands.Cog):
                 await ctx.send("You do not have all of these Pokétags in your pokedex.")
 
 class PokedexView(discord.ui.View):
-    def __init__(self, ctx, embeds, pokemon_per_page, pokedex):
+    def __init__(self, ctx, embeds, pokedex):
         super().__init__(timeout=None)
-        self.ctx, self.embeds, self.current, self.pokemon_per_page, self.pokedex = ctx, embeds, 0, pokemon_per_page, pokedex
-        self.total = (len(self.pokedex) + pokemon_per_page - 1) // pokemon_per_page
+        self.ctx, self.embeds, self.current, self.pokedex = ctx, embeds, 0, pokedex
+        self.total = len(self.embeds)
 
     def update_footer(self):
-        self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * self.pokemon_per_page + 1} - {min((self.current + 1) * self.pokemon_per_page, len(self.pokedex))} of {len(self.pokedex)}")
+        self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * 10 + 1} - {min((self.current + 1) * 10, len(self.pokedex))} of {len(self.pokedex)}")
 
     async def handle_button(self, interaction, button, direction):
         if interaction.user == self.ctx.author:
@@ -155,15 +155,9 @@ class PokedexView(discord.ui.View):
             self.current += direction
             self.current %= self.total
             self.update_footer()
-            try:
-                await interaction.message.edit(embed=self.embeds[self.current])
-            except Exception as e:
-                print(e)
+            await interaction.message.edit(embed=self.embeds[self.current])
         else:
-            try:
-                await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
-            except Exception as e:
-                print(e)
+            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
 
     @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
     async def previous(self, interaction, button):
