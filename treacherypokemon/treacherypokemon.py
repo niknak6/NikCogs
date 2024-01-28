@@ -59,7 +59,7 @@ class TreacheryPokemon(commands.Cog):
         if party is not None:
             for poketag in party:
                 if poketag != '-':
-                    self.update_experience(message.author.id, poketag)
+                    await self.update_experience(message.author.id, poketag)
 
     @commands.guild_only()
     @commands.command(name="catch")
@@ -153,25 +153,6 @@ class PokedexView(discord.ui.View):
     async def next(self, interaction, button):
         await self.handle_button(interaction, button, 1)
 
-    # Add this function to your TreacheryPokemon class
-    def get_level(self, experience):
-        low, high = 1, 99
-        while low <= high:
-            mid = (low + high) // 2
-            messages = 0.02 * mid ** 2 + 0.2 * mid + 1
-            if messages == experience:
-                return mid
-            elif messages < experience:
-                low = mid + 1
-            else:
-                high = mid - 1
-        return low - 1
-
-    # Add this function to your TreacheryPokemon class
-    def get_experience(self, level):
-        return 0.02 * level ** 2 + 0.2 * level + 1
-
-    # Add this function to your TreacheryPokemon class
     async def update_experience(self, member_id, poketag):
         self.cur.execute('SELECT experience FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
         experience = self.cur.fetchone()[0]
@@ -188,3 +169,19 @@ class PokedexView(discord.ui.View):
             await spawn_channel.send(f"Congratulations! Your {pokemon_name.capitalize()} has leveled up to {level}!")
         self.cur.execute('UPDATE pokedex SET experience = ? WHERE member_id = ? AND poketag = ?', (experience, member_id, poketag))
         self.conn.commit()
+
+    def get_level(self, experience):
+        low, high = 1, 99
+        while low <= high:
+            mid = (low + high) // 2
+            messages = 0.02 * mid ** 2 + 0.2 * mid + 1
+            if messages == experience:
+                return mid
+            elif messages < experience:
+                low = mid + 1
+            else:
+                high = mid - 1
+        return low - 1
+
+    def get_experience(self, level):
+        return 0.02 * level ** 2 + 0.2 * level + 1
