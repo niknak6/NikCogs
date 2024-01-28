@@ -54,12 +54,6 @@ class TreacheryPokemon(commands.Cog):
         if message.channel == spawn_channel and random.random() < spawn_rate:
             ctx = await self.bot.get_context(message)
             await self.bot.get_command("spawn").invoke(ctx)
-        self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (message.author.id,))
-        party = self.cur.fetchone()
-        if party is not None:
-            for poketag in party:
-                if poketag != '-':
-                    await self.update_experience(message.author.id, poketag)
 
     @commands.guild_only()
     @commands.command(name="catch")
@@ -125,39 +119,6 @@ class TreacheryPokemon(commands.Cog):
                 await ctx.send("Your party has been updated.")
             else:
                 await ctx.send("You do not have all of these Pokétags in your pokedex.")
-
-    async def update_experience(self, member_id, poketag):
-        self.cur.execute('SELECT experience FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag.lower()))
-        experience = self.cur.fetchone()[0]
-        experience += 1
-        level = self.get_level(experience)
-        next_level = self.get_experience(level + 1)
-        if experience >= next_level:
-            experience = 0
-            level += 1
-            self.cur.execute('UPDATE pokedex SET level = ? WHERE member_id = ? AND poketag = ?', (level, member_id, poketag))
-            self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
-            pokemon_name = self.cur.fetchone()[0]
-            spawn_channel = discord.utils.get(self.bot.get_guild(member_id).channels, id=await self.config.guild(self.bot.get_guild(member_id)).spawn_channel())
-            await spawn_channel.send(f"Congratulations! Your {pokemon_name.capitalize()} has leveled up to {level}!")
-        self.cur.execute('UPDATE pokedex SET experience = ? WHERE member_id = ? AND poketag = ?', (experience, member_id, poketag))
-        self.conn.commit()
-
-    def get_level(self, experience):
-        low, high = 1, 99
-        while low <= high:
-            mid = (low + high) // 2
-            messages = 0.02 * mid ** 2 + 0.2 * mid + 1
-            if messages == experience:
-                return mid
-            elif messages < experience:
-                low = mid + 1
-            else:
-                high = mid - 1
-        return low - 1
-
-    def get_experience(self, level):
-        return 0.02 * level ** 2 + 0.2 * level + 1
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
