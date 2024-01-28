@@ -59,7 +59,11 @@ class TreacheryPokemon(commands.Cog):
         if party is not None:
             for poketag in party:
                 if poketag != '-':
-                    await self.update_experience(message.author.id, poketag)
+                    # Check if the object has the update_experience method before calling it
+                    if hasattr(self, 'update_experience'):
+                        await self.update_experience(message.author.id, poketag)
+                    else:
+                        print("The object does not have the update_experience method.")
 
     @commands.guild_only()
     @commands.command(name="catch")
