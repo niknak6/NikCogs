@@ -127,7 +127,7 @@ class TreacheryPokemon(commands.Cog):
                 await ctx.send("You do not have all of these Pokétags in your pokedex.")
 
     async def update_experience(self, member_id, poketag):
-        self.cur.execute('SELECT experience FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+        self.cur.execute('SELECT experience FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag.lower()))
         experience = self.cur.fetchone()[0]
         experience += 1
         level = self.get_level(experience)
