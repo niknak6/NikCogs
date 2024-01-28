@@ -172,7 +172,7 @@ class PokedexView(discord.ui.View):
         return 0.02 * level ** 2 + 0.2 * level + 1
 
     # Add this function to your TreacheryPokemon class
-    def update_experience(self, member_id, poketag):
+    async def update_experience(self, member_id, poketag):
         self.cur.execute('SELECT experience FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
         experience = self.cur.fetchone()[0]
         experience += 1
