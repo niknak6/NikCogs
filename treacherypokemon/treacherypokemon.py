@@ -1,6 +1,7 @@
 import random, requests, sqlite3, secrets, discord
 from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
+from io import BytesIO
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -35,9 +36,11 @@ class TreacheryPokemon(commands.Cog):
                 pokemon_data = response.json()
                 self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
                 self.pokemon_id = pokemon_data['id']
-                embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": self.current_sprite}}
+                image_data = BytesIO (requests.get (self.current_sprite).content)
+                image_file = discord.File (image_data, filename="pokemon.png")
+                embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
                 embed = discord.Embed.from_dict(embed_dict)
-                message = await ctx.send(embed=embed)
+                message = await ctx.send(file=image_file, embed=embed)
                 self.spawn_message = message
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
