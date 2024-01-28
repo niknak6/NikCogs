@@ -42,7 +42,6 @@ class TreacheryPokemon(commands.Cog):
             if response.status_code == 200:
                 pokemon_data = response.json()
                 self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
-                # Add this line to assign the pokemon_id to the actual id from the PokeAPI
                 self.pokemon_id = pokemon_data['id']
                 image_data = BytesIO (requests.get (self.current_sprite).content)
                 image_file = discord.File (image_data, filename="pokemon.png")
@@ -50,8 +49,6 @@ class TreacheryPokemon(commands.Cog):
                 embed = discord.Embed.from_dict(embed_dict)
                 message = await ctx.send(file=image_file, embed=embed)
                 self.spawn_message = message
-                # Remove this line as it assigns the wrong value to the pokemon_id
-                # self.pokemon_id = message.embeds[0].description
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
@@ -72,7 +69,6 @@ class TreacheryPokemon(commands.Cog):
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
             poketag, experience = secrets.token_hex(3), 0
-            # Add this line to capitalize the pokemon_name
             pokemon_name = self.current_pokemon.title()
             self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, poketag, experience) VALUES (?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, pokemon_name, poketag, experience))
             self.conn.commit()
@@ -109,17 +105,12 @@ class TreacheryPokemon(commands.Cog):
     @commands.command()
     async def party(self, ctx, *poketags: str):
         if len(poketags) == 0:
-            # Fetch and send the current party if no poketags were provided
             self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
             current_party = self.cur.fetchone()
             if current_party is not None:
-                # Get the pokemon names from the pokedex table using the poketags
                 pokemon_names = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone()[0] for poketag in current_party]
-                # Pair up the poketags and pokemon names
                 pairs = zip(current_party, pokemon_names)
-                # Format the output as a string
                 output = "\n".join(f"{poketag.upper()} - {pokemon_name.capitalize()}" for poketag, pokemon_name in pairs)
-                # Create an embed to display the output
                 embed = discord.Embed(title="Your party", description=output, color=discord.Color.random())
                 await ctx.send(embed=embed)
             else:
