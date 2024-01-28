@@ -145,18 +145,15 @@ class PokedexView(discord.ui.View):
         super().__init__(timeout=None)
         self.ctx, self.embeds, self.current, self.pokemon_per_page, self.pokedex = ctx, embeds, 0, pokemon_per_page, pokedex
         self.total = (len(self.pokedex) + pokemon_per_page - 1) // pokemon_per_page
-        self.update_footer()
 
     def update_footer(self):
         self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * self.pokemon_per_page + 1} - {min((self.current + 1) * self.pokemon_per_page, len(self.pokedex))} of {len(self.pokedex)}")
 
-    @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
-    async def previous(self, interaction, button):
+    async def handle_button(self, interaction, button, direction):
         if interaction.user == self.ctx.author:
             await interaction.response.defer()
-            self.current -= 1
-            if self.current < 0:
-                self.current = self.total - 1
+            self.current += direction
+            self.current %= self.total
             self.update_footer()
             try:
                 await interaction.message.edit(embed=self.embeds[self.current])
@@ -168,20 +165,10 @@ class PokedexView(discord.ui.View):
             except Exception as e:
                 print(e)
 
+    @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
+    async def previous(self, interaction, button):
+        await self.handle_button(interaction, button, -1)
+
     @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
     async def next(self, interaction, button):
-        if interaction.user == self.ctx.author:
-            await interaction.response.defer()
-            self.current += 1
-            if self.current >= self.total:
-                self.current = 0
-            self.update_footer()
-            try:
-                await interaction.message.edit(embed=self.embeds[self.current])
-            except Exception as e:
-                print(e)
-        else:
-            try:
-                await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
-            except Exception as e:
-                print(e)
+        await self.handle_button(interaction, button, 1)
