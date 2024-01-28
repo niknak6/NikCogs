@@ -1,13 +1,6 @@
-import random, requests, logging, sqlite3, secrets, discord
+import random, requests, sqlite3, secrets, discord
 from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
-from io import BytesIO
-
-logger = logging.getLogger("red.treacherypokemon")
-logger.setLevel(logging.INFO)
-handler = logging.FileHandler(filename="treacherypokemon.log", encoding="utf-8", mode="w")
-handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
-logger.addHandler(handler)
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -18,7 +11,6 @@ class TreacheryPokemon(commands.Cog):
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, level INTEGER, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
-        self.conn.commit()
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, PRIMARY KEY (member_id))')
         self.conn.commit()
 
@@ -43,11 +35,9 @@ class TreacheryPokemon(commands.Cog):
                 pokemon_data = response.json()
                 self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
                 self.pokemon_id = pokemon_data['id']
-                image_data = BytesIO (requests.get (self.current_sprite).content)
-                image_file = discord.File (image_data, filename="pokemon.png")
-                embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
+                embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": self.current_sprite}}
                 embed = discord.Embed.from_dict(embed_dict)
-                message = await ctx.send(file=image_file, embed=embed)
+                message = await ctx.send(embed=embed)
                 self.spawn_message = message
             else:
                 await ctx.send("Failed to spawn a Pokémon. Please try again.")
@@ -108,9 +98,8 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
             current_party = self.cur.fetchone()
             if current_party is not None:
-                pokemon_names = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone()[0] for poketag in current_party]
-                pairs = zip(current_party, pokemon_names)
-                output = "\n".join(f"{poketag.upper()} - {pokemon_name.capitalize()}" for poketag, pokemon_name in pairs)
+                pokemon_names = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone()[0] for poketag in current_party if poketag != '-']
+                output = "\n".join(f"{poketag.upper()} - {pokemon_name.capitalize()}" for poketag, pokemon_name in zip(current_party, pokemon_names))
                 embed = discord.Embed(title="Your party", description=output, color=discord.Color.random())
                 await ctx.send(embed=embed)
             else:
@@ -121,11 +110,8 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
             user_poketags = [row[0] for row in self.cur.fetchall()]
             if all(poketag.lower() in user_poketags or poketag == '-' for poketag in poketags):
-                self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
-                current_party = self.cur.fetchone() or ['-', '-', '-', '-', '-']
-                new_party = [poketag if poketag != '-' else current_party[i] for i, poketag in enumerate(poketags)]
-                self.cur.execute('UPDATE party SET position1 = ?, position2 = ?, position3 = ?, position4 = ?, position5 = ? WHERE member_id = ?', 
-                                (*new_party, ctx.author.id))
+                self.cur.execute('REPLACE INTO party (member_id, position1, position2, position3, position4, position5) VALUES (?, ?, ?, ?, ?, ?)', 
+                                (ctx.author.id, *poketags))
                 self.conn.commit()
                 await ctx.send("Your party has been updated.")
             else:
