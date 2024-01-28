@@ -150,21 +150,31 @@ class PokedexView(discord.ui.View):
     def update_footer(self):
         self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * self.pokemon_per_page + 1} - {min((self.current + 1) * self.pokemon_per_page, len(self.pokedex))} of {len(self.pokedex)}")
 
-    # Use a single button with a custom_id to handle both previous and next actions
-    @discord.ui.button(custom_id="pokedex_view", emoji="🔄", style=discord.ButtonStyle.blurple)
-    async def change_page(self, interaction, button):
+    @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
+    async def previous(self, interaction, button):
         if interaction.user == self.ctx.author:
             await interaction.response.defer()
-            # Use the interaction.data to get the value of the button
-            value = interaction.data.get("values", [None])[0]
-            if value == "previous":
-                self.current -= 1
-                if self.current < 0:
-                    self.current = self.total - 1
-            elif value == "next":
-                self.current += 1
-                if self.current >= self.total:
-                    self.current = 0
+            self.current -= 1
+            if self.current < 0:
+                self.current = self.total - 1
+            self.update_footer()
+            try:
+                await interaction.message.edit(embed=self.embeds[self.current])
+            except Exception as e:
+                print(e)
+        else:
+            try:
+                await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
+            except Exception as e:
+                print(e)
+
+    @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
+    async def next(self, interaction, button):
+        if interaction.user == self.ctx.author:
+            await interaction.response.defer()
+            self.current += 1
+            if self.current >= self.total:
+                self.current = 0
             self.update_footer()
             try:
                 await interaction.message.edit(embed=self.embeds[self.current])
