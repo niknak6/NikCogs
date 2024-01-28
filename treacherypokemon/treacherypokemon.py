@@ -59,11 +59,7 @@ class TreacheryPokemon(commands.Cog):
         if party is not None:
             for poketag in party:
                 if poketag != '-':
-                    # Check if the object has the update_experience method before calling it
-                    if hasattr(self, 'update_experience'):
-                        await self.update_experience(message.author.id, poketag)
-                    else:
-                        print("The object does not have the update_experience method.")
+                    await self.update_experience(message.author.id, poketag)
 
     @commands.guild_only()
     @commands.command(name="catch")
@@ -130,33 +126,6 @@ class TreacheryPokemon(commands.Cog):
             else:
                 await ctx.send("You do not have all of these Pokétags in your pokedex.")
 
-class PokedexView(discord.ui.View):
-    def __init__(self, ctx, embeds, pokedex):
-        super().__init__(timeout=None)
-        self.ctx, self.embeds, self.current, self.pokedex = ctx, embeds, 0, pokedex
-        self.total = len(self.embeds)
-
-    def update_footer(self):
-        self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * 10 + 1} - {min((self.current + 1) * 10, len(self.pokedex))} of {len(self.pokedex)}")
-
-    async def handle_button(self, interaction, button, direction):
-        if interaction.user == self.ctx.author:
-            await interaction.response.defer()
-            self.current += direction
-            self.current %= self.total
-            self.update_footer()
-            await interaction.message.edit(embed=self.embeds[self.current])
-        else:
-            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
-
-    @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
-    async def previous(self, interaction, button):
-        await self.handle_button(interaction, button, -1)
-
-    @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
-    async def next(self, interaction, button):
-        await self.handle_button(interaction, button, 1)
-
     async def update_experience(self, member_id, poketag):
         self.cur.execute('SELECT experience FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
         experience = self.cur.fetchone()[0]
@@ -189,3 +158,30 @@ class PokedexView(discord.ui.View):
 
     def get_experience(self, level):
         return 0.02 * level ** 2 + 0.2 * level + 1
+
+class PokedexView(discord.ui.View):
+    def __init__(self, ctx, embeds, pokedex):
+        super().__init__(timeout=None)
+        self.ctx, self.embeds, self.current, self.pokedex = ctx, embeds, 0, pokedex
+        self.total = len(self.embeds)
+
+    def update_footer(self):
+        self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * 10 + 1} - {min((self.current + 1) * 10, len(self.pokedex))} of {len(self.pokedex)}")
+
+    async def handle_button(self, interaction, button, direction):
+        if interaction.user == self.ctx.author:
+            await interaction.response.defer()
+            self.current += direction
+            self.current %= self.total
+            self.update_footer()
+            await interaction.message.edit(embed=self.embeds[self.current])
+        else:
+            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
+
+    @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
+    async def previous(self, interaction, button):
+        await self.handle_button(interaction, button, -1)
+
+    @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
+    async def next(self, interaction, button):
+        await self.handle_button(interaction, button, 1)
