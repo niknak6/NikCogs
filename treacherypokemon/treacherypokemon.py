@@ -113,10 +113,36 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
             user_poketags = [row[0] for row in self.cur.fetchall()]
             if all(poketag.lower() in user_poketags or poketag == '-' for poketag in poketags):
-                self.cur.execute('REPLACE INTO party (member_id, position1, position2, position3, position4, position5) VALUES (?, ?, ?, ?, ?, ?)', 
-                                (ctx.author.id, *poketags))
-                self.conn.commit()
-                await ctx.send("Your party has been updated.")
+                # get the current party of the member
+                self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
+                current_party = self.cur.fetchone()
+
+                # if the member has a party, update it with the new poketags
+                if current_party is not None:
+                    # create a dictionary of positions and poketags
+                    positions = dict(zip(['position1', 'position2', 'position3', 'position4', 'position5'], poketags))
+                    # create a list of columns and values to update
+                    columns = []
+                    values = []
+                    for column, value in positions.items():
+                        # only update the columns that are not '-'
+                        if value != '-':
+                            columns.append(f"{column} = ?")
+                            values.append(value)
+                    # join the columns with commas
+                    columns = ", ".join(columns)
+                    # add the member_id to the values
+                    values.append(ctx.author.id)
+                    # execute the update statement
+                    self.cur.execute(f'UPDATE party SET {columns} WHERE member_id = ?', values)
+                    self.conn.commit()
+                    await ctx.send("Your party has been updated.")
+                # if the member does not have a party, insert a new one
+                else:
+                    self.cur.execute('INSERT INTO party (member_id, position1, position2, position3, position4, position5) VALUES (?, ?, ?, ?, ?, ?)', 
+                                    (ctx.author.id, *poketags))
+                    self.conn.commit()
+                    await ctx.send("Your party has been created.")
             else:
                 await ctx.send("You do not have all of these Pokétags in your pokedex.")
 
