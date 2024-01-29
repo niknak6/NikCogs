@@ -79,7 +79,7 @@ class TreacheryPokemon(commands.Cog):
         pokedex = self.cur.fetchall()
         if pokedex:
             embeds = [self.create_embed(ctx, chunk) for chunk in (pokedex[i:i+10] for i in range(0, len(pokedex), 10))]
-            view = PokedexView(ctx, embeds, pokedex)
+            view = PokedexView(ctx, embeds, pokedex, timeout=300)
             await ctx.send(embed=embeds[0], view=view)
         else:
             await ctx.send("You have not caught any Pokémon yet.")
