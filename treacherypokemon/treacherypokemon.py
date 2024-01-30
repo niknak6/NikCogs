@@ -162,7 +162,7 @@ class TreacheryPokemon(commands.Cog):
                     self.conn.commit()
                     await ctx.send("Your party has been created.")
             else:
-                await ctx.send("You do not have all of these Pokétags in your pokedex.")
+                await ctx.send("You do not have all of these Pokétags in your Pokédex.")
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
