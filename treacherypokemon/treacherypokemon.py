@@ -11,9 +11,7 @@ class TreacheryPokemon(commands.Cog):
         self.spawn_message, self.pokemon_id = None, None
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
-        # create the pokedex table with the level and experience columns
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, level INTEGER, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
-        # create the party table with 5 positions for each user
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, PRIMARY KEY (member_id))')
         self.conn.commit()
 
@@ -56,39 +54,27 @@ class TreacheryPokemon(commands.Cog):
         if message.channel == spawn_channel and random.random() < spawn_rate:
             ctx = await self.bot.get_context(message)
             await self.bot.get_command("spawn").invoke(ctx)
-        # if the message is in the spawn channel, give 1 experience to each pokemon in the user's party
         elif message.channel == spawn_channel:
-            # get the user's party from the party table
             self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (message.author.id,))
             user_party = self.cur.fetchone()
-            # if the user has a party, loop through each position
             if user_party is not None:
                 for position in user_party:
-                    # if the position is not empty, get the pokemon's poketag
                     if position != '-':
                         poketag = position.lower()
-                        # get the pokemon's level and experience from the pokedex table
                         self.cur.execute('SELECT level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                         level, experience = self.cur.fetchone()
-                        # calculate the number of messages required for the next level using the formula
                         messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
-                        # if the experience is equal to the messages required, level up the pokemon and reset the experience
                         if experience == messages_required:
                             level += 1
                             experience = 0
-                            # update the level and experience in the pokedex table
                             self.cur.execute('UPDATE pokedex SET level = ?, experience = ? WHERE member_id = ? AND poketag = ?', (level, experience, message.author.id, poketag))
                             self.conn.commit()
-                            # get the pokemon's name from the pokedex table
                             self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                             pokemon_name = self.cur.fetchone()[0]
-                            # send a message to the user that their pokemon has leveled up only if the level is in the list of desired levels
                             if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 99]:
                                 await message.channel.send(f"{message.author.mention}, your {pokemon_name.capitalize()} has leveled up to level {level}!")
-                        # otherwise, increase the experience by 1
                         else:
                             experience += 1
-                            # update the experience in the pokedex table
                             self.cur.execute('UPDATE pokedex SET experience = ? WHERE member_id = ? AND poketag = ?', (experience, message.author.id, poketag))
                             self.conn.commit()
 
@@ -98,12 +84,9 @@ class TreacheryPokemon(commands.Cog):
         pokemon = pokemon.replace(" ", "-")
         if self.current_pokemon and self.current_pokemon == pokemon.lower():
             await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
-            # set the initial level and experience to 1 and 0
             level, experience = 1, 0
-            # generate a random poketag
             poketag = secrets.token_hex(3)
             pokemon_name = self.current_pokemon.title()
-            # insert the pokemon into the pokedex table with the level, poketag, and experience
             self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, level, poketag, experience) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, pokemon_name, level, poketag, experience))
             self.conn.commit()
             if self.spawn_message:
@@ -116,16 +99,12 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command()
     async def pokedex(self, ctx):
-        # get the pokemon_id, pokemon_name, poketag, level, and experience from the pokedex table
         self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, level, experience FROM pokedex WHERE member_id = ?', (ctx.author.id,))
         pokedex = self.cur.fetchall()
         if pokedex:
-            # create embeds for each chunk of 10 pokemon
             embeds = [self.create_embed(ctx, chunk) for chunk in (pokedex[i:i+10] for i in range(0, len(pokedex), 10))]
-            # create a view for pagination
             view = PokedexView(ctx, embeds, pokedex)
             view.timeout = 300
-            # send the first embed with the view
             await ctx.send(embed=embeds[0], view=view)
         else:
             await ctx.send("You have not caught any Pokémon yet.")
@@ -137,7 +116,6 @@ class TreacheryPokemon(commands.Cog):
                 poketag = secrets.token_hex(3)
                 self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id))
                 self.conn.commit()
-            # add the level and experience to the embed field
             embed.add_field(name=f"{pokemon_name.capitalize()}", value=f"Poketag: {poketag.upper()}\nLevel: {level}\nEXP: {experience}", inline=True)
         return embed
 
@@ -148,13 +126,9 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
             current_party = self.cur.fetchone()
             if current_party is not None:
-                # get the pokemon names, levels, and experience from the pokedex table
                 pokemon_data = [self.cur.execute('SELECT pokemon_name, level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone() for poketag in current_party if poketag != '-']
-                # create a list of strings for each pokemon in the party
                 output = [f"{poketag.upper()} - {pokemon_name.capitalize()} (Level {level}, EXP {experience})" for poketag, (pokemon_name, level, experience) in zip(current_party, pokemon_data)]
-                # join the list with newlines
                 output = "\n".join(output)
-                # create an embed with the output
                 embed = discord.Embed(title="Your party", description=output, color=discord.Color.random())
                 await ctx.send(embed=embed)
             else:
@@ -165,31 +139,23 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
             user_poketags = [row[0] for row in self.cur.fetchall()]
             if all(poketag.lower() in user_poketags or poketag == '-' for poketag in poketags):
-                # get the current party of the member
                 self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
                 current_party = self.cur.fetchone()
 
-                # if the member has a party, update it with the new poketags
                 if current_party is not None:
-                    # create a dictionary of positions and poketags
                     positions = dict(zip(['position1', 'position2', 'position3', 'position4', 'position5'], poketags))
-                    # create a list of columns and values to update
+
                     columns = []
                     values = []
                     for column, value in positions.items():
-                        # only update the columns that are not '-'
                         if value != '-':
                             columns.append(f"{column} = ?")
                             values.append(value)
-                    # join the columns with commas
                     columns = ", ".join(columns)
-                    # add the member_id to the values
                     values.append(ctx.author.id)
-                    # execute the update statement
                     self.cur.execute(f'UPDATE party SET {columns} WHERE member_id = ?', values)
                     self.conn.commit()
                     await ctx.send("Your party has been updated.")
-                # if the member does not have a party, insert a new one
                 else:
                     self.cur.execute('INSERT INTO party (member_id, position1, position2, position3, position4, position5) VALUES (?, ?, ?, ?, ?, ?)', 
                                     (ctx.author.id, *poketags))
