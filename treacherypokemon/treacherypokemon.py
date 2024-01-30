@@ -82,8 +82,9 @@ class TreacheryPokemon(commands.Cog):
                             # get the pokemon's name from the pokedex table
                             self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                             pokemon_name = self.cur.fetchone()[0]
-                            # send a message to the user that their pokemon has leveled up
-                            await message.channel.send(f"{message.author.mention}, your {pokemon_name.capitalize()} has leveled up to level {level}!")
+                            # send a message to the user that their pokemon has leveled up only if the level is in the list of desired levels
+                            if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 99]:
+                                await message.channel.send(f"{message.author.mention}, your {pokemon_name.capitalize()} has leveled up to level {level}!")
                         # otherwise, increase the experience by 1
                         else:
                             experience += 1
