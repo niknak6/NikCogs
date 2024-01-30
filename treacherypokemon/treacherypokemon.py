@@ -197,15 +197,6 @@ class TreacheryPokemon(commands.Cog):
             else:
                 await ctx.send("You do not have all of these Pokétags in your pokedex.")
 
-    @commands.command()
-    @commands.is_owner()
-    async def resetpokedex(self, ctx):
-        # update the level and experience of all pokemon in the pokedex table to 1 and 0
-        self.cur.execute('UPDATE pokedex SET level = 1, experience = 0')
-        self.conn.commit()
-        # send a confirmation message to the owner
-        await ctx.send("The pokedex has been reset. All pokemon have level 1 and experience 0.")
-        
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
         super().__init__(timeout=None)
