@@ -12,7 +12,8 @@ class TreacheryPokemon(commands.Cog):
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, level INTEGER, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
-        self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, PRIMARY KEY (member_id))')
+        # Add position6 column to the init
+        self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, position6 TEXT, PRIMARY KEY (member_id))')
         self.conn.commit()
 
     @commands.guild_only()
@@ -55,7 +56,7 @@ class TreacheryPokemon(commands.Cog):
             ctx = await self.bot.get_context(message)
             await self.bot.get_command("spawn").invoke(ctx)
         elif message.channel == spawn_channel:
-            self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (message.author.id,))
+            self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
             user_party = self.cur.fetchone()
             if user_party is not None:
                 for position in user_party:
@@ -123,7 +124,7 @@ class TreacheryPokemon(commands.Cog):
     @commands.command()
     async def party(self, ctx, *poketags: str):
         if len(poketags) == 0:
-            self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
+            self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,))
             current_party = self.cur.fetchone()
             if current_party is not None:
                 pokemon_data = [self.cur.execute('SELECT pokemon_name, level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone() for poketag in current_party if poketag != '-']
@@ -133,17 +134,17 @@ class TreacheryPokemon(commands.Cog):
                 await ctx.send(embed=embed)
             else:
                 await ctx.send("You don't have a party yet.")
-        elif len(poketags) != 5:
-            await ctx.send("You must provide exactly 5 Pokétags.")
+        elif len(poketags) != 6:
+            await ctx.send("You must provide exactly 6 Pokétags.")
         else:
             self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
             user_poketags = [row[0] for row in self.cur.fetchall()]
             if all(poketag.lower() in user_poketags or poketag == '-' for poketag in poketags):
-                self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (ctx.author.id,))
+                self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,))
                 current_party = self.cur.fetchone()
 
                 if current_party is not None:
-                    positions = dict(zip(['position1', 'position2', 'position3', 'position4', 'position5'], poketags))
+                    positions = dict(zip(['position1', 'position2', 'position3', 'position4', 'position5', 'position6'], poketags))
 
                     columns = []
                     values = []
@@ -157,36 +158,18 @@ class TreacheryPokemon(commands.Cog):
                     self.conn.commit()
                     await ctx.send("Your party has been updated.")
                 else:
-                    self.cur.execute('INSERT INTO party (member_id, position1, position2, position3, position4, position5) VALUES (?, ?, ?, ?, ?, ?)', 
+                    self.cur.execute('INSERT INTO party (member_id, position1, position2, position3, position4, position5, position6) VALUES (?, ?, ?, ?, ?, ?, ?)', 
                                     (ctx.author.id, *poketags))
                     self.conn.commit()
                     await ctx.send("Your party has been created.")
             else:
                 await ctx.send("You do not have all of these Pokétags in your Pokédex.")
 
-class PokedexView(discord.ui.View):
-    def __init__(self, ctx, embeds, pokedex):
-        super().__init__(timeout=None)
-        self.ctx, self.embeds, self.current, self.pokedex = ctx, embeds, 0, pokedex
-        self.total = len(self.embeds)
-
-    def update_footer(self):
-        self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * 10 + 1} - {min((self.current + 1) * 10, len(self.pokedex))} of {len(self.pokedex)}")
-
-    async def handle_button(self, interaction, button, direction):
-        if interaction.user == self.ctx.author:
-            await interaction.response.defer()
-            self.current += direction
-            self.current %= self.total
-            self.update_footer()
-            await interaction.message.edit(embed=self.embeds[self.current])
-        else:
-            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
-
-    @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
-    async def previous(self, interaction, button):
-        await self.handle_button(interaction, button, -1)
-
-    @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
-    async def next(self, interaction, button):
-        await self.handle_button(interaction, button, 1)
+    # Create a one time use command to add position6 column
+    @commands.command()
+    @commands.is_owner()
+    async def createpos6(self, ctx):
+        self.cur.execute('ALTER TABLE party ADD COLUMN position6 TEXT')
+        self.cur.execute('UPDATE party SET position6 = "-"')
+        self.conn.commit()
+        await ctx.send("The position6 column has been added to the party table.")
