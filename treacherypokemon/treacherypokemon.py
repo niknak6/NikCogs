@@ -12,7 +12,6 @@ class TreacheryPokemon(commands.Cog):
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, level INTEGER, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
-        # Add position6 column to the init
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, position6 TEXT, PRIMARY KEY (member_id))')
         self.conn.commit()
 
@@ -56,7 +55,7 @@ class TreacheryPokemon(commands.Cog):
             ctx = await self.bot.get_context(message)
             await self.bot.get_command("spawn").invoke(ctx)
         elif message.channel == spawn_channel:
-            self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
+            self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (message.author.id,))
             user_party = self.cur.fetchone()
             if user_party is not None:
                 for position in user_party:
@@ -164,3 +163,30 @@ class TreacheryPokemon(commands.Cog):
                     await ctx.send("Your party has been created.")
             else:
                 await ctx.send("You do not have all of these Pokétags in your Pokédex.")
+
+class PokedexView(discord.ui.View):
+    def __init__(self, ctx, embeds, pokedex):
+        super().__init__(timeout=None)
+        self.ctx, self.embeds, self.current, self.pokedex = ctx, embeds, 0, pokedex
+        self.total = len(self.embeds)
+
+    def update_footer(self):
+        self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * 10 + 1} - {min((self.current + 1) * 10, len(self.pokedex))} of {len(self.pokedex)}")
+
+    async def handle_button(self, interaction, button, direction):
+        if interaction.user == self.ctx.author:
+            await interaction.response.defer()
+            self.current += direction
+            self.current %= self.total
+            self.update_footer()
+            await interaction.message.edit(embed=self.embeds[self.current])
+        else:
+            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
+
+    @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
+    async def previous(self, interaction, button):
+        await self.handle_button(interaction, button, -1)
+
+    @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
+    async def next(self, interaction, button):
+        await self.handle_button(interaction, button, 1)
