@@ -164,12 +164,3 @@ class TreacheryPokemon(commands.Cog):
                     await ctx.send("Your party has been created.")
             else:
                 await ctx.send("You do not have all of these Pokétags in your Pokédex.")
-
-    # Create a one time use command to add position6 column
-    @commands.command()
-    @commands.is_owner()
-    async def createpos6(self, ctx):
-        self.cur.execute('ALTER TABLE party ADD COLUMN position6 TEXT')
-        self.cur.execute('UPDATE party SET position6 = "-"')
-        self.conn.commit()
-        await ctx.send("The position6 column has been added to the party table.")
