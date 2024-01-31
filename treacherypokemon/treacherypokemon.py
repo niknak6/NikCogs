@@ -180,7 +180,7 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("You cannot trade with yourself.")
             return
         # Send a message tagging the user that the sender provided asking for the poketag of the pokemon that they are trading in return
-        trade_message = await ctx.send(f"{user.mention}, {ctx.author.name} wants to trade their {pokemon_name[0].capitalize()} with you. Please reply with the Poketag of the Pokémon you are offering.")
+        trade_message = await ctx.send(f"{user.mention}, {ctx.author.name} wants to trade their {pokemon_name[0].capitalize()} to you. Please reply with the Poketag of the Pokémon you are offering.")
         # Store the trade information in a dictionary with the message id as the key
         if not hasattr(self, "trades"):
             self.trades = {} # Create an attribute to store the trades if it does not exist
