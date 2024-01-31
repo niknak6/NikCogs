@@ -1,4 +1,5 @@
 import random, requests, sqlite3, secrets, discord
+from discord.utils import get
 from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
 from io import BytesIO
@@ -163,6 +164,79 @@ class TreacheryPokemon(commands.Cog):
                     await ctx.send("Your party has been created.")
             else:
                 await ctx.send("You do not have all of these Pokétags in your Pokédex.")
+
+    @commands.guild_only()
+    @commands.command()
+    async def trade(self, ctx, user: commands.MemberConverter, poketag: str):
+        """Initiate a trade with another user."""
+        # Check if the user initiating the trade has the pokemon they are offering
+        self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower()))
+        pokemon_name = self.cur.fetchone()
+        if pokemon_name is None:
+            await ctx.send("You do not have that Pokémon in your Pokédex.")
+            return
+        # Check if the user initiating the trade is not trading with themselves
+        if user == ctx.author:
+            await ctx.send("You cannot trade with yourself.")
+            return
+        # Send a message tagging the user that the sender provided asking for the poketag of the pokemon that they are trading in return
+        trade_message = await ctx.send(f"{user.mention}, {ctx.author.name} wants to trade their {pokemon_name[0].capitalize()} with you. Please reply with the Poketag of the Pokémon you are offering.")
+        # Store the trade information in a dictionary with the message id as the key
+        if not hasattr(self, "trades"):
+            self.trades = {} # Create an attribute to store the trades if it does not exist
+        self.trades[trade_message.id] = {"sender": ctx.author, "receiver": user, "sender_poketag": poketag.lower(), "receiver_poketag": None}
+
+    # Add this listener to your class
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Handle the confirmation of the trade."""
+        # Check if the message is a reply to a trade message
+        if message.reference and message.reference.message_id in self.trades:
+            trade = self.trades[message.reference.message_id] # Get the trade information
+            # Check if the message author is the receiver of the trade
+            if message.author == trade["receiver"]:
+                # Check if the message content is a valid poketag
+                poketag = message.content.lower()
+                self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
+                pokemon_name = self.cur.fetchone()
+                if pokemon_name is None:
+                    await message.channel.send("You do not have that Pokémon in your Pokédex.")
+                    return
+                # Store the receiver's poketag in the trade information
+                trade["receiver_poketag"] = poketag
+                # Output a confirmation of the trade showing the poketag and the name of the pokemon each user is trading
+                sender_pokemon = self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (trade["sender"].id, trade["sender_poketag"])).fetchone()[0]
+                receiver_pokemon = pokemon_name[0]
+                confirmation_message = await message.channel.send(f"{trade['sender'].mention} and {trade['receiver'].mention}, please confirm the trade:\n{trade['sender'].name} is offering {trade['sender_poketag'].upper()} - {sender_pokemon.capitalize()}\n{trade['receiver'].name} is offering {trade['receiver_poketag'].upper()} - {receiver_pokemon.capitalize()}")
+                # React with a green checkmark to the confirmation message
+                await confirmation_message.add_reaction("✅")
+                # Store the confirmation message id in the trade information
+                trade["confirmation_message"] = confirmation_message.id
+            else:
+                await message.channel.send("Only the receiver of the trade can reply to this message.")
+
+    # Add this listener to your class
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        """Handle the completion of the trade."""
+        # Check if the reaction is a green checkmark and the message is a confirmation message
+        if str(payload.emoji) == "✅" and payload.message_id in [trade["confirmation_message"] for trade in self.trades.values()]:
+            trade = get(self.trades.values(), confirmation_message=payload.message_id) # Get the trade information
+            # Check if the user who reacted is either the sender or the receiver of the trade
+            if payload.user_id in [trade["sender"].id, trade["receiver"].id]:
+                # Check if both users have reacted with the green checkmark
+                channel = self.bot.get_channel(payload.channel_id)
+                message = await channel.fetch_message(payload.message_id)
+                reaction = get(message.reactions, emoji=payload.emoji)
+                if reaction and reaction.count == 3: # reaction.count includes the bot's own reaction
+                    # Swap the member_id's for the poketags of the pokemon to the proper poketag for their new owner
+                    self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (trade["receiver"].id, trade["sender"].id, trade["sender_poketag"]))
+                    self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (trade["sender"].id, trade["receiver"].id, trade["receiver_poketag"]))
+                    self.conn.commit()
+                    # Send a message indicating that the trade was successful
+                    await channel.send(f"The trade between {trade['sender'].name} and {trade['receiver'].name} was completed successfully.")
+                    # Remove the trade information from the dictionary
+                    del self.trades[message.id]
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
