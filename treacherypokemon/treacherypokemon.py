@@ -56,7 +56,7 @@ class TreacheryPokemon(commands.Cog):
             ctx = await self.bot.get_context(message)
             await self.bot.get_command("spawn").invoke(ctx)
         elif message.channel == spawn_channel:
-            self.cur.execute('SELECT position1, position2, position3, position4, position5 FROM party WHERE member_id = ?', (message.author.id,))
+            self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
             user_party = self.cur.fetchone()
             if user_party is not None:
                 for position in user_party:
