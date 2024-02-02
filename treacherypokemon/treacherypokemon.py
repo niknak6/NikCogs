@@ -59,6 +59,8 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
             user_party = self.cur.fetchone()
             if user_party is not None:
+                # Create an empty list to store the leveled up Pokémon
+                leveled_up = []
                 for position in user_party:
                     if position != '-':
                         poketag = position.lower()
@@ -73,11 +75,17 @@ class TreacheryPokemon(commands.Cog):
                             self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                             pokemon_name = self.cur.fetchone()[0]
                             if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 99]:
-                                await message.channel.send(f"{message.author.mention}, your {pokemon_name.capitalize()} has leveled up to level {level}!")
+                                # Append the name and level of the Pokémon to the list
+                                leveled_up.append((pokemon_name, level))
                         else:
                             experience += 1
                             self.cur.execute('UPDATE pokedex SET experience = ? WHERE member_id = ? AND poketag = ?', (experience, message.author.id, poketag))
                             self.conn.commit()
+                # If the list is not empty, send a single message with the list contents
+                if leveled_up:
+                    output = [f"{pokemon_name.capitalize()} has leveled up to level {level}!" for pokemon_name, level in leveled_up]
+                    output = "\n".join(output)
+                    await message.channel.send(f"{message.author.mention}, your Pokémon have leveled up!\n{output}")
 
     @commands.guild_only()
     @commands.command(name="catch")
