@@ -122,13 +122,9 @@ class TreacheryPokemon(commands.Cog):
                 poketag = secrets.token_hex(3)
                 self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id))
                 self.conn.commit()
-            # Concatenate the pokemon_id with the pokemon_name
             pokemon_name = "{} (#{})".format(pokemon_name.capitalize(), pokemon_id)
-            # Calculate the messages required for the next level
             messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
-            # Calculate the experience left for the next level
             experience_left = messages_required - experience
-            # Format the output as a fraction
             experience_fraction = f"{experience}/{messages_required}"
             embed.add_field(name=pokemon_name, value=f"Poketag: {poketag.upper()}\nLevel: {level}\nEXP: {experience_fraction}", inline=True)
         return embed
@@ -186,48 +182,36 @@ class TreacheryPokemon(commands.Cog):
     @commands.command()
     async def trade(self, ctx, user: commands.MemberConverter, poketag: str):
         """Initiate a trade with another user."""
-        # Check if the user initiating the trade has the pokemon they are offering
         self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower()))
         pokemon_name = self.cur.fetchone()
         if pokemon_name is None:
             await ctx.send("You do not have that Pokémon in your Pokédex.")
             return
-        # Check if the user initiating the trade is not trading with themselves
         if user == ctx.author:
             await ctx.send("You cannot trade with yourself.")
             return
-        # Send a message tagging the user that the sender provided asking for the poketag of the pokemon that they are trading in return
         trade_message = await ctx.send(f"{user.mention}, {ctx.author.name} wants to trade their {pokemon_name[0].capitalize()} to you. Please reply with the Poketag of the Pokémon you are offering.")
-        # Store the trade information in a dictionary with the message id as the key
         if not hasattr(self, "trades"):
-            self.trades = {} # Create an attribute to store the trades if it does not exist
+            self.trades = {}
         self.trades[trade_message.id] = {"sender": ctx.author, "receiver": user, "sender_poketag": poketag.lower(), "receiver_poketag": None}
 
-    # Add this listener to your class
     @commands.Cog.listener()
     async def on_message(self, message):
         """Handle the completion of the trade."""
-        # Check if the message is a reply to a trade message
         if message.reference and message.reference.message_id in self.trades:
-            trade = self.trades[message.reference.message_id] # Get the trade information
-            # Check if the message author is the receiver of the trade
+            trade = self.trades[message.reference.message_id]
             if message.author == trade["receiver"]:
-                # Check if the message content is a valid poketag
                 poketag = message.content.lower()
                 self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                 pokemon_name = self.cur.fetchone()
                 if pokemon_name is None:
                     await message.channel.send("You do not have that Pokémon in your Pokédex.")
                     return
-                # Store the receiver's poketag in the trade information
                 trade["receiver_poketag"] = poketag
-                # Swap the member_id's for the poketags of the pokemon to the proper poketag for their new owner
                 self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (trade["receiver"].id, trade["sender"].id, trade["sender_poketag"]))
                 self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (trade["sender"].id, trade["receiver"].id, trade["receiver_poketag"]))
                 self.conn.commit()
-                # Send a message indicating that the trade was successful
                 await message.channel.send(f"The trade between {trade['sender'].name} and {trade['receiver'].name} was completed successfully.")
-                # Remove the trade information from the dictionary
                 del self.trades[message.reference.message_id]
             else:
                 await message.channel.send("Only the receiver of the trade can reply to this message.")
