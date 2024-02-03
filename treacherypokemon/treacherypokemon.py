@@ -116,7 +116,7 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("You have not caught any Pokémon yet.")
 
     def create_embed(self, ctx, chunk):
-        embed = discord.Embed(title="Your Pokédex", color=discord.Color.random())
+        embed = discord.Embed(title=f"{ctx.author.name}'s Pokédex", color=discord.Color.random())
         for pokemon_id, pokemon_name, poketag, level, experience in chunk:
             if poketag is None:
                 poketag = secrets.token_hex(3)
@@ -143,7 +143,7 @@ class TreacheryPokemon(commands.Cog):
                 experience_fraction = [f"{exp}/{required}" for exp, required in zip(experience, messages_required)]
                 output = [f"{poketag.upper()} - {pokemon_name.capitalize()} (Level {level}, EXP {exp_frac})" for poketag, (pokemon_name, level, _), exp_frac in zip(current_party, pokemon_data, experience_fraction)]
                 output = "\n".join(output)
-                embed = discord.Embed(title="Your party", description=output, color=discord.Color.random())
+                embed = discord.Embed(title=f"{ctx.author.name}'s Party", description=output, color=discord.Color.random())
                 await ctx.send(embed=embed)
             else:
                 await ctx.send("You don't have a party yet.")
