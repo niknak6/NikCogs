@@ -142,9 +142,11 @@ class TreacheryPokemon(commands.Cog):
             current_party = self.cur.fetchone()
             if current_party is not None:
                 pokemon_data = [self.cur.execute('SELECT pokemon_name, level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone() for poketag in current_party if poketag != '-']
+                # Get the experience values for each Pokémon
+                experience = [exp for _, _, exp in pokemon_data]
                 # Calculate the messages required and the experience left for each Pokémon
                 messages_required = [round(0.02 * level ** 2 + 0.2 * level + 1) for _, level, _ in pokemon_data]
-                experience_left = [required - exp for required, (_, _, exp) in zip(messages_required, pokemon_data)]
+                experience_left = [required - exp for required, exp in zip(messages_required, experience)]
                 # Format the output as a fraction
                 experience_fraction = [f"{exp}/{required}" for exp, required in zip(experience, messages_required)]
                 output = [f"{poketag.upper()} - {pokemon_name.capitalize()} (Level {level}, EXP {exp_frac})" for poketag, (pokemon_name, level, _), exp_frac in zip(current_party, pokemon_data, experience_fraction)]
