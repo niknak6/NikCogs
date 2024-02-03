@@ -59,7 +59,6 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
             user_party = self.cur.fetchone()
             if user_party is not None:
-                # Create an empty list to store the leveled up Pokémon
                 leveled_up = []
                 for position in user_party:
                     if position != '-':
@@ -75,13 +74,11 @@ class TreacheryPokemon(commands.Cog):
                             self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                             pokemon_name = self.cur.fetchone()[0]
                             if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 99]:
-                                # Append the name and level of the Pokémon to the list
                                 leveled_up.append((pokemon_name, level))
                         else:
                             experience += 1
                             self.cur.execute('UPDATE pokedex SET experience = ? WHERE member_id = ? AND poketag = ?', (experience, message.author.id, poketag))
                             self.conn.commit()
-                # If the list is not empty, send a single message with the list contents
                 if leveled_up:
                     output = [f"{pokemon_name.capitalize()} has leveled up to level {level}!" for pokemon_name, level in leveled_up]
                     output = "\n".join(output)
@@ -108,7 +105,6 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command()
     async def pokedex(self, ctx):
-        # Add an ORDER BY clause to the SQL query
         self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, level, experience FROM pokedex WHERE member_id = ? ORDER BY pokemon_id', (ctx.author.id,))
         pokedex = self.cur.fetchall()
         if pokedex:
@@ -126,13 +122,15 @@ class TreacheryPokemon(commands.Cog):
                 poketag = secrets.token_hex(3)
                 self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id))
                 self.conn.commit()
+            # Concatenate the pokemon_id with the pokemon_name
+            pokemon_name = "{} (#{})".format(pokemon_name.capitalize(), pokemon_id)
             # Calculate the messages required for the next level
             messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
             # Calculate the experience left for the next level
             experience_left = messages_required - experience
             # Format the output as a fraction
             experience_fraction = f"{experience}/{messages_required}"
-            embed.add_field(name=f"{pokemon_name.capitalize()}", value=f"Poketag: {poketag.upper()}\nLevel: {level}\nEXP: {experience_fraction}", inline=True)
+            embed.add_field(name=pokemon_name, value=f"Poketag: {poketag.upper()}\nLevel: {level}\nEXP: {experience_fraction}", inline=True)
         return embed
 
     @commands.guild_only()
@@ -143,12 +141,9 @@ class TreacheryPokemon(commands.Cog):
             current_party = self.cur.fetchone()
             if current_party is not None:
                 pokemon_data = [self.cur.execute('SELECT pokemon_name, level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone() for poketag in current_party if poketag != '-']
-                # Get the experience values for each Pokémon
                 experience = [exp for _, _, exp in pokemon_data]
-                # Calculate the messages required and the experience left for each Pokémon
                 messages_required = [round(0.02 * level ** 2 + 0.2 * level + 1) for _, level, _ in pokemon_data]
                 experience_left = [required - exp for required, exp in zip(messages_required, experience)]
-                # Format the output as a fraction
                 experience_fraction = [f"{exp}/{required}" for exp, required in zip(experience, messages_required)]
                 output = [f"{poketag.upper()} - {pokemon_name.capitalize()} (Level {level}, EXP {exp_frac})" for poketag, (pokemon_name, level, _), exp_frac in zip(current_party, pokemon_data, experience_fraction)]
                 output = "\n".join(output)
