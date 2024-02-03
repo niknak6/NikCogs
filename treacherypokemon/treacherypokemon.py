@@ -82,7 +82,7 @@ class TreacheryPokemon(commands.Cog):
                 if leveled_up:
                     output = [f"{pokemon_name.capitalize()} has leveled up to level {level}!" for pokemon_name, level in leveled_up]
                     output = "\n".join(output)
-                    await message.channel.send(f"{message.author.mention}, your Pokémon have leveled up!\n{output}")
+                    await message.channel.send(f"{message.author.mention}, your Pokémon have leveled up!\n\n{output}")
 
     @commands.guild_only()
     @commands.command(name="catch")
