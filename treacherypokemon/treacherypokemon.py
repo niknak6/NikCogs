@@ -125,7 +125,13 @@ class TreacheryPokemon(commands.Cog):
                 poketag = secrets.token_hex(3)
                 self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id))
                 self.conn.commit()
-            embed.add_field(name=f"{pokemon_name.capitalize()}", value=f"Poketag: {poketag.upper()}\nLevel: {level}\nEXP: {experience}", inline=True)
+            # Calculate the messages required for the next level
+            messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
+            # Calculate the experience left for the next level
+            experience_left = messages_required - experience
+            # Format the output as a fraction
+            experience_fraction = f"{experience}/{messages_required}"
+            embed.add_field(name=f"{pokemon_name.capitalize()}", value=f"Poketag: {poketag.upper()}\nLevel: {level}\nEXP: {experience_fraction}", inline=True)
         return embed
 
     @commands.guild_only()
@@ -136,7 +142,12 @@ class TreacheryPokemon(commands.Cog):
             current_party = self.cur.fetchone()
             if current_party is not None:
                 pokemon_data = [self.cur.execute('SELECT pokemon_name, level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone() for poketag in current_party if poketag != '-']
-                output = [f"{poketag.upper()} - {pokemon_name.capitalize()} (Level {level}, EXP {experience})" for poketag, (pokemon_name, level, experience) in zip(current_party, pokemon_data)]
+                # Calculate the messages required and the experience left for each Pokémon
+                messages_required = [round(0.02 * level ** 2 + 0.2 * level + 1) for _, level, _ in pokemon_data]
+                experience_left = [required - exp for required, (_, _, exp) in zip(messages_required, pokemon_data)]
+                # Format the output as a fraction
+                experience_fraction = [f"{exp}/{required}" for exp, required in zip(experience, messages_required)]
+                output = [f"{poketag.upper()} - {pokemon_name.capitalize()} (Level {level}, EXP {exp_frac})" for poketag, (pokemon_name, level, _), exp_frac in zip(current_party, pokemon_data, experience_fraction)]
                 output = "\n".join(output)
                 embed = discord.Embed(title="Your party", description=output, color=discord.Color.random())
                 await ctx.send(embed=embed)
