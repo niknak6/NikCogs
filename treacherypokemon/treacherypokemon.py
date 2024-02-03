@@ -111,7 +111,7 @@ class TreacheryPokemon(commands.Cog):
         self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, level, experience FROM pokedex WHERE member_id = ?', (ctx.author.id,))
         pokedex = self.cur.fetchall()
         if pokedex:
-            embeds = [self.create_embed(ctx, chunk) for chunk in (pokedex[i:i+10] for i in range(0, len(pokedex), 10))]
+            embeds = [self.create_embed(ctx, chunk) for chunk in (pokedex[i:i+15] for i in range(0, len(pokedex), 15))]
             view = PokedexView(ctx, embeds, pokedex)
             view.timeout = 300
             await ctx.send(embed=embeds[0], view=view)
