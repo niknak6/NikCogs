@@ -104,6 +104,28 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.guild_only()
     @commands.command()
+    async def freepokemon(self, ctx, pokeid: int):
+        """Free a Pokémon from your Pokédex by its ID."""
+        # Check if the user has the Pokémon in their Pokédex
+        self.cur.execute('SELECT pokemon_name, poketag FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, pokeid))
+        pokemon_data = self.cur.fetchone()
+        if pokemon_data is None:
+            await ctx.send("You do not have that Pokémon in your Pokédex.")
+            return
+        pokemon_name, poketag = pokemon_data
+        # Check if the Pokémon is in the user's party
+        self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,))
+        user_party = self.cur.fetchone()
+        if user_party is not None and poketag in user_party:
+            await ctx.send("You cannot free a Pokémon that is in your party.")
+            return
+        # Delete the Pokémon from the Pokédex
+        self.cur.execute('DELETE FROM pokedex WHERE member_id = ? AND pokemon_id = ?', (ctx.author.id, pokeid))
+        self.conn.commit()
+        await ctx.send(f"You have freed your {pokemon_name.capitalize()} from your Pokédex.")
+
+    @commands.guild_only()
+    @commands.command()
     async def pokedex(self, ctx):
         self.cur.execute('SELECT pokemon_id, pokemon_name, poketag, level, experience FROM pokedex WHERE member_id = ? ORDER BY pokemon_id', (ctx.author.id,))
         pokedex = self.cur.fetchall()
