@@ -8,43 +8,49 @@ class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
         self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
         self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
-        self.config.register_guild(spawn_channel=None, spawn_rate=0.0)
+        self.config.register_guild(spawn_channel=None, spawn_rate=0.0, spawn_cooldown=15.0) # added spawn_cooldown setting
         self.spawn_message, self.pokemon_id = None, None
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, level INTEGER, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, position6 TEXT, PRIMARY KEY (member_id))')
         self.conn.commit()
+        self.last_spawn = None # added last_spawn attribute
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     @commands.command()
-    async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter, spawn_rate: float):
+    async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter, spawn_rate: float, cooldown: commands.Optional[float] = 15.0): # added cooldown argument
         await self.config.guild(ctx.guild).spawn_channel.set(channel.id)
         await self.config.guild(ctx.guild).spawn_rate.set(spawn_rate / 100)
-        await ctx.send(f"Pokémon will now spawn in {channel.mention} with a spawn rate of {spawn_rate}% per message.")
+        await self.config.guild(ctx.guild).spawn_cooldown.set(cooldown) # added spawn_cooldown setting
+        await ctx.send(f"Pokémon will now spawn in {channel.mention} with a spawn rate of {spawn_rate}% per message and a cooldown of {cooldown} minutes.") # updated confirmation message
 
     @commands.command()
     @commands.is_owner()
     @commands.cooldown(1, 10, commands.BucketType.channel)
     async def spawn(self, ctx):
         spawn_channel = discord.utils.get(ctx.guild.channels, id=await self.config.guild(ctx.guild).spawn_channel())
+        spawn_cooldown = await self.config.guild(ctx.guild).spawn_cooldown() # added spawn_cooldown setting
         if ctx.channel == spawn_channel:
-            pokemon_id = random.randint(1, self.pokemon_count)
-            pokemon_url = self.base_url + str(pokemon_id)
-            response = requests.get(pokemon_url)
-            if response.status_code == 200:
-                pokemon_data = response.json()
-                self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
-                self.pokemon_id = pokemon_data['id']
-                image_data = BytesIO (requests.get (self.current_sprite).content)
-                image_file = discord.File (image_data, filename="pokemon.png")
-                embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
-                embed = discord.Embed.from_dict(embed_dict)
-                message = await ctx.send(file=image_file, embed=embed)
-                self.spawn_message = message
-            else:
-                await ctx.send("Failed to spawn a Pokémon. Please try again.")
+            now = datetime.datetime.now() # added current time
+            if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60: # added cooldown check
+                pokemon_id = random.randint(1, self.pokemon_count)
+                pokemon_url = self.base_url + str(pokemon_id)
+                response = requests.get(pokemon_url)
+                if response.status_code == 200:
+                    pokemon_data = response.json()
+                    self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
+                    self.pokemon_id = pokemon_data['id']
+                    image_data = BytesIO (requests.get (self.current_sprite).content)
+                    image_file = discord.File (image_data, filename="pokemon.png")
+                    embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
+                    embed = discord.Embed.from_dict(embed_dict)
+                    message = await ctx.send(file=image_file, embed=embed)
+                    self.spawn_message = message
+                    self.last_spawn = now # added last_spawn update
+                else:
+                    await ctx.send("Failed to spawn a Pokémon. Please try again.")
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message):
