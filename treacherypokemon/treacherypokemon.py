@@ -1,4 +1,5 @@
 import random, requests, sqlite3, secrets, discord
+from redbot.core.commands import converter
 from discord.utils import get
 from redbot.core import commands, Config
 from redbot.core.commands.converter import Optional
