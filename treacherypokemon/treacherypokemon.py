@@ -19,6 +19,7 @@ class TreacheryPokemon(commands.Cog):
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, position6 TEXT, PRIMARY KEY (member_id))')
         self.conn.commit()
         self.last_spawn = None # added last_spawn attribute
+        self.trades = {}
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
