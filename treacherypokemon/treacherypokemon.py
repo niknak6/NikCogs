@@ -21,7 +21,7 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     @commands.command()
-    async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter, spawn_rate: float, cooldown: commands.Optional[float] = 15.0): # added cooldown argument
+    async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter, spawn_rate: float, cooldown: converter.Optional[float] = 15.0): # added cooldown argument
         await self.config.guild(ctx.guild).spawn_channel.set(channel.id)
         await self.config.guild(ctx.guild).spawn_rate.set(spawn_rate / 100)
         await self.config.guild(ctx.guild).spawn_cooldown.set(cooldown) # added spawn_cooldown setting
