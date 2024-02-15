@@ -11,14 +11,14 @@ class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
         self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
         self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
-        self.config.register_guild(spawn_channel=None, spawn_rate=0.0, spawn_cooldown=15.0) # added spawn_cooldown setting
+        self.config.register_guild(spawn_channel=None, spawn_rate=0.0, spawn_cooldown=15.0)
         self.spawn_message, self.pokemon_id = None, None
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, level INTEGER, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, position6 TEXT, PRIMARY KEY (member_id))')
         self.conn.commit()
-        self.last_spawn = None # added last_spawn attribute
+        self.last_spawn = None
         self.trades = {}
 
     @commands.guild_only()
@@ -27,7 +27,7 @@ class TreacheryPokemon(commands.Cog):
     async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter, spawn_rate: float, cooldown: converter.Optional[float] = 15.0): # added cooldown argument
         await self.config.guild(ctx.guild).spawn_channel.set(channel.id)
         await self.config.guild(ctx.guild).spawn_rate.set(spawn_rate / 100)
-        await self.config.guild(ctx.guild).spawn_cooldown.set(cooldown) # added spawn_cooldown setting
+        await self.config.guild(ctx.guild).spawn_cooldown.set(cooldown)
         await ctx.send(f"Pokémon will now spawn in {channel.mention} with a spawn rate of {spawn_rate}% per message and a cooldown of {cooldown} minutes.") # updated confirmation message
 
     @commands.command()
@@ -36,10 +36,9 @@ class TreacheryPokemon(commands.Cog):
         # check if the context is from the listener or from the owner
         if ctx.invoked_with == "spawn" or await self.bot.is_owner(ctx.author):
             spawn_channel = discord.utils.get(ctx.guild.channels, id=await self.config.guild(ctx.guild).spawn_channel())
-            spawn_cooldown = await self.config.guild(ctx.guild).spawn_cooldown() # added spawn_cooldown setting
+            spawn_cooldown = await self.config.guild(ctx.guild).spawn_cooldown()
             if ctx.channel == spawn_channel:
-                now = datetime.datetime.now() # added current time
-                # added cooldown check, with an exception for the bot owner
+                now = datetime.datetime.now()
                 if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60 or await self.bot.is_owner(ctx.author):
                     pokemon_id = random.randint(1, self.pokemon_count)
                     pokemon_url = self.base_url + str(pokemon_id)
@@ -54,11 +53,10 @@ class TreacheryPokemon(commands.Cog):
                         embed = discord.Embed.from_dict(embed_dict)
                         message = await ctx.send(file=image_file, embed=embed)
                         self.spawn_message = message
-                        self.last_spawn = now # added last_spawn update
+                        self.last_spawn = now
                     else:
                         await ctx.send("Failed to spawn a Pokémon. Please try again.")
         else:
-            # if the context is not from the listener or from the owner, raise an error
             raise commands.CheckFailure("You are not the owner of this bot.")
 
     @commands.Cog.listener()
