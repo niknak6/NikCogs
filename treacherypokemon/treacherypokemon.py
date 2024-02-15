@@ -33,7 +33,6 @@ class TreacheryPokemon(commands.Cog):
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.channel)
     async def spawn(self, ctx):
-        # check if the context is from the listener or from the owner
         if ctx.invoked_with == "spawn" or await self.bot.is_owner(ctx.author):
             spawn_channel = discord.utils.get(ctx.guild.channels, id=await self.config.guild(ctx.guild).spawn_channel())
             spawn_cooldown = await self.config.guild(ctx.guild).spawn_cooldown()
