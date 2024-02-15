@@ -39,7 +39,8 @@ class TreacheryPokemon(commands.Cog):
             spawn_cooldown = await self.config.guild(ctx.guild).spawn_cooldown() # added spawn_cooldown setting
             if ctx.channel == spawn_channel:
                 now = datetime.datetime.now() # added current time
-                if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60: # added cooldown check
+                # added cooldown check, with an exception for the bot owner
+                if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60 or await self.bot.is_owner(ctx.author):
                     pokemon_id = random.randint(1, self.pokemon_count)
                     pokemon_url = self.base_url + str(pokemon_id)
                     response = requests.get(pokemon_url)
