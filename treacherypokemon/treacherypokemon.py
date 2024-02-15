@@ -31,30 +31,34 @@ class TreacheryPokemon(commands.Cog):
         await ctx.send(f"Pokémon will now spawn in {channel.mention} with a spawn rate of {spawn_rate}% per message and a cooldown of {cooldown} minutes.") # updated confirmation message
 
     @commands.command()
-    @commands.is_owner()
     @commands.cooldown(1, 10, commands.BucketType.channel)
     async def spawn(self, ctx):
-        spawn_channel = discord.utils.get(ctx.guild.channels, id=await self.config.guild(ctx.guild).spawn_channel())
-        spawn_cooldown = await self.config.guild(ctx.guild).spawn_cooldown() # added spawn_cooldown setting
-        if ctx.channel == spawn_channel:
-            now = datetime.datetime.now() # added current time
-            if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60: # added cooldown check
-                pokemon_id = random.randint(1, self.pokemon_count)
-                pokemon_url = self.base_url + str(pokemon_id)
-                response = requests.get(pokemon_url)
-                if response.status_code == 200:
-                    pokemon_data = response.json()
-                    self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
-                    self.pokemon_id = pokemon_data['id']
-                    image_data = BytesIO (requests.get (self.current_sprite).content)
-                    image_file = discord.File (image_data, filename="pokemon.png")
-                    embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
-                    embed = discord.Embed.from_dict(embed_dict)
-                    message = await ctx.send(file=image_file, embed=embed)
-                    self.spawn_message = message
-                    self.last_spawn = now # added last_spawn update
-                else:
-                    await ctx.send("Failed to spawn a Pokémon. Please try again.")
+        # check if the context is from the listener or from the owner
+        if ctx.invoked_with == "spawn" or await self.bot.is_owner(ctx.author):
+            spawn_channel = discord.utils.get(ctx.guild.channels, id=await self.config.guild(ctx.guild).spawn_channel())
+            spawn_cooldown = await self.config.guild(ctx.guild).spawn_cooldown() # added spawn_cooldown setting
+            if ctx.channel == spawn_channel:
+                now = datetime.datetime.now() # added current time
+                if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60: # added cooldown check
+                    pokemon_id = random.randint(1, self.pokemon_count)
+                    pokemon_url = self.base_url + str(pokemon_id)
+                    response = requests.get(pokemon_url)
+                    if response.status_code == 200:
+                        pokemon_data = response.json()
+                        self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
+                        self.pokemon_id = pokemon_data['id']
+                        image_data = BytesIO (requests.get (self.current_sprite).content)
+                        image_file = discord.File (image_data, filename="pokemon.png")
+                        embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
+                        embed = discord.Embed.from_dict(embed_dict)
+                        message = await ctx.send(file=image_file, embed=embed)
+                        self.spawn_message = message
+                        self.last_spawn = now # added last_spawn update
+                    else:
+                        await ctx.send("Failed to spawn a Pokémon. Please try again.")
+        else:
+            # if the context is not from the listener or from the owner, raise an error
+            raise commands.CheckFailure("You are not the owner of this bot.")
 
     @commands.Cog.listener()
     async def on_message_without_command(self, message):
