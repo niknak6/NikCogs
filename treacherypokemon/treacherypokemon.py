@@ -33,10 +33,12 @@ class TreacheryPokemon(commands.Cog):
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.channel)
     async def spawn(self, ctx):
-        if ctx.invoked_with in ["spawn", None] or await self.bot.is_owner(ctx.author):
-            spawn_channel = discord.utils.get(ctx.guild.channels, id=await self.config.guild(ctx.guild).spawn_channel())
-            spawn_cooldown = await self.config.guild(ctx.guild).spawn_cooldown()
-            if ctx.channel == spawn_channel:
+        if ctx.invoked_with == "spawn" and not await self.bot.is_owner(ctx.author):
+            await ctx.send("Only the owner of the bot can manually spawn a Pokémon.")
+            return
+        spawn_channel = discord.utils.get(ctx.guild.channels, id=await self.config.guild(ctx.guild).spawn_channel())
+        spawn_cooldown = await self.config.guild(ctx.guild).spawn_cooldown()
+        if ctx.channel == spawn_channel:
                 now = datetime.datetime.now()
                 if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60 or await self.bot.is_owner(ctx.author):
                     pokemon_id = random.randint(1, self.pokemon_count)
