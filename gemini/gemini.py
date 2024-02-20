@@ -183,7 +183,7 @@ class Gemini(commands.Cog):
 
     async def wrap_and_send_messages(self, message_system, text, max_length):
         """Wrap the text into smaller chunks based on the maximum length and send them as separate messages."""
-        messages = textwrap.wrap(text, max_length) # Use the textwrap.wrap function to split the text into a list of strings
+        messages = textwrap.wrap(text, max_length, replace_whitespace=False) # Set replace_whitespace to False
         for string in messages:
             await message_system.channel.send(string)
 
