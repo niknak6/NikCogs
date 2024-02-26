@@ -92,6 +92,13 @@ class Gemini(commands.Cog):
         """Handle incoming messages and generate responses."""
         if message.author == self.bot.user:
             return
+        # Check if the message is a reply to a bot message that starts with "Shared by"
+        if message.reference:
+            referenced_message = await message.channel.fetch_message(message.reference.message_id)
+            if referenced_message.author == self.bot.user and referenced_message.content.startswith("Shared by"):
+                # Skip the message processing
+                return
+        # Continue with the rest of the message processing
         if self.bot.user.mentioned_in(message) or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
 
