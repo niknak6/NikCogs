@@ -83,4 +83,4 @@ class TikTokCog(commands.Cog):
             return await guild.create_custom_emoji(name=emoji_name, image=image.read())
 
     def format_message(self, author, emoji, new_url, memo_text):
-        return f"Shared by: {emoji} {author.mention}\n" + (f"Message: {memo_text}\n" if memo_text else "") + f"Link: {new_url}/reel/" # UPDATED
+        return f"Shared by: {emoji} {author.mention}\n" + (f"Message: {memo_text}\n" if memo_text else "") + f"Link: {new_url}" # UPDATED
