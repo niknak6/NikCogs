@@ -43,8 +43,8 @@ class TikTokCog(commands.Cog):
     def construct_new_url(self, url_match, platform):
         # Add a condition to check if the platform is instagram and the URL contains reel
         if platform == 'instagram' and 'reel' in url_match.group(5): # NEW
-            # Add 'dd' before the original domain
-            return (url_match.group(1) or 'https://') + 'dd' + (url_match.group(2) or '') + self.new_domains[platform] + url_match.group(5) # NEW
+            # Add 'dd' and 'reel' before and after the original domain
+            return (url_match.group(1) or 'https://') + 'dd' + (url_match.group(2) or '') + self.new_domains[platform] + 'reel/' + url_match.group(5) # UPDATED
         else:
             # Use the original logic
             return (url_match.group(1) or 'https://') + (url_match.group(2) or '') + self.new_domains[platform] + url_match.group(5)
