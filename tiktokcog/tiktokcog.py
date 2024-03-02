@@ -13,12 +13,15 @@ class TikTokCog(commands.Cog):
         self.url_patterns = {
             'tiktok': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?tiktok.com/(\S*)"),
             'twitter': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?twitter.com/(\S*)"),
-            'x': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?x.com/(\S*)")
+            'x': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?x.com/(\S*)"),
+            # Update the pattern for instagram to include 'reel'
+            'instagram': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?instagram.com/reel/(\S*)") # UPDATED
         }
         self.new_domains = {
             'tiktok': 'vxtiktok.com/',
             'twitter': 'vxtwitter.com/',
-            'x': 'fixvx.com/'
+            'x': 'fixvx.com/',
+            'instagram': 'instagram.com/'
         }
 
     @commands.Cog.listener()
@@ -37,7 +40,13 @@ class TikTokCog(commands.Cog):
         return new_url, memo_text
 
     def construct_new_url(self, url_match, platform):
-        return (url_match.group(1) or 'https://') + (url_match.group(2) or '') + self.new_domains[platform] + url_match.group(5)
+        # Add a condition to check if the platform is instagram and the URL contains reel
+        if platform == 'instagram' and 'reel' in url_match.group(5): # NEW
+            # Add 'dd' before the original domain
+            return (url_match.group(1) or 'https://') + 'dd' + (url_match.group(2) or '') + self.new_domains[platform] + url_match.group(5) # NEW
+        else:
+            # Use the original logic
+            return (url_match.group(1) or 'https://') + (url_match.group(2) or '') + self.new_domains[platform] + url_match.group(5)
 
     def extract_memo_text(self, content):
         return " ".join([part for part in content.split() if not part.lower().startswith(("https://", "http://"))])
