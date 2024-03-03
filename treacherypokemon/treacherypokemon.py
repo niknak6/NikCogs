@@ -282,15 +282,15 @@ class TreacheryPokemon(commands.Cog):
             curr_pokemon2 = player2_party[player2_pokemon_index]
             next_pokemon2 = player2_party[player2_pokemon_index + 1] if player2_pokemon_index + 1 < len(player2_party) else None
 
+            # Reduce the hp of the current user by 10, and swap the hp values to switch turns
+            player1_hp, player2_hp = player2_hp - 10, player1_hp
+
             # Update the title of the battle embed with the current pokemon names
             battle_embed.title = f"{ctx.author.name}'s {curr_pokemon1} VS {opponent.name}'s {curr_pokemon2}"
             battle_embed.clear_fields()
             battle_embed.add_field(name=ctx.author.name, value=f"HP: {player1_hp}", inline=False)
             battle_embed.add_field(name=opponent.name, value=f"HP: {player2_hp}", inline=False)
             await battle_message.edit(embed=battle_embed)
-
-            # Reduce the hp of the current user by 10, and swap the hp values to switch turns
-            player1_hp, player2_hp = player2_hp - 10, player1_hp
 
             # If the hp of the current user is zero or less, update the current pokemon name with the next pokemon name, and increment the next pokemon index
             if player1_hp <= 0:
