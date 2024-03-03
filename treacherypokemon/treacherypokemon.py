@@ -11,9 +11,7 @@ import asyncio
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
-        self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
-        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
-        self.config.register_guild(spawn_channel=None, spawn_rate=0.0, spawn_cooldown=15.0)
+        self.bot, self.current_pokemon, self.current_sprite = bot, None, None
         self.spawn_message, self.pokemon_id = None, None
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
@@ -23,6 +21,8 @@ class TreacheryPokemon(commands.Cog):
         self.last_spawn = None
         self.trades = {}
         self.battles = {}
+
+        self.base_url, self.pokemon_count = "https://pokeapi.co/api/v2/pokemon/", 1025 # This line is moved inside the __init__ method
 
     def get_pokemon_health(self, pokemon_name):
         # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
