@@ -11,7 +11,9 @@ import asyncio
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
-        self.bot, self.current_pokemon, self.current_sprite = bot, None, None
+        self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
+        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
+        self.config.register_guild(spawn_channel=None, spawn_rate=0.0, spawn_cooldown=15.0)
         self.spawn_message, self.pokemon_id = None, None
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
         self.cur = self.conn.cursor()
@@ -21,8 +23,6 @@ class TreacheryPokemon(commands.Cog):
         self.last_spawn = None
         self.trades = {}
         self.battles = {}
-
-        self.base_url, self.pokemon_count = "https://pokeapi.co/api/v2/pokemon/", 1025 # This line is moved inside the __init__ method
 
     def get_pokemon_health(self, pokemon_name):
         # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
@@ -44,52 +44,6 @@ class TreacheryPokemon(commands.Cog):
         health = round(base_health + level_modifier + stat_modifier)
         # Return the health value
         return health
-    
-    def get_pokemon_moves(self, pokemon_name, level):
-        # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
-        pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
-        response = requests.get(pokemon_url)
-        # Raise an exception if the status code is not 200
-        response.raise_for_status()
-        pokemon_data = response.json()
-        # Extract the moves from the JSON data
-        moves = pokemon_data['moves']
-        # Filter out the moves that are not learned by level up or are learned at a higher level
-        level_up_moves = []
-        for move in moves:
-            for detail in move['version_group_details']:
-                if detail['level_learned_at'] <= level and detail['move_learn_method']['name'] == 'level-up':
-                    level_up_moves.append(move['move']['name'])
-                    break # stop the inner loop once a valid move is found
-        # Return the list of level up moves
-        return level_up_moves
-    
-    def get_type_damage_relations(self, type_name):
-        # Use the requests module to get the JSON data for the type from the pokeapi.co api
-        type_url = "https://pokeapi.co/api/v2/type/" + type_name.lower()
-        response = requests.get(type_url)
-        # Raise an exception if the status code is not 200
-        response.raise_for_status()
-        type_data = response.json()
-        # Extract the damage relations from the JSON data
-        damage_relations = type_data['damage_relations']
-        # Return the damage relations as a dictionary
-        return damage_relations
-
-    # Get the type(s) for both the player's and the opponent's pokemon
-    p1_types = requests.get(self.base_url + p1_pokemon.lower().replace(" ", "-").replace(".", "")).json()['types']
-    p2_types = requests.get(self.base_url + p2_pokemon.lower().replace(" ", "-").replace(".", "")).json()['types']
-    # Get the damage relations for both the player's and the opponent's pokemon types
-    p1_damage_relations = {'double_damage_from': [], 'double_damage_to': [], 'half_damage_from': [], 'half_damage_to': [], 'no_damage_from': [], 'no_damage_to': []}
-    p2_damage_relations = {'double_damage_from': [], 'double_damage_to': [], 'half_damage_from': [], 'half_damage_to': [], 'no_damage_from': [], 'no_damage_to': []}
-    for type in p1_types:
-        type_damage_relations = self.get_type_damage_relations(type['type']['name'])
-        for key, value in type_damage_relations.items():
-            p1_damage_relations[key].extend([item['name'] for item in value])
-    for type in p2_types:
-        type_damage_relations = self.get_type_damage_relations(type['type']['name'])
-        for key, value in type_damage_relations.items():
-            p2_damage_relations[key].extend([item['name'] for item in value])
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
@@ -340,98 +294,35 @@ class TreacheryPokemon(commands.Cog):
         player1_pokemon_index = player2_pokemon_index = 0
         p1_pokemon = player1_party[player1_pokemon_index]
         p2_pokemon = player2_party[player2_pokemon_index]
-
-        # Get the level of the player's pokemon
-        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (ctx.author.id, p1_pokemon))
-        p1_level = self.cur.fetchone()[0]
-        # Get the abilities of the player's pokemon
-        p1_abilities = self.get_pokemon_moves(p1_pokemon, p1_level)
-
-        # Get the level of the opponent's pokemon
-        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (opponent.id, p2_pokemon))
-        p2_level = self.cur.fetchone()[0]
-        # Get the abilities of the opponent's pokemon
-        p2_abilities = self.get_pokemon_moves(p2_pokemon, p2_level)
-
         # Get the health values for both the player's and the opponent's pokemon
         p1_hp = self.get_pokemon_health(p1_pokemon)
         p2_hp = self.get_pokemon_health(p2_pokemon)
-        # Get the type(s) for both the player's and the opponent's pokemon
-        p1_types = requests.get(self.base_url + p1_pokemon.lower().replace(" ", "-").replace(".", "")).json()['types']
-        p2_types = requests.get(self.base_url + p2_pokemon.lower().replace(" ", "-").replace(".", "")).json()['types']
-        # Get the damage relations for both the player's and the opponent's pokemon types
-        p1_damage_relations = {}
-        p2_damage_relations = {}
-        for type in p1_types:
-            p1_damage_relations.update(self.get_type_damage_relations(type['type']['name']))
-        for type in p2_types:
-            p2_damage_relations.update(self.get_type_damage_relations(type['type']['name']))
 
         while player1_pokemon_index < len(player1_party) and player2_pokemon_index < len(player2_party):
             next_p1_pokemon = player1_party[player1_pokemon_index + 1] if player1_pokemon_index + 1 < len(player1_party) else None
             next_p2_pokemon = player2_party[player2_pokemon_index + 1] if player2_pokemon_index + 1 < len(player2_party) else None
 
             # Player 1's turn
-            # Get the abilities of the player's pokemon
-            p1_abilities = self.get_pokemon_moves(p1_pokemon, p1_level)
-            # Choose a random ability
-            p1_ability = random.choice(p1_abilities)
-            # Get the type of the ability
-            p1_ability_type = requests.get("https://pokeapi.co/api/v2/ability/" + p1_ability).json()['type']['name']
-            # Calculate the damage based on the ability type and the opponent's type damage relations
-            if p1_ability_type in p2_damage_relations['double_damage_from']:
-                p1_damage = random.randint(40, 80)
-            elif p1_ability_type in p2_damage_relations['half_damage_from']:
-                p1_damage = random.randint(5, 25)
-            elif p1_ability_type in p2_damage_relations['no_damage_from']:
-                p1_damage = 0
-            else:
-                p1_damage = random.randint(20, 50)
-            # Apply the damage to the opponent's health
-            p2_hp -= p1_damage
+            # Subtract a random amount between 5 and 15 from the opponent's hp
+            p2_hp -= random.randint(10, 50)
             if p2_hp <= 0:
                 player2_pokemon_index += 1
                 if player2_pokemon_index < len(player2_party):
                     # Update the pokemon and the health value
                     p2_pokemon = next_p2_pokemon
                     p2_hp = self.get_pokemon_health(p2_pokemon)
-                    # Update the type(s) and the damage relations
-                    p2_types = requests.get(self.base_url + p2_pokemon.lower().replace(" ", "-").replace(".", "")).json()['types']
-                    p2_damage_relations = {}
-                    for type in p2_types:
-                        p2_damage_relations.update(self.get_type_damage_relations(type['type']['name']))
                 else:
                     break
 
             # Player 2's turn
-            # Get the abilities of the opponent's pokemon
-            p2_abilities = self.get_pokemon_moves(p2_pokemon, p2_level)
-            # Choose a random ability
-            p2_ability = random.choice(p2_abilities)
-            # Get the type of the ability
-            p2_ability_type = requests.get("https://pokeapi.co/api/v2/ability/" + p2_ability).json()['type']['name']
-            # Calculate the damage based on the ability type and the player's type damage relations
-            if p2_ability_type in p1_damage_relations['double_damage_from']:
-                p2_damage = random.randint(40, 80)
-            elif p2_ability_type in p1_damage_relations['half_damage_from']:
-                p2_damage = random.randint(5, 25)
-            elif p2_ability_type in p1_damage_relations['no_damage_from']:
-                p2_damage = 0
-            else:
-                p2_damage = random.randint(20, 50)
-            # Apply the damage to the player's health
-            p1_hp -= p2_damage
+            # Subtract a random amount between 5 and 15 from the player's hp
+            p1_hp -= random.randint(10, 50)
             if p1_hp <= 0:
                 player1_pokemon_index += 1
                 if player1_pokemon_index < len(player1_party):
                     # Update the pokemon and the health value
                     p1_pokemon = next_p1_pokemon
                     p1_hp = self.get_pokemon_health(p1_pokemon)
-                    # Update the type(s) and the damage relations
-                    p1_types = requests.get(self.base_url + p1_pokemon.lower().replace(" ", "-").replace(".", "")).json()['types']
-                    p1_damage_relations = {}
-                    for type in p1_types:
-                        p1_damage_relations.update(self.get_type_damage_relations(type['type']['name']))
                 else:
                     break
 
