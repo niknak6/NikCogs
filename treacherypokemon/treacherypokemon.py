@@ -298,7 +298,8 @@ class TreacheryPokemon(commands.Cog):
                 battle_embed.clear_fields()
                 battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}", inline=False)
                 battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}", inline=False)
-                await battle_message.edit(embed=battle_embed)**
+                await battle_message.edit(embed=battle_embed)
+
             await asyncio.sleep(0.01)
 
         winner = ctx.author if player1_pokemon_index < len(player1_party) else opponent
