@@ -244,23 +244,11 @@ class TreacheryPokemon(commands.Cog):
         # Fetch the Pokemon in all positions of each user's party
         self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,))
         player1_party_tags = self.cur.fetchone()
-        player1_party = []
-        for poketag in player1_party_tags:
-            if poketag != '-':
-                self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag))
-                pokemon_name = self.cur.fetchone()
-                if pokemon_name is not None:
-                    player1_party.append(pokemon_name[0])
+        player1_party = [pokemon_name[0] for poketag in player1_party_tags if poketag != '-' and (pokemon_name := self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag)).fetchone()) is not None]
 
         self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (opponent.id,))
         player2_party_tags = self.cur.fetchone()
-        player2_party = []
-        for poketag in player2_party_tags:
-            if poketag != '-':
-                self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (opponent.id, poketag))
-                pokemon_name = self.cur.fetchone()
-                if pokemon_name is not None:
-                    player2_party.append(pokemon_name[0])
+        player2_party = [pokemon_name[0] for poketag in player2_party_tags if poketag != '-' and (pokemon_name := self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (opponent.id, poketag)).fetchone()) is not None]
 
         if not player1_party or not player2_party:
             await ctx.send("Both users must have a Pokémon in their party to battle.")
