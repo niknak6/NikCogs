@@ -287,13 +287,6 @@ class TreacheryPokemon(commands.Cog):
             # Reduce the hp of the current user by 10, and swap the hp values to switch turns
             p1_hp, p2_hp = p2_hp - 10, p1_hp
 
-            # Update the title of the battle embed with the current pokemon names
-            battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
-            battle_embed.clear_fields()
-            battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}", inline=False)
-            battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}", inline=False)
-            await battle_message.edit(embed=battle_embed)
-
             # If the hp of the current user is zero or less, update the current pokemon name with the next pokemon name, and increment the next pokemon index
             if p1_hp <= 0:
                 p1_pokemon = next_p1_pokemon
@@ -303,6 +296,13 @@ class TreacheryPokemon(commands.Cog):
                 p2_pokemon = next_p2_pokemon
                 player2_pokemon_index += 1
                 p2_hp = 100
+
+            # Update the title of the battle embed with the current pokemon names
+            battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
+            battle_embed.clear_fields()
+            battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}", inline=False)
+            battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}", inline=False)
+            await battle_message.edit(embed=battle_embed)
 
             # Wait for 0.04 seconds to speed up the battle by another 10x
             await asyncio.sleep(0.01)
