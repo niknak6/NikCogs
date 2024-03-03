@@ -24,6 +24,30 @@ class TreacheryPokemon(commands.Cog):
         self.trades = {}
         self.battles = {}
 
+    # Place the get_pokemon_health function after the __init__ method
+    def get_pokemon_health(self, pokemon_name):
+        # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
+        pokemon_url = self.base_url + pokemon_name
+        response = requests.get(pokemon_url)
+        if response.status_code == 200:
+            pokemon_data = response.json()
+            # Extract the level, attack, defense, special attack, and speed values from the JSON data
+            level = pokemon_data['stats'][0]['base_stat']
+            attack = pokemon_data['stats'][1]['base_stat']
+            defense = pokemon_data['stats'][2]['base_stat']
+            special_attack = pokemon_data['stats'][3]['base_stat']
+            speed = pokemon_data['stats'][5]['base_stat']
+            # Use the formula to calculate the health value
+            base_health = 50
+            level_modifier = level * 2
+            stat_modifier = (attack + defense + special_attack + speed) / 8
+            health = round(base_health + level_modifier + stat_modifier)
+            # Return the health value
+            return health
+        else:
+            # Return a default value if the request fails
+            return 100
+
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     @commands.command()
@@ -273,29 +297,35 @@ class TreacheryPokemon(commands.Cog):
         player1_pokemon_index = player2_pokemon_index = 0
         p1_pokemon = player1_party[player1_pokemon_index]
         p2_pokemon = player2_party[player2_pokemon_index]
-        p1_hp = p2_hp = 100
+        # Get the health values for both the player's and the opponent's pokemon
+        p1_hp = self.get_pokemon_health(p1_pokemon)
+        p2_hp = self.get_pokemon_health(p2_pokemon)
 
         while player1_pokemon_index < len(player1_party) and player2_pokemon_index < len(player2_party):
             next_p1_pokemon = player1_party[player1_pokemon_index + 1] if player1_pokemon_index + 1 < len(player1_party) else None
             next_p2_pokemon = player2_party[player2_pokemon_index + 1] if player2_pokemon_index + 1 < len(player2_party) else None
 
             # Player 1's turn
-            p2_hp -= 10
+            # Subtract a random amount between 5 and 15 from the opponent's hp
+            p2_hp -= random.randint(5, 15)
             if p2_hp <= 0:
                 player2_pokemon_index += 1
                 if player2_pokemon_index < len(player2_party):
+                    # Update the pokemon and the health value
                     p2_pokemon = next_p2_pokemon
-                    p2_hp = 100
+                    p2_hp = self.get_pokemon_health(p2_pokemon)
                 else:
                     break
 
             # Player 2's turn
-            p1_hp -= 10
+            # Subtract a random amount between 5 and 15 from the player's hp
+            p1_hp -= random.randint(5, 15)
             if p1_hp <= 0:
                 player1_pokemon_index += 1
                 if player1_pokemon_index < len(player1_party):
+                    # Update the pokemon and the health value
                     p1_pokemon = next_p1_pokemon
-                    p1_hp = 100
+                    p1_hp = self.get_pokemon_health(p1_pokemon)
                 else:
                     break
 
