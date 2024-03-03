@@ -260,8 +260,7 @@ class TreacheryPokemon(commands.Cog):
         await battle_message.add_reaction("⚔️")
 
         def check(reaction: Reaction, user):
-            # Check if the user is either the challenger or the opponent
-            return user in [ctx.author, opponent] and str(reaction.emoji) == "⚔️" and reaction.message.id == battle_message.id
+            return user == opponent and str(reaction.emoji) == "⚔️" and reaction.message.id == battle_message.id
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=900, check=check)
@@ -274,34 +273,35 @@ class TreacheryPokemon(commands.Cog):
         self.battles[opponent.id] = ctx.author.id
 
         player1_pokemon_index = player2_pokemon_index = 0
-        player1_hp = player2_hp = 100
+        # Use different variable names for each player's pokemon names and hp values
+        p1_pokemon = player1_party[player1_pokemon_index]
+        p2_pokemon = player2_party[player2_pokemon_index]
+        p1_hp = p2_hp = 100
 
         while player1_pokemon_index < len(player1_party) and player2_pokemon_index < len(player2_party):
             # Store the current and next pokemon names for each user
-            curr_pokemon1 = player1_party[player1_pokemon_index]
-            next_pokemon1 = player1_party[player1_pokemon_index + 1] if player1_pokemon_index + 1 < len(player1_party) else None
-            curr_pokemon2 = player2_party[player2_pokemon_index]
-            next_pokemon2 = player2_party[player2_pokemon_index + 1] if player2_pokemon_index + 1 < len(player2_party) else None
+            next_p1_pokemon = player1_party[player1_pokemon_index + 1] if player1_pokemon_index + 1 < len(player1_party) else None
+            next_p2_pokemon = player2_party[player2_pokemon_index + 1] if player2_pokemon_index + 1 < len(player2_party) else None
 
             # Reduce the hp of the current user by 10, and swap the hp values to switch turns
-            player1_hp, player2_hp = player2_hp - 10, player1_hp
+            p1_hp, p2_hp = p2_hp - 10, p1_hp
 
             # Update the title of the battle embed with the current pokemon names
-            battle_embed.title = f"{ctx.author.name}'s {curr_pokemon1} VS {opponent.name}'s {curr_pokemon2}"
+            battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
             battle_embed.clear_fields()
-            battle_embed.add_field(name=ctx.author.name, value=f"HP: {player1_hp}", inline=False)
-            battle_embed.add_field(name=opponent.name, value=f"HP: {player2_hp}", inline=False)
+            battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}", inline=False)
+            battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}", inline=False)
             await battle_message.edit(embed=battle_embed)
 
             # If the hp of the current user is zero or less, update the current pokemon name with the next pokemon name, and increment the next pokemon index
-            if player1_hp <= 0:
-                curr_pokemon1 = next_pokemon1
+            if p1_hp <= 0:
+                p1_pokemon = next_p1_pokemon
                 player1_pokemon_index += 1
-                player1_hp = 100
-            if player2_hp <= 0:
-                curr_pokemon2 = next_pokemon2
+                p1_hp = 100
+            if p2_hp <= 0:
+                p2_pokemon = next_p2_pokemon
                 player2_pokemon_index += 1
-                player2_hp = 100
+                p2_hp = 100
 
             # Wait for 0.04 seconds to speed up the battle by another 10x
             await asyncio.sleep(0.01)
