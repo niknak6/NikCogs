@@ -24,50 +24,35 @@ class TreacheryPokemon(commands.Cog):
         self.trades = {}
         self.battles = {}
 
-    # Move the function inside the class and add the self parameter as the first argument
     def get_random_move(self, pokemon_name):
-        # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
         response = requests.get(pokemon_url)
-        # Raise an exception if the status code is not 200
         response.raise_for_status()
         pokemon_data = response.json()
-        # Extract the list of moves from the JSON data
         moves = pokemon_data['moves']
-        # Choose a random move from the list
         move = random.choice(moves)
-        # Get the move name and url from the move dictionary
         move_name = move['move']['name']
         move_url = move['move']['url']
-        # Use the requests module to get the JSON data for the move from the pokeapi.co api
         response = requests.get(move_url)
-        # Raise an exception if the status code is not 200
         response.raise_for_status()
         move_data = response.json()
-        # Extract the type name from the JSON data
         type_name = move_data['type']['name']
-        # Return the move name and type name as a tuple
         return (move_name, type_name)
 
     def get_pokemon_health(self, pokemon_name):
-        # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
         response = requests.get(pokemon_url)
-        # Raise an exception if the status code is not 200
         response.raise_for_status()
         pokemon_data = response.json()
-        # Extract the level, attack, defense, special attack, and speed values from the JSON data
         level = pokemon_data['stats'][0]['base_stat']
         attack = pokemon_data['stats'][1]['base_stat']
         defense = pokemon_data['stats'][2]['base_stat']
         special_attack = pokemon_data['stats'][3]['base_stat']
         speed = pokemon_data['stats'][5]['base_stat']
-        # Use the formula to calculate the health value
         base_health = 50
         level_modifier = level * 2
         stat_modifier = (attack + defense + special_attack + speed) / 8
         health = round(base_health + level_modifier + stat_modifier)
-        # Return the health value
         return health
 
     @commands.guild_only()
@@ -327,8 +312,8 @@ class TreacheryPokemon(commands.Cog):
             next_p2_pokemon = player2_party[player2_pokemon_index + 1] if player2_pokemon_index + 1 < len(player2_party) else None
 
             # Use the helper function to get a random move and its type for each pokemon
-            p1_move, p1_type = get_random_move(p1_pokemon)
-            p2_move, p2_type = get_random_move(p2_pokemon)
+            p1_move, p1_type = self.get_random_move(p1_pokemon)
+            p2_move, p2_type = self.get_random_move(p2_pokemon)
 
             # Use the requests module to get the JSON data for the types from the pokeapi.co api
             p1_type_url = self.base_url + "type/" + p1_type
