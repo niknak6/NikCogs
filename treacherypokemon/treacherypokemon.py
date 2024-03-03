@@ -24,29 +24,26 @@ class TreacheryPokemon(commands.Cog):
         self.trades = {}
         self.battles = {}
 
-    # Place the get_pokemon_health function after the __init__ method
     def get_pokemon_health(self, pokemon_name):
         # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
         pokemon_url = self.base_url + pokemon_name
         response = requests.get(pokemon_url)
-        if response.status_code == 200:
-            pokemon_data = response.json()
-            # Extract the level, attack, defense, special attack, and speed values from the JSON data
-            level = pokemon_data['stats'][0]['base_stat']
-            attack = pokemon_data['stats'][1]['base_stat']
-            defense = pokemon_data['stats'][2]['base_stat']
-            special_attack = pokemon_data['stats'][3]['base_stat']
-            speed = pokemon_data['stats'][5]['base_stat']
-            # Use the formula to calculate the health value
-            base_health = 50
-            level_modifier = level * 2
-            stat_modifier = (attack + defense + special_attack + speed) / 8
-            health = round(base_health + level_modifier + stat_modifier)
-            # Return the health value
-            return health
-        else:
-            # Return a default value if the request fails
-            return 100
+        # Raise an exception if the status code is not 200
+        response.raise_for_status()
+        pokemon_data = response.json()
+        # Extract the level, attack, defense, special attack, and speed values from the JSON data
+        level = pokemon_data['stats'][0]['base_stat']
+        attack = pokemon_data['stats'][1]['base_stat']
+        defense = pokemon_data['stats'][2]['base_stat']
+        special_attack = pokemon_data['stats'][3]['base_stat']
+        speed = pokemon_data['stats'][5]['base_stat']
+        # Use the formula to calculate the health value
+        base_health = 50
+        level_modifier = level * 2
+        stat_modifier = (attack + defense + special_attack + speed) / 8
+        health = round(base_health + level_modifier + stat_modifier)
+        # Return the health value
+        return health
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
