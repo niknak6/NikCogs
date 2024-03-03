@@ -241,9 +241,15 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("A user can only participate in one battle at a time.")
             return
 
-        # Fetch the Pokemon in all positions of each user's party
-        player1_party = [row for row in chain.from_iterable(self.cur.execute('SELECT pokemon_name, poketag FROM pokedex JOIN party ON pokedex.poketag = party.position{} WHERE member_id = ?'.format(i), (ctx.author.id,)) for i in range(1, 7)) if row[0] is not None]
-        player2_party = [row for row in chain.from_iterable(self.cur.execute('SELECT pokemon_name, poketag FROM pokedex JOIN party ON pokedex.poketag = party.position{} WHERE member_id = ?'.format(i), (opponent.id,)) for i in range(1, 7)) if row[0] is not None]
+        # Fetch the poketags in all positions of each user's party
+        self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,))
+        player1_party_tags = self.cur.fetchone()
+        self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (opponent.id,))
+        player2_party_tags = self.cur.fetchone()
+
+        # Fetch the pokemon names for each poketag
+        player1_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone()[0] for poketag in player1_party_tags if poketag != '-']
+        player2_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (opponent.id, poketag.lower())).fetchone()[0] for poketag in player2_party_tags if poketag != '-']
 
         if not player1_party or not player2_party:
             await ctx.send("Both users must have a Pokémon in their party to battle.")
@@ -270,18 +276,17 @@ class TreacheryPokemon(commands.Cog):
         player1_hp = player2_hp = 100
 
         while player1_pokemon_index < len(player1_party) and player2_pokemon_index < len(player2_party):
-            battle_embed = Embed(title=f"{ctx.author.name}'s {player1_party[player1_pokemon_index][0]} ({player1_party[player1_pokemon_index][1].upper()}) VS {opponent.name}'s {player2_party[player2_pokemon_index][0]} ({player2_party[player2_pokemon_index][1].upper()})")
+            battle_embed = Embed(title=f"{ctx.author.name}'s {player1_party[player1_pokemon_index]} VS {opponent.name}'s {player2_party[player2_pokemon_index]}")
             battle_embed.add_field(name=ctx.author.name, value=f"HP: {player1_hp}", inline=False)
             battle_embed.add_field(name=opponent.name, value=f"HP: {player2_hp}", inline=False)
             await battle_message.edit(embed=battle_embed)
 
-            player1_hp, player2_hp = player2_hp - 10, player1_hp  # Swap turns and reduce HP by 10
+            player1_hp -= 10
             if player1_hp <= 0:
                 player1_pokemon_index += 1
                 player1_hp = 100
-            if player2_hp <= 0:
-                player2_pokemon_index += 1
-                player2_hp = 100
+
+            player1_hp, player2_hp = player2_hp, player1_hp  # Swap turns
 
             await asyncio.sleep(0.04)  # Speed up the battle by another 10x
 
