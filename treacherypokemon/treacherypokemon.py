@@ -7,6 +7,7 @@ from redbot.core.data_manager import cog_data_path
 from discord import Embed, Reaction
 from io import BytesIO
 import datetime
+import asyncio
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
