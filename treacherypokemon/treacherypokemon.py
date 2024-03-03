@@ -45,7 +45,7 @@ class TreacheryPokemon(commands.Cog):
         # Return the health value
         return health
     
-    def get_pokemon_abilities(self, pokemon_name, level):
+    def get_pokemon_moves(self, pokemon_name, level):
         # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
         response = requests.get(pokemon_url)
@@ -325,13 +325,13 @@ class TreacheryPokemon(commands.Cog):
         self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (ctx.author.id, p1_pokemon))
         p1_level = self.cur.fetchone()[0]
         # Get the abilities of the player's pokemon
-        p1_abilities = self.get_pokemon_abilities(p1_pokemon, p1_level)
+        p1_abilities = self.get_pokemon_moves(p1_pokemon, p1_level)
 
         # Get the level of the opponent's pokemon
         self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (opponent.id, p2_pokemon))
         p2_level = self.cur.fetchone()[0]
         # Get the abilities of the opponent's pokemon
-        p2_abilities = self.get_pokemon_abilities(p2_pokemon, p2_level)
+        p2_abilities = self.get_pokemon_moves(p2_pokemon, p2_level)
 
         # Get the health values for both the player's and the opponent's pokemon
         p1_hp = self.get_pokemon_health(p1_pokemon)
@@ -353,7 +353,7 @@ class TreacheryPokemon(commands.Cog):
 
             # Player 1's turn
             # Get the abilities of the player's pokemon
-            p1_abilities = self.get_pokemon_abilities(p1_pokemon, p1_level)
+            p1_abilities = self.get_pokemon_moves(p1_pokemon, p1_level)
             # Choose a random ability
             p1_ability = random.choice(p1_abilities)
             # Get the type of the ability
@@ -385,7 +385,7 @@ class TreacheryPokemon(commands.Cog):
 
             # Player 2's turn
             # Get the abilities of the opponent's pokemon
-            p2_abilities = self.get_pokemon_abilities(p2_pokemon, p2_level)
+            p2_abilities = self.get_pokemon_moves(p2_pokemon, p2_level)
             # Choose a random ability
             p2_ability = random.choice(p2_abilities)
             # Get the type of the ability
