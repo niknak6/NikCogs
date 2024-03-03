@@ -26,7 +26,7 @@ class TreacheryPokemon(commands.Cog):
 
     def get_pokemon_health(self, pokemon_name):
         # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
-        pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").strip(".")
+        pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
         response = requests.get(pokemon_url)
         # Raise an exception if the status code is not 200
         response.raise_for_status()
