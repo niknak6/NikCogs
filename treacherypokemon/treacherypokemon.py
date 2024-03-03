@@ -276,19 +276,33 @@ class TreacheryPokemon(commands.Cog):
         player1_hp = player2_hp = 100
 
         while player1_pokemon_index < len(player1_party) and player2_pokemon_index < len(player2_party):
-            battle_embed = Embed(title=f"{ctx.author.name}'s {player1_party[player1_pokemon_index]} VS {opponent.name}'s {player2_party[player2_pokemon_index]}")
+            # Store the current and next pokemon names for each user
+            curr_pokemon1 = player1_party[player1_pokemon_index]
+            next_pokemon1 = player1_party[player1_pokemon_index + 1] if player1_pokemon_index + 1 < len(player1_party) else None
+            curr_pokemon2 = player2_party[player2_pokemon_index]
+            next_pokemon2 = player2_party[player2_pokemon_index + 1] if player2_pokemon_index + 1 < len(player2_party) else None
+
+            # Update the battle embed with the current pokemon names
+            battle_embed = Embed(title=f"{ctx.author.name}'s {curr_pokemon1} VS {opponent.name}'s {curr_pokemon2}")
             battle_embed.add_field(name=ctx.author.name, value=f"HP: {player1_hp}", inline=False)
             battle_embed.add_field(name=opponent.name, value=f"HP: {player2_hp}", inline=False)
             await battle_message.edit(embed=battle_embed)
 
-            player1_hp -= 10
+            # Reduce the hp of the current user by 10, and swap the hp values to switch turns
+            player1_hp, player2_hp = player2_hp - 10, player1_hp
+
+            # If the hp of the current user is zero or less, update the current pokemon name with the next pokemon name, and increment the next pokemon index
             if player1_hp <= 0:
+                curr_pokemon1 = next_pokemon1
                 player1_pokemon_index += 1
                 player1_hp = 100
+            if player2_hp <= 0:
+                curr_pokemon2 = next_pokemon2
+                player2_pokemon_index += 1
+                player2_hp = 100
 
-            player1_hp, player2_hp = player2_hp, player1_hp  # Swap turns
-
-            await asyncio.sleep(0.04)  # Speed up the battle by another 10x
+            # Wait for 0.04 seconds to speed up the battle by another 10x
+            await asyncio.sleep(0.04)
 
         winner = ctx.author if player1_pokemon_index < len(player1_party) else opponent
         await battle_message.edit(content=f"{winner.name} wins the battle!", embed=None)
