@@ -260,7 +260,8 @@ class TreacheryPokemon(commands.Cog):
         await battle_message.add_reaction("⚔️")
 
         def check(reaction: Reaction, user):
-            return user == opponent and str(reaction.emoji) == "⚔️" and reaction.message.id == battle_message.id
+            # Check if the user is either the challenger or the opponent
+            return user in [ctx.author, opponent] and str(reaction.emoji) == "⚔️" and reaction.message.id == battle_message.id
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=900, check=check)
