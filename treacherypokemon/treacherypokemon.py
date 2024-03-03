@@ -45,19 +45,19 @@ class TreacheryPokemon(commands.Cog):
         # Return the health value
         return health
     
-    def get_pokemon_abilities(self, pokemon_name):
+    def get_pokemon_abilities(self, pokemon_name, level):
         # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
         response = requests.get(pokemon_url)
         # Raise an exception if the status code is not 200
         response.raise_for_status()
         pokemon_data = response.json()
-        # Extract the abilities from the JSON data
-        abilities = pokemon_data['abilities']
-        # Filter out the abilities that are not learned by level up
-        level_up_abilities = [ability['ability']['name'] for ability in abilities if ability['is_hidden'] == False]
-        # Return the list of level up abilities
-        return level_up_abilities
+        # Extract the moves from the JSON data
+        moves = pokemon_data['moves']
+        # Filter out the moves that are not learned by level up or are learned at a higher level
+        level_up_moves = [move['move']['name'] for move in moves if any(detail['level_learned_at'] <= level and detail['move_learn_method']['name'] == 'level-up' for detail in move['version_group_details'])]
+        # Return the list of level up moves
+        return level_up_moves
     
     def get_type_damage_relations(self, type_name):
         # Use the requests module to get the JSON data for the type from the pokeapi.co api
