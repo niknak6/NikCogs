@@ -243,9 +243,9 @@ class TreacheryPokemon(commands.Cog):
 
         # Fetch the Pokemon in all positions of each user's party
         self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,))
-        player1_party = self.cur.fetchone()
+        player1_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag)).fetchone()[0] for poketag in self.cur.fetchone() if poketag != '-']
         self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (opponent.id,))
-        player2_party = self.cur.fetchone()
+        player2_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (opponent.id, poketag)).fetchone()[0] for poketag in self.cur.fetchone() if poketag != '-']
 
         if not player1_party or not player2_party:
             await ctx.send("Both users must have a Pokémon in their party to battle.")
@@ -284,7 +284,7 @@ class TreacheryPokemon(commands.Cog):
 
             player1_hp, player2_hp = player2_hp, player1_hp  # Swap turns
 
-            await asyncio.sleep(0.4)  # Speed up the battle by 2.5x
+            await asyncio.sleep(0.04)  # Speed up the battle by another 10x
 
         winner = ctx.author if player1_pokemon_index < len(player1_party) else opponent
         await battle_message.edit(content=f"{winner.name} wins the battle!", embed=None)
