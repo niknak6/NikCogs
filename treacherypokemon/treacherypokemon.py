@@ -303,7 +303,7 @@ class TreacheryPokemon(commands.Cog):
                 player2_hp = 100
 
             # Wait for 0.04 seconds to speed up the battle by another 10x
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.04)
 
         winner = ctx.author if player1_pokemon_index < len(player1_party) else opponent
         await battle_message.edit(content=f"{winner.name} wins the battle!", embed=None)
