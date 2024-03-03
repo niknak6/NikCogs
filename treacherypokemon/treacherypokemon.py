@@ -242,11 +242,8 @@ class TreacheryPokemon(commands.Cog):
             return
 
         # Fetch the Pokemon in all positions of each user's party
-        self.cur.execute('SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position1 WHERE pokedex.member_id = ? UNION ALL SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position2 WHERE pokedex.member_id = ? UNION ALL SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position3 WHERE pokedex.member_id = ? UNION ALL SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position4 WHERE pokedex.member_id = ? UNION ALL SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position5 WHERE pokedex.member_id = ? UNION ALL SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position6 WHERE pokedex.member_id = ?', (ctx.author.id,) * 6)
-        player1_party = [row for row in self.cur.fetchall() if row[0] is not None]
-
-        self.cur.execute('SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position1 WHERE pokedex.member_id = ? UNION ALL SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position2 WHERE pokedex.member_id = ? UNION ALL SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position3 WHERE pokedex.member_id = ? UNION ALL SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position4 WHERE pokedex.member_id = ? UNION ALL SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position5 WHERE pokedex.member_id = ? UNION ALL SELECT pokemon_name, pokedex.poketag FROM pokedex JOIN party ON pokedex.poketag = party.position6 WHERE pokedex.member_id = ?', (opponent.id,) * 6)
-        player2_party = [row for row in self.cur.fetchall() if row[0] is not None]
+        player1_party = [row for row in chain.from_iterable(self.cur.execute('SELECT pokemon_name, poketag FROM pokedex JOIN party ON pokedex.poketag = party.position{} WHERE member_id = ?'.format(i), (ctx.author.id,)) for i in range(1, 7)) if row[0] is not None]
+        player2_party = [row for row in chain.from_iterable(self.cur.execute('SELECT pokemon_name, poketag FROM pokedex JOIN party ON pokedex.poketag = party.position{} WHERE member_id = ?'.format(i), (opponent.id,)) for i in range(1, 7)) if row[0] is not None]
 
         if not player1_party or not player2_party:
             await ctx.send("Both users must have a Pokémon in their party to battle.")
@@ -278,12 +275,13 @@ class TreacheryPokemon(commands.Cog):
             battle_embed.add_field(name=opponent.name, value=f"HP: {player2_hp}", inline=False)
             await battle_message.edit(embed=battle_embed)
 
-            player1_hp -= 10
+            player1_hp, player2_hp = player2_hp - 10, player1_hp  # Swap turns and reduce HP by 10
             if player1_hp <= 0:
                 player1_pokemon_index += 1
                 player1_hp = 100
-
-            player1_hp, player2_hp = player2_hp, player1_hp  # Swap turns
+            if player2_hp <= 0:
+                player2_pokemon_index += 1
+                player2_hp = 100
 
             await asyncio.sleep(0.04)  # Speed up the battle by another 10x
 
