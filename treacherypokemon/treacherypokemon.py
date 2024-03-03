@@ -20,6 +20,7 @@ class TreacheryPokemon(commands.Cog):
         self.conn.commit()
         self.last_spawn = None
         self.trades = {}
+        self.battles = {}
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
@@ -227,6 +228,59 @@ class TreacheryPokemon(commands.Cog):
         if not hasattr(self, "trades"):
             self.trades = {}
         self.trades[trade_message.id] = {"sender": ctx.author, "receiver": user, "sender_poketag": poketag.lower(), "receiver_poketag": None}
+        
+    @commands.command()
+    async def battle(self, ctx, opponent: discord.Member):
+        if opponent.bot:
+            await ctx.send("You can't battle bots!")
+            return
+
+        if ctx.author.id in self.battles or opponent.id in self.battles:
+            await ctx.send("A user can only participate in one battle at a time.")
+            return
+
+        # Fetch the Pokemon in position 1 of each user's party
+        self.cur.execute('SELECT position1 FROM party WHERE member_id = ?', (ctx.author.id,))
+        player1_pokemon = self.cur.fetchone()
+        self.cur.execute('SELECT position1 FROM party WHERE member_id = ?', (opponent.id,))
+        player2_pokemon = self.cur.fetchone()
+
+        if not player1_pokemon or not player2_pokemon:
+            await ctx.send("Both users must have a Pokémon in position 1 of their party to battle.")
+            return
+
+        battle_embed = Embed(title=f"{ctx.author.name}'s {player1_pokemon[0]} challenges {opponent.name}'s {player2_pokemon[0]} to a battle!")
+        battle_message = await ctx.send(embed=battle_embed)
+        await battle_message.add_reaction("⚔️")
+
+        def check(reaction: Reaction, user):
+            return user == opponent and str(reaction.emoji) == "⚔️" and reaction.message.id == battle_message.id
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=900, check=check)
+        except TimeoutError:
+            del self.battles[ctx.author.id]
+            await battle_message.edit(content="Battle request timed out.", embed=None)
+            return
+
+        self.battles[ctx.author.id] = opponent.id
+        self.battles[opponent.id] = ctx.author.id
+
+        player1_hp = player2_hp = 100
+
+        while player1_hp > 0 and player2_hp > 0:
+            battle_embed = Embed(title=f"{ctx.author.name}'s {player1_pokemon[0]} VS {opponent.name}'s {player2_pokemon[0]}")
+            battle_embed.add_field(name=ctx.author.name, value=f"HP: {player1_hp}", inline=False)
+            battle_embed.add_field(name=opponent.name, value=f"HP: {player2_hp}", inline=False)
+            await battle_message.edit(embed=battle_embed)
+
+            player1_hp -= 10
+            player1_hp, player2_hp = player2_hp, player1_hp  # Swap turns
+
+        winner = ctx.author if player1_hp > 0 else opponent
+        await battle_message.edit(content=f"{winner.name}'s {player1_pokemon[0] if winner == ctx.author else player2_pokemon[0]} wins the battle!", embed=None)
+        del self.battles[ctx.author.id]
+        del self.battles[opponent.id]
 
     @commands.Cog.listener()
     async def on_message(self, message):
