@@ -285,16 +285,20 @@ class TreacheryPokemon(commands.Cog):
                 player1_pokemon_index += 1
                 p1_pokemon = next_p1_pokemon
                 p1_hp = 100
+                battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
+                battle_embed.clear_fields()
+                battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}", inline=False)
+                battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}", inline=False)
+                await battle_message.edit(embed=battle_embed)
             if p2_hp <= 0:
                 player2_pokemon_index += 1
                 p2_pokemon = next_p2_pokemon
                 p2_hp = 100
-
-            battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
-            battle_embed.clear_fields()
-            battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}", inline=False)
-            battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}", inline=False)
-            await battle_message.edit(embed=battle_embed)
+                battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
+                battle_embed.clear_fields()
+                battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}", inline=False)
+                battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}", inline=False)
+                await battle_message.edit(embed=battle_embed)
 
             await asyncio.sleep(0.01)
 
