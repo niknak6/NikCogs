@@ -291,7 +291,7 @@ class TreacheryPokemon(commands.Cog):
                 battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}", inline=False)
                 await battle_message.edit(embed=battle_embed)
             if p2_hp <= 0:
-                player2_pokemon_index += 1
+                player2_pokemon_index += 1 # this is the added line
                 p2_pokemon = next_p2_pokemon
                 p2_hp = 100
                 battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
