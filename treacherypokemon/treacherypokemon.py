@@ -44,6 +44,30 @@ class TreacheryPokemon(commands.Cog):
         health = round(base_health + level_modifier + stat_modifier)
         # Return the health value
         return health
+    
+    def get_random_move(pokemon_name):
+        # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
+        pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
+        response = requests.get(pokemon_url)
+        # Raise an exception if the status code is not 200
+        response.raise_for_status()
+        pokemon_data = response.json()
+        # Extract the list of moves from the JSON data
+        moves = pokemon_data['moves']
+        # Choose a random move from the list
+        move = random.choice(moves)
+        # Get the move name and url from the move dictionary
+        move_name = move['move']['name']
+        move_url = move['move']['url']
+        # Use the requests module to get the JSON data for the move from the pokeapi.co api
+        response = requests.get(move_url)
+        # Raise an exception if the status code is not 200
+        response.raise_for_status()
+        move_data = response.json()
+        # Extract the type name from the JSON data
+        type_name = move_data['type']['name']
+        # Return the move name and type name as a tuple
+        return (move_name, type_name)
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
@@ -294,7 +318,6 @@ class TreacheryPokemon(commands.Cog):
         player1_pokemon_index = player2_pokemon_index = 0
         p1_pokemon = player1_party[player1_pokemon_index]
         p2_pokemon = player2_party[player2_pokemon_index]
-        # Get the health values for both the player's and the opponent's pokemon
         p1_hp = self.get_pokemon_health(p1_pokemon)
         p2_hp = self.get_pokemon_health(p2_pokemon)
 
@@ -302,34 +325,61 @@ class TreacheryPokemon(commands.Cog):
             next_p1_pokemon = player1_party[player1_pokemon_index + 1] if player1_pokemon_index + 1 < len(player1_party) else None
             next_p2_pokemon = player2_party[player2_pokemon_index + 1] if player2_pokemon_index + 1 < len(player2_party) else None
 
-            # Player 1's turn
-            # Subtract a random amount between 5 and 15 from the opponent's hp
-            p2_hp -= random.randint(10, 50)
+            # Use the helper function to get a random move and its type for each pokemon
+            p1_move, p1_type = get_random_move(p1_pokemon)
+            p2_move, p2_type = get_random_move(p2_pokemon)
+
+            # Use the requests module to get the JSON data for the types from the pokeapi.co api
+            p1_type_url = self.base_url + "type/" + p1_type
+            p2_type_url = self.base_url + "type/" + p2_type
+            p1_type_data = requests.get(p1_type_url).json()
+            p2_type_data = requests.get(p2_type_url).json()
+
+            # Extract the damage relations from the JSON data and use them to calculate the damage multiplier for each move
+            p1_damage_relations = p1_type_data['damage_relations']
+            p2_damage_relations = p2_type_data['damage_relations']
+            p1_multiplier = 1.0
+            p2_multiplier = 1.0
+            # Check if p1_type is in the double_damage_to list of p2_type
+            if any(p1_type == relation['name'] for relation in p2_damage_relations['double_damage_to']):
+                p1_multiplier = 2.0
+            # Check if p1_type is in the half_damage_to list of p2_type
+            if any(p1_type == relation['name'] for relation in p2_damage_relations['half_damage_to']):
+                p1_multiplier = 0.5
+            # Check if p1_type is in the no_damage_to list of p2_type
+            if any(p1_type == relation['name'] for relation in p2_damage_relations['no_damage_to']):
+                p1_multiplier = 0.0
+            # Do the same for p2_type
+            if any(p2_type == relation['name'] for relation in p1_damage_relations['double_damage_to']):
+                p2_multiplier = 2.0
+            if any(p2_type == relation['name'] for relation in p1_damage_relations['half_damage_to']):
+                p2_multiplier = 0.5
+            if any(p2_type == relation['name'] for relation in p1_damage_relations['no_damage_to']):
+                p2_multiplier = 0.0
+
+            # Use the damage multiplier to adjust the damage done by each move
+            p2_hp -= random.randint(10, 50) * p1_multiplier
             if p2_hp <= 0:
                 player2_pokemon_index += 1
                 if player2_pokemon_index < len(player2_party):
-                    # Update the pokemon and the health value
                     p2_pokemon = next_p2_pokemon
                     p2_hp = self.get_pokemon_health(p2_pokemon)
                 else:
                     break
 
-            # Player 2's turn
-            # Subtract a random amount between 5 and 15 from the player's hp
-            p1_hp -= random.randint(10, 50)
+            p1_hp -= random.randint(10, 50) * p2_multiplier
             if p1_hp <= 0:
                 player1_pokemon_index += 1
                 if player1_pokemon_index < len(player1_party):
-                    # Update the pokemon and the health value
                     p1_pokemon = next_p1_pokemon
                     p1_hp = self.get_pokemon_health(p1_pokemon)
                 else:
                     break
 
-            battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
+            battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} ({p1_type}) VS {opponent.name}'s {p2_pokemon} ({p2_type})"
             battle_embed.clear_fields()
-            battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}", inline=False)
-            battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}", inline=False)
+            battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}\nMove: {p1_move.capitalize()}", inline=False)
+            battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}\nMove: {p2_move.capitalize()}", inline=False)
             await battle_message.edit(embed=battle_embed)
 
             await asyncio.sleep(0.01)
