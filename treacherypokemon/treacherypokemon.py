@@ -9,31 +9,6 @@ from io import BytesIO
 import datetime
 import asyncio
 
-# Define the helper function here
-def get_random_move(pokemon_name, base_url):
-    # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
-    pokemon_url = base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
-    response = requests.get(pokemon_url)
-    # Raise an exception if the status code is not 200
-    response.raise_for_status()
-    pokemon_data = response.json()
-    # Extract the list of moves from the JSON data
-    moves = pokemon_data['moves']
-    # Choose a random move from the list
-    move = random.choice(moves)
-    # Get the move name and url from the move dictionary
-    move_name = move['move']['name']
-    move_url = move['move']['url']
-    # Use the requests module to get the JSON data for the move from the pokeapi.co api
-    response = requests.get(move_url)
-    # Raise an exception if the status code is not 200
-    response.raise_for_status()
-    move_data = response.json()
-    # Extract the type name from the JSON data
-    type_name = move_data['type']['name']
-    # Return the move name and type name as a tuple
-    return (move_name, type_name)
-    
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
         self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
@@ -48,6 +23,31 @@ class TreacheryPokemon(commands.Cog):
         self.last_spawn = None
         self.trades = {}
         self.battles = {}
+
+    # Move the function inside the class and add the self parameter as the first argument
+    def get_random_move(self, pokemon_name):
+        # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
+        pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
+        response = requests.get(pokemon_url)
+        # Raise an exception if the status code is not 200
+        response.raise_for_status()
+        pokemon_data = response.json()
+        # Extract the list of moves from the JSON data
+        moves = pokemon_data['moves']
+        # Choose a random move from the list
+        move = random.choice(moves)
+        # Get the move name and url from the move dictionary
+        move_name = move['move']['name']
+        move_url = move['move']['url']
+        # Use the requests module to get the JSON data for the move from the pokeapi.co api
+        response = requests.get(move_url)
+        # Raise an exception if the status code is not 200
+        response.raise_for_status()
+        move_data = response.json()
+        # Extract the type name from the JSON data
+        type_name = move_data['type']['name']
+        # Return the move name and type name as a tuple
+        return (move_name, type_name)
 
     def get_pokemon_health(self, pokemon_name):
         # Use the requests module to get the JSON data for the pokemon from the pokeapi.co api
