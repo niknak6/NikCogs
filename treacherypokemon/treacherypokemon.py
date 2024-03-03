@@ -12,6 +12,7 @@ import asyncio
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
         self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
+        self.type_url = "https://pokeapi.co/api/v2/type/"
         self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
         self.config.register_guild(spawn_channel=None, spawn_rate=0.0, spawn_cooldown=15.0)
         self.spawn_message, self.pokemon_id = None, None
@@ -316,8 +317,8 @@ class TreacheryPokemon(commands.Cog):
             p2_move, p2_type = self.get_random_move(p2_pokemon)
 
             # Use the requests module to get the JSON data for the types from the pokeapi.co api
-            p1_type_url = self.base_url + "type/" + p1_type
-            p2_type_url = self.base_url + "type/" + p2_type
+            p1_type_url = self.type_url + p1_type
+            p2_type_url = self.type_url + p2_type
             p1_type_data = requests.get(p1_type_url).json()
             p2_type_data = requests.get(p2_type_url).json()
 
