@@ -297,8 +297,8 @@ class TreacheryPokemon(commands.Cog):
                 player1_pokemon_index += 1
                 player1_hp = 100
             if player2_hp <= 0:
-                curr_pokemon2 = next_pokemon2
-                player2_pokemon_index += 1
+                curr_pokemon2 = next_pokemon2 # Update the current pokemon name with the next pokemon name
+                player2_pokemon_index += 1 # Increment the next pokemon index
                 player2_hp = 100
 
             # Wait for 0.04 seconds to speed up the battle by another 10x
