@@ -289,12 +289,12 @@ class TreacheryPokemon(commands.Cog):
 
             # If the hp of the current user is zero or less, update the current pokemon name with the next pokemon name, and increment the next pokemon index
             if p1_hp <= 0:
+                player1_pokemon_index += 1 # move this line before updating p1_pokemon
                 p1_pokemon = next_p1_pokemon
-                player1_pokemon_index += 1
                 p1_hp = 100
             if p2_hp <= 0:
+                player2_pokemon_index += 1 # move this line before updating p2_pokemon
                 p2_pokemon = next_p2_pokemon
-                player2_pokemon_index += 1
                 p2_hp = 100
 
             # Update the title of the battle embed with the current pokemon names
