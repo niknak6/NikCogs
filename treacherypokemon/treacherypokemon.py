@@ -304,7 +304,7 @@ class TreacheryPokemon(commands.Cog):
 
             # Player 1's turn
             # Subtract a random amount between 5 and 15 from the opponent's hp
-            p2_hp -= random.randint(5, 15)
+            p2_hp -= random.randint(10, 50)
             if p2_hp <= 0:
                 player2_pokemon_index += 1
                 if player2_pokemon_index < len(player2_party):
@@ -316,7 +316,7 @@ class TreacheryPokemon(commands.Cog):
 
             # Player 2's turn
             # Subtract a random amount between 5 and 15 from the player's hp
-            p1_hp -= random.randint(5, 15)
+            p1_hp -= random.randint(10, 50)
             if p1_hp <= 0:
                 player1_pokemon_index += 1
                 if player1_pokemon_index < len(player1_party):
