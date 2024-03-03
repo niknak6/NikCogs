@@ -55,7 +55,12 @@ class TreacheryPokemon(commands.Cog):
         # Extract the moves from the JSON data
         moves = pokemon_data['moves']
         # Filter out the moves that are not learned by level up or are learned at a higher level
-        level_up_moves = [move['move']['name'] for move in moves if any(detail['level_learned_at'] <= level and detail['move_learn_method']['name'] == 'level-up' for detail in move['version_group_details'])]
+        level_up_moves = []
+        for move in moves:
+            for detail in move['version_group_details']:
+                if detail['level_learned_at'] <= level and detail['move_learn_method']['name'] == 'level-up':
+                    level_up_moves.append(move['move']['name'])
+                    break # stop the inner loop once a valid move is found
         # Return the list of level up moves
         return level_up_moves
     
@@ -70,6 +75,21 @@ class TreacheryPokemon(commands.Cog):
         damage_relations = type_data['damage_relations']
         # Return the damage relations as a dictionary
         return damage_relations
+
+    # Get the type(s) for both the player's and the opponent's pokemon
+    p1_types = requests.get(self.base_url + p1_pokemon.lower().replace(" ", "-").replace(".", "")).json()['types']
+    p2_types = requests.get(self.base_url + p2_pokemon.lower().replace(" ", "-").replace(".", "")).json()['types']
+    # Get the damage relations for both the player's and the opponent's pokemon types
+    p1_damage_relations = {'double_damage_from': [], 'double_damage_to': [], 'half_damage_from': [], 'half_damage_to': [], 'no_damage_from': [], 'no_damage_to': []}
+    p2_damage_relations = {'double_damage_from': [], 'double_damage_to': [], 'half_damage_from': [], 'half_damage_to': [], 'no_damage_from': [], 'no_damage_to': []}
+    for type in p1_types:
+        type_damage_relations = self.get_type_damage_relations(type['type']['name'])
+        for key, value in type_damage_relations.items():
+            p1_damage_relations[key].extend([item['name'] for item in value])
+    for type in p2_types:
+        type_damage_relations = self.get_type_damage_relations(type['type']['name'])
+        for key, value in type_damage_relations.items():
+            p2_damage_relations[key].extend([item['name'] for item in value])
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
