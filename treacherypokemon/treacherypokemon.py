@@ -308,6 +308,13 @@ class TreacheryPokemon(commands.Cog):
         p1_hp = self.get_pokemon_health(p1_pokemon)
         p2_hp = self.get_pokemon_health(p2_pokemon)
 
+        # Add a new attribute to store the last 5 actions
+        self.last_actions = []
+
+        # Initialize the list with empty strings
+        for _ in range(5):
+            self.last_actions.append("")
+
         while player1_pokemon_index < len(player1_party) and player2_pokemon_index < len(player2_party):
             next_p1_pokemon = player1_party[player1_pokemon_index + 1] if player1_pokemon_index + 1 < len(player1_party) else None
             next_p2_pokemon = player2_party[player2_pokemon_index + 1] if player2_pokemon_index + 1 < len(player2_party) else None
@@ -367,6 +374,23 @@ class TreacheryPokemon(commands.Cog):
             battle_embed.clear_fields()
             battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}\nMove: {p1_move.capitalize()}", inline=False)
             battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}\nMove: {p2_move.capitalize()}", inline=False)
+
+            # Format the action string with the move name, the damage, and the multiplier
+            p1_action = f"{p1_pokemon} used {p1_move.capitalize()} and dealt {round(random.randint(10, 50) * p1_multiplier)} damage to {p2_pokemon} ({p1_multiplier}x)"
+            p2_action = f"{p2_pokemon} used {p2_move.capitalize()} and dealt {round(random.randint(10, 50) * p2_multiplier)} damage to {p1_pokemon} ({p2_multiplier}x)"
+
+            # Remove the oldest action and insert the newest one at the beginning of the list
+            self.last_actions.pop()
+            self.last_actions.insert(0, p2_action)
+            self.last_actions.pop()
+            self.last_actions.insert(0, p1_action)
+
+            # Join the list with newlines to create the field value
+            actions_value = "\n".join(self.last_actions)
+
+            # Add a new field to the embed with the actions value
+            battle_embed.add_field(name="Last 5 Actions", value=actions_value, inline=False)
+
             await battle_message.edit(embed=battle_embed)
 
             await asyncio.sleep(0.01)
