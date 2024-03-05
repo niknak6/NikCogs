@@ -55,6 +55,19 @@ class TreacheryPokemon(commands.Cog):
         stat_modifier = (attack + defense + special_attack + speed) / 8
         health = round(base_health + level_modifier + stat_modifier)
         return health
+    
+    async def on_command_error(self, ctx: commands.Context, error):
+    # Handle your errors here
+    if isinstance(error, commands.MemberNotFound):
+        await ctx.send(f"I could not find member '{error.argument}'. Please try again")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f"'{error.param.name}' is a required argument.")
+    elif isinstance(error, commands.CommandError):
+        await ctx.send(error) # Send the error message to the context channel
+    else:
+        # All unhandled errors will print their original traceback
+        print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
+        traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
