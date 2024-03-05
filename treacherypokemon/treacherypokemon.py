@@ -281,9 +281,9 @@ class TreacheryPokemon(commands.Cog):
         player1_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone()[0] for poketag in player1_party_tags if poketag != '-']
         player2_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (opponent.id, poketag.lower())).fetchone()[0] for poketag in player2_party_tags if poketag != '-']
 
-        if not player1_party or not player2_party:
-            await ctx.send("Both users must have a Pokémon in their party to battle.")
-            return
+        # Add a check for None here
+        if player1_party_tags is None or player2_party_tags is None:
+            raise commands.CommandError("Both players must have a party.")
 
         battle_embed = Embed(title=f"{ctx.author.name} challenges {opponent.name} to a battle!")
         battle_message = await ctx.send(embed=battle_embed)
