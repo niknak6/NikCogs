@@ -8,6 +8,7 @@ from discord import Embed, Reaction
 from io import BytesIO
 import datetime
 import asyncio
+import traceback
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
@@ -275,6 +276,17 @@ class TreacheryPokemon(commands.Cog):
         if not hasattr(self, "trades"):
             self.trades = {}
         self.trades[trade_message.id] = {"sender": ctx.author, "receiver": user, "sender_poketag": poketag.lower(), "receiver_poketag": None}
+    
+    # Define the on_command_error event handler
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx: commands.Context, error):
+        # Handle your errors here
+        if isinstance(error, commands.CommandError):
+            await ctx.send(error) # Send the error message to the context channel
+        else:
+            # All unhandled errors will print their original traceback
+            print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
+            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
