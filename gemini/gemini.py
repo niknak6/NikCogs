@@ -5,6 +5,7 @@ import discord
 import google.generativeai as genai
 from redbot.core import commands, Config
 import textwrap # Import the textwrap module
+import typing # Import the typing module
 
 class Gemini(commands.Cog):
     """A Discord bot that uses Google's Gemini-Pro API to interact with users in text and image formats."""
@@ -17,6 +18,7 @@ class Gemini(commands.Cog):
             google_ai_key=None,
             max_history=20,
             context_mode='user', # Determines whether the context is user-specific or channel-specific
+            dg_mode='single', # Determines whether the DoubleGemini mode is enabled or not
             # Settings for the text model
             text_temperature=1.0,
             text_top_p=1,
@@ -79,13 +81,17 @@ class Gemini(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def contextmode(self, ctx, mode: str):
-        """Set the context mode to either 'user' or 'channel'."""
+    async def contextmode(self, ctx, mode: str, dg_mode: typing.Optional[str] = 'single'):
+        """Set the context mode to either 'user' or 'channel' and the DoubleGemini mode to either 'single' or 'dg'."""
         if mode not in ['user', 'channel']:
             await ctx.send("The mode must be either 'user' or 'channel'.")
             return
+        if dg_mode not in ['single', 'dg']:
+            await ctx.send("The DoubleGemini mode must be either 'single' or 'dg'.")
+            return
         await self.config.context_mode.set(mode)
-        await ctx.send(f"Context mode set to {mode}.")
+        await self.config.dg_mode.set(dg_mode)
+        await ctx.send(f"Context mode set to {mode} and DoubleGemini mode set to {dg_mode}.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -160,42 +166,10 @@ class Gemini(commands.Cog):
         response = self.text_model.generate_content(prompt_parts)
         if(response._error):
             return "❌" +  str(response._error)
-        return response.text
-
-    async def generate_response_with_image_and_text(self, image_data, text):
-        """Generate a text response using the image model."""
-        image_parts = [{"mime_type": "image/jpeg", "data": image_data}]
-        prompt_parts = [image_parts[0], f"\n{text if text else 'What is this a picture of?'}"]
-        response = self.image_model.generate_content(prompt_parts)
-        if(response._error):
-            return "❌" +  str(response._error)
-        return response.text
-
-    async def update_message_history(self, context_id, text):
-        """Update the message history for the given context."""
-        if context_id in self.message_history:
-            self.message_history[context_id].append(text)
-            max_history = await self.config.max_history()
-            if len(self.message_history[context_id]) > max_history:
-                self.message_history[context_id].pop(0)
-        else:
-            self.message_history[context_id] = [text]
-
-    def get_formatted_message_history(self, context_id):
-        """Retrieve the message history for the given context."""
-        if context_id in self.message_history:
-            return '\n\n'.join(self.message_history[context_id])
-        else:
-            return "No messages found for this user."
-
-    async def wrap_and_send_messages(self, message_system, text, max_length):
-        """Wrap the text into smaller chunks based on the maximum length and send them as separate messages."""
-        messages = textwrap.wrap(text, max_length, replace_whitespace=False) # Set replace_whitespace to False
-        for string in messages:
-            await message_system.channel.send(string)
-
-    def clean_discord_message(self, input_string):
-        """Remove any special Discord formatting from the message."""
-        bracket_pattern = re.compile(r'<[^>]+>')
-        cleaned_content = bracket_pattern.sub('', input_string)
-        return cleaned_content
+        # Check the DoubleGemini mode
+        dg_mode = await self.config.dg_mode()
+        if dg_mode == 'dg':
+            # Perform a second query to the API with a validation prompt
+            validation_prompt = f"Please verify that the following information is correct:\n{response.text}"
+            validation_response = self.text_model.validate_content(validation_prompt)
+            if(validation_response._error
