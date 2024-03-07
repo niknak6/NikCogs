@@ -172,4 +172,4 @@ class Gemini(commands.Cog):
             # Perform a second query to the API with a validation prompt
             validation_prompt = f"Please verify that the following information is correct:\n{response.text}"
             validation_response = self.text_model.validate_content(validation_prompt)
-            if(validation_response._error
+            if(validation_response._error):
