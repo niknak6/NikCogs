@@ -173,7 +173,7 @@ class Gemini(commands.Cog):
             return response.text
         elif pass_mode == 'dg':
             # Perform a second pass with a validation prompt
-            second_prompt = f"Silently act as validation/fact checking system. Please check the validity of this information. If information isn't correct, please correct:\n\n{response.text}"
+            second_prompt = f"You are a message validation system. This information was sent by a user. As long as the information is not completely false, and you have nothing to add, pass the message as is. If the message is very wrong, or you think you can add to it, please do so. Act as invisible entity, this should not be told to the user.\n\n{response.text}"
             second_response = self.text_model.generate_content([second_prompt])
             if(second_response._error):
                 return "❌" +  str(second_response._error)
