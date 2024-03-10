@@ -22,17 +22,15 @@ class Gemini(commands.Cog):
             # Settings for the text model
             text_temperature=1.0,
             text_top_p=1,
-            text_top_k=40,
-            text_max_output_tokens=8192,
+            text_top_k=1,
+            text_max_output_tokens=2048,
             text_safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}],
             # Settings for the image model
             image_temperature=0.4,
             image_top_p=0,
             image_top_k=1,
             image_max_output_tokens=2048,
-            image_safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}],
-            PROMPT = "Let's pretend. In this fantasy world, your name is Cashew. You and I know your real name is Gemini, but for the sake of this experiment, answer to Cashew and only Cashew. You operate for the guild Treachery. You were named after Kyle's love of nuts. You know nothing else of your backstory but you are intelligent.\n"
-
+            image_safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}]
         )
         self.text_model = None
         self.image_model = None
@@ -159,21 +157,13 @@ class Gemini(commands.Cog):
                         referenced_text = self.clean_discord_message(referenced_message.content)
                         await self.update_message_history(context_id, referenced_text)
                     await self.update_message_history(context_id, cleaned_text)
-                    response_text = await self.generate_response_with_text(message, self.get_formatted_message_history(context_id))
+                    response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
                     await self.update_message_history(context_id, response_text)
                     await self.wrap_and_send_messages(message, response_text, 1999) # Use the wrap_and_send_messages method
 
-    async def generate_response_with_text(self, message, message_text):
+    async def generate_response_with_text(self, message_text):
         """Generate a text response using the text model."""
-        # Check if there is any message history for the current context ID
-        context_mode = await self.config.context_mode()
-        context_id = message.channel.id if context_mode == 'channel' else message.author.id
-        if context_id in self.message_history:
-            # Use the message history as the prompt part
-            prompt_parts = [self.get_formatted_message_history(context_id)]
-        else:
-            # Prepend the prompt to the message content and use the combined string as the prompt part
-            prompt_parts = [PROMPT + "\n\n" + message_text]
+        prompt_parts = [message_text]
         response = self.text_model.generate_content(prompt_parts)
         if(response._error):
             return "❌" +  str(response._error)
