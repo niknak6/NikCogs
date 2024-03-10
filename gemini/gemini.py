@@ -215,6 +215,6 @@ class Gemini(commands.Cog):
 
     def clean_discord_message(self, input_string):
         """Remove any special Discord formatting from the message."""
-        bracket_pattern = re.compile(r'<[^>]+>')
-        cleaned_content = bracket_pattern.sub('', input_string)
+        non_mention_pattern = re.compile(r'<(?!@)[^>]+>')
+        cleaned_content = non_mention_pattern.sub('', input_string)
         return cleaned_content
