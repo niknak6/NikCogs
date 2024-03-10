@@ -159,11 +159,11 @@ class Gemini(commands.Cog):
                         referenced_text = self.clean_discord_message(referenced_message.content)
                         await self.update_message_history(context_id, referenced_text)
                     await self.update_message_history(context_id, cleaned_text)
-                    response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
+                    response_text = await self.generate_response_with_text(message, self.get_formatted_message_history(context_id))
                     await self.update_message_history(context_id, response_text)
                     await self.wrap_and_send_messages(message, response_text, 1999) # Use the wrap_and_send_messages method
 
-    async def generate_response_with_text(self, message_text):
+    async def generate_response_with_text(self, message, message_text):
         """Generate a text response using the text model."""
         # Check if there is any message history for the current context ID
         context_mode = await self.config.context_mode()
