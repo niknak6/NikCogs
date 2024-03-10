@@ -5,6 +5,7 @@ import discord
 import google.generativeai as genai
 from redbot.core import commands, Config
 import textwrap # Import the textwrap module
+import typing # Import the typing module
 
 class Gemini(commands.Cog):
     """A Discord bot that uses Google's Gemini-Pro API to interact with users in text and image formats."""
@@ -17,6 +18,7 @@ class Gemini(commands.Cog):
             google_ai_key=None,
             max_history=20,
             context_mode='user', # Determines whether the context is user-specific or channel-specific
+            pass_mode='single', # Determines whether the response is generated with a single pass or a double pass
             # Settings for the text model
             text_temperature=1.0,
             text_top_p=1,
@@ -79,13 +81,17 @@ class Gemini(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def contextmode(self, ctx, mode: str):
-        """Set the context mode to either 'user' or 'channel'."""
+    async def contextmode(self, ctx, mode: str, pass_mode: typing.Optional[str] = 'single'):
+        """Set the context mode to either 'user' or 'channel' and the pass mode to either 'single' or 'dg'."""
         if mode not in ['user', 'channel']:
             await ctx.send("The mode must be either 'user' or 'channel'.")
             return
+        if pass_mode not in ['single', 'dg']:
+            await ctx.send("The pass mode must be either 'single' or 'dg'.")
+            return
         await self.config.context_mode.set(mode)
-        await ctx.send(f"Context mode set to {mode}.")
+        await self.config.pass_mode.set(pass_mode)
+        await ctx.send(f"Context mode set to {mode} and pass mode set to {pass_mode}.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -161,7 +167,19 @@ class Gemini(commands.Cog):
         response = self.text_model.generate_content(prompt_parts)
         if(response._error):
             return "❌" +  str(response._error)
-        return response.text
+        # Check the pass mode for the current context
+        pass_mode = await self.config.pass_mode()
+        if pass_mode == 'single':
+            # Return the response as it is
+            return response.text
+        elif pass_mode == 'dg':
+            # Perform a second pass with a validation prompt
+            second_prompt = f"You are a message validation system. This information was sent by a user. As long as the information is not completely false, and you have nothing to add, pass the message as is. If the message is very wrong, or you think you can add to it, please do so. Act as invisible entity, this should not be told to the user.\n\n{response.text}"
+            second_response = self.text_model.generate_content([second_prompt])
+            if(second_response._error):
+                return "❌" +  str(second_response._error)
+            # Return the second response as the final output
+            return second_response.text
 
     async def generate_response_with_image_and_text(self, image_data, text):
         """Generate a text response using the image model."""
