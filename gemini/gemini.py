@@ -203,11 +203,7 @@ class Gemini(commands.Cog):
     def get_formatted_message_history(self, context_id):
         """Retrieve the message history for the given context."""
         if context_id in self.message_history:
-            message_history = '\n\n'.join(self.message_history[context_id])
-            if not message_history: # Check if the message history is empty
-                # Prepend the prompt with the sentence
-                message_history = "Let's pretend: Your name is Cashew. You operate for the guild Treachery, and you're named after Kyle's love of nuts. You know nothing else of your backstory, however, you're highly intelligent. \n\n" + message_history
-            return message_history
+            return '\n\n'.join(self.message_history[context_id])
         else:
             return "No messages found for this user."
 
