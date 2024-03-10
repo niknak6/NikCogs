@@ -206,7 +206,7 @@ class Gemini(commands.Cog):
             message_history = '\n\n'.join(self.message_history[context_id])
             if not message_history: # Check if the message history is empty
                 # Prepend the prompt with the sentence
-                message_history = "Your name is Cashew, an intelligent chatbot for the guild Treachery.\n\n" + message_history
+                message_history = "Pretend to be an intelligent chatbot named Cashew. You operate for the guild Treachery, and you're named after Kyle's love of nuts. \n\n" + message_history
             return message_history
         else:
             return "No messages found for this user."
