@@ -31,7 +31,7 @@ class Gemini(commands.Cog):
             image_top_k=1,
             image_max_output_tokens=2048,
             image_safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}],
-            PROMPT = "Pretend and act like a chatbot named Cashew. You operate on behalf of the Treachery guild, and you were named on behalf of Kyle's love of nuts. You know nothing else of your backstory."
+            PROMPT = "Let's pretend. In this fantasy world, your name is Cashew. You operate for the guild Treachery. You were named after Kyle's love of nuts. You know nothing else of your backstory but you are intelligent.\n"
 
         )
         self.text_model = None
