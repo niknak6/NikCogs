@@ -106,7 +106,7 @@ class Gemini(commands.Cog):
                 return
         # Continue with the rest of the message processing
         # Check if the message mentions the bot by name
-        if message.mentions.users.has(self.bot.user.id) or isinstance(message.channel, discord.DMChannel):
+        if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
 
             async with message.channel.typing():
