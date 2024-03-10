@@ -31,6 +31,8 @@ class Gemini(commands.Cog):
             image_top_k=1,
             image_max_output_tokens=2048,
             image_safety_settings=[{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"}, {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}]
+            PROMPT = "Pretend and act like a chatbot named Cashew. You operate on behalf of the Treachery guild, and you were named on behalf of Kyle's love of nuts. You know nothing else of your backstory."
+
         )
         self.text_model = None
         self.image_model = None
@@ -163,7 +165,15 @@ class Gemini(commands.Cog):
 
     async def generate_response_with_text(self, message_text):
         """Generate a text response using the text model."""
-        prompt_parts = [message_text]
+        # Check if there is any message history for the current context ID
+        context_mode = await self.config.context_mode()
+        context_id = message.channel.id if context_mode == 'channel' else message.author.id
+        if context_id in self.message_history:
+            # Use the message history as the prompt part
+            prompt_parts = [self.get_formatted_message_history(context_id)]
+        else:
+            # Prepend the prompt to the message content and use the combined string as the prompt part
+            prompt_parts = [PROMPT + "\n\n" + message_text]
         response = self.text_model.generate_content(prompt_parts)
         if(response._error):
             return "❌" +  str(response._error)
