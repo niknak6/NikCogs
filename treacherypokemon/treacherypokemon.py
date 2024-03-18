@@ -27,19 +27,11 @@ class TreacheryPokemon(commands.Cog):
         self.battles = {}
 
     def get_random_move(self, pokemon_name):
-        pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
-        response = requests.get(pokemon_url)
-        response.raise_for_status()
-        pokemon_data = response.json()
-        moves = pokemon_data['moves']
-        move = random.choice(moves)
-        move_name = move['move']['name']
-        move_url = move['move']['url']
-        response = requests.get(move_url)
-        response.raise_for_status()
-        move_data = response.json()
-        type_name = move_data['type']['name']
-        return (move_name, type_name)
+        pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+        pokemon_data = requests.get(pokemon_url).json()
+        move = random.choice(pokemon_data['moves'])
+        move_data = requests.get(move['move']['url']).json()
+        return move['move']['name'], move_data['type']['name']
 
     def get_pokemon_health(self, pokemon_name):
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
