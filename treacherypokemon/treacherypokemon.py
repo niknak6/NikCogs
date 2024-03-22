@@ -329,13 +329,18 @@ class TreacheryPokemon(commands.Cog):
             p1_multiplier = get_multiplier(p1_type_data, p2_type)
             p2_multiplier = get_multiplier(p2_type_data, p1_type)
 
-            player1_hp[p1_pokemon] -= calculate_damage(p2_move, p2_multiplier)
-            player2_hp[p2_pokemon] -= calculate_damage(p1_move, p1_multiplier)
+            # Calculate damage
+            p1_damage = calculate_damage(p1_move, p1_multiplier)
+            p2_damage = calculate_damage(p2_move, p2_multiplier)
 
-            # Update battle embed with current HP and moves
+            # Update HP
+            player1_hp[p1_pokemon] = max(player1_hp[p1_pokemon] - p2_damage, 0)
+            player2_hp[p2_pokemon] = max(player2_hp[p2_pokemon] - p1_damage, 0)
+
+            # Update battle embed with current HP, moves, and multipliers
             battle_embed.clear_fields()
-            battle_embed.add_field(name=f"{ctx.author.display_name}'s {p1_pokemon}", value=f"HP: {max(player1_hp[p1_pokemon], 0)}\nMove: {p1_move.capitalize()}", inline=True)
-            battle_embed.add_field(name=f"{opponent.display_name}'s {p2_pokemon}", value=f"HP: {max(player2_hp[p2_pokemon], 0)}\nMove: {p2_move.capitalize()}", inline=True)
+            battle_embed.add_field(name=f"{ctx.author.display_name}'s {p1_pokemon}", value=f"HP: {player1_hp[p1_pokemon]}\nMove: {p1_move.capitalize()} ({p1_multiplier}x)", inline=True)
+            battle_embed.add_field(name=f"{opponent.display_name}'s {p2_pokemon}", value=f"HP: {player2_hp[p2_pokemon]}\nMove: {p2_move.capitalize()} ({p2_multiplier}x)", inline=True)
             
             # Check for defeated Pokémon and update embed description
             if player1_hp[p1_pokemon] <= 0:
