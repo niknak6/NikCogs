@@ -298,7 +298,7 @@ class TreacheryPokemon(commands.Cog):
         player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
 
         # Start battle
-        battle_embed = Embed(title=f"{ctx.author.mention} VS {opponent.mention}", description="")
+        battle_embed = Embed(title=f"Battle: {ctx.author.mention} VS {opponent.mention}", description="")
         battle_message = await ctx.send(embed=battle_embed)
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
