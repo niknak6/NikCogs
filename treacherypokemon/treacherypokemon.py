@@ -343,13 +343,6 @@ class TreacheryPokemon(commands.Cog):
         await battle_message.edit(embed=battle_embed)
         del self.battles[ctx.author.id], self.battles[opponent.id]
 
-    # Declare the winner
-    winner = ctx.author.display_name if player2_party else opponent.display_name
-    battle_embed.clear_fields()
-    battle_embed.description += f"\n**{winner} wins the battle!**"
-    await battle_message.edit(embed=battle_embed)
-    del self.battles[ctx.author.id], self.battles[opponent.id]
-
     @commands.Cog.listener()
     async def on_message(self, message):
         """Handle the completion of the trade."""
