@@ -309,8 +309,23 @@ class TreacheryPokemon(commands.Cog):
             calculate_damage = lambda move, multiplier: random.randint(10, 50) * multiplier
             p1_move, p1_type = self.get_random_move(p1_pokemon)
             p2_move, p2_type = self.get_random_move(p2_pokemon)
-            p1_multiplier = self.get_multiplier(requests.get(self.type_url + p1_type).json()['damage_relations'], p2_type)
-            p2_multiplier = self.get_multiplier(requests.get(self.type_url + p2_type).json()['damage_relations'], p1_type)
+
+            # Inline get_multiplier logic
+            def get_multiplier(damage_relations, opposing_type):
+                multiplier = 1.0
+                if any(opposing_type == relation['name'] for relation in damage_relations['double_damage_to']):
+                    multiplier *= 2.0
+                if any(opposing_type == relation['name'] for relation in damage_relations['half_damage_to']):
+                    multiplier *= 0.5
+                if any(opposing_type == relation['name'] for relation in damage_relations['no_damage_to']):
+                    multiplier *= 0.0
+                return multiplier
+
+            p1_type_data = requests.get(self.type_url + p1_type).json()['damage_relations']
+            p2_type_data = requests.get(self.type_url + p2_type).json()['damage_relations']
+            p1_multiplier = get_multiplier(p1_type_data, p2_type)
+            p2_multiplier = get_multiplier(p2_type_data, p1_type)
+
             player1_hp[p1_pokemon], player2_hp[p2_pokemon] = max(player1_hp[p1_pokemon] - calculate_damage(p2_move, p2_multiplier), 0), max(player2_hp[p2_pokemon] - calculate_damage(p1_move, p1_multiplier), 0)
 
             # Update battle embed
