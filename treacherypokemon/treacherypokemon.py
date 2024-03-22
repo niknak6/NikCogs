@@ -305,6 +305,10 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("Both users must have a Pokémon in their party to battle.")
             return
 
+        # Initialize HP for each Pokémon
+        player1_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player1_party}
+        player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
+
         battle_embed = Embed(title="Battle Start!")
         battle_message = await ctx.send(embed=battle_embed)
         await battle_message.add_reaction("⚔️")
@@ -316,8 +320,10 @@ class TreacheryPokemon(commands.Cog):
         while player1_pokemon_index < len(player1_party) and player2_pokemon_index < len(player2_party):
             p1_pokemon = player1_party[player1_pokemon_index]
             p2_pokemon = player2_party[player2_pokemon_index]
-            p1_hp = self.get_pokemon_health(p1_pokemon)
-            p2_hp = self.get_pokemon_health(p2_pokemon)
+
+            # Use the stored HP values
+            p1_current_hp = player1_hp[p1_pokemon]
+            p2_current_hp = player2_hp[p2_pokemon]
 
             p1_move, p1_type = self.get_random_move(p1_pokemon)
             p2_move, p2_type = self.get_random_move(p2_pokemon)
@@ -330,47 +336,33 @@ class TreacheryPokemon(commands.Cog):
 
             p1_damage = random.randint(10, 50) * p1_multiplier
             p2_damage = random.randint(10, 50) * p2_multiplier
-            p2_hp -= p1_damage
-            p1_hp -= p2_damage
 
-            if p2_hp <= 0:
+            # Update HP after damage calculation
+            player1_hp[p1_pokemon] = max(p1_current_hp - p2_damage, 0)
+            player2_hp[p2_pokemon] = max(p2_current_hp - p1_damage, 0)
+
+            if player2_hp[p2_pokemon] <= 0:
                 player2_pokemon_index += 1
-                if player2_pokemon_index < len(player2_party):
-                    p2_pokemon = player2_party[player2_pokemon_index]
-                    p2_hp = self.get_pokemon_health(p2_pokemon)
-                else:
-                    break  # All Pokémon in player2's party have fainted
 
-            if p1_hp <= 0:
+            if player1_hp[p1_pokemon] <= 0:
                 player1_pokemon_index += 1
-                if player1_pokemon_index < len(player1_party):
-                    p1_pokemon = player1_party[player1_pokemon_index]
-                    p1_hp = self.get_pokemon_health(p1_pokemon)
-                else:
-                    break  # All Pokémon in player1's party have fainted
 
             battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
             battle_embed.clear_fields()
-            battle_embed.add_field(name=f"{ctx.author.name}'s {p1_pokemon}", value=f"HP: {max(p1_hp, 0)}\nMove: {p1_move.capitalize()}", inline=True)
-            battle_embed.add_field(name=f"{opponent.name}'s {p2_pokemon}", value=f"HP: {max(p2_hp, 0)}\nMove: {p2_move.capitalize()}", inline=True)
+            battle_embed.add_field(name=f"{ctx.author.name}'s {p1_pokemon}", value=f"HP: {player1_hp[p1_pokemon]}\nMove: {p1_move.capitalize()}", inline=True)
+            battle_embed.add_field(name=f"{opponent.name}'s {p2_pokemon}", value=f"HP: {player2_hp[p2_pokemon]}\nMove: {p2_move.capitalize()}", inline=True)
             await battle_message.edit(embed=battle_embed)
 
             await asyncio.sleep(1)  # Adjust the sleep duration as needed
 
-        winner = ctx.author if player1_pokemon_index < len(player1_party) else opponent
+            # Check if any player's Pokémon have all fainted
+            if player1_pokemon_index >= len(player1_party) or player2_pokemon_index >= len(player2_party):
+                break
+
+        winner = ctx.author if player2_pokemon_index >= len(player2_party) else opponent
         await battle_message.edit(content=f"{winner.name} wins the battle!", embed=None)
         del self.battles[ctx.author.id]
         del self.battles[opponent.id]
-
-    def get_multiplier(self, damage_relations, opposing_type):
-        multiplier = 1.0
-        if any(opposing_type == relation['name'] for relation in damage_relations['double_damage_to']):
-            multiplier *= 2.0
-        if any(opposing_type == relation['name'] for relation in damage_relations['half_damage_to']):
-            multiplier *= 0.5
-        if any(opposing_type == relation['name'] for relation in damage_relations['no_damage_to']):
-            multiplier *= 0.0
-        return multiplier
 
     @commands.Cog.listener()
     async def on_message(self, message):
