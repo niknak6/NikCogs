@@ -282,97 +282,53 @@ class TreacheryPokemon(commands.Cog):
         
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
-        if opponent.bot:
-            await ctx.send("You can't battle bots!")
-            return
+        if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
+            return await ctx.send("Cannot start battle due to one of the conditions not being met.")
 
-        if ctx.author.id in self.battles or opponent.id in self.battles:
-            await ctx.send("A user can only participate in one battle at a time.")
-            return
-
-        self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,))
-        player1_party_tags = self.cur.fetchone()
-        self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (opponent.id,))
-        player2_party_tags = self.cur.fetchone()
-
-        if player1_party_tags is None or player2_party_tags is None:
+        # Fetch party tags and validate parties
+        player1_party_tags = self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,)).fetchone()
+        player2_party_tags = self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (opponent.id,)).fetchone()
+        if not player1_party_tags or not player2_party_tags:
             raise commands.CommandError("Both players must have a party.")
 
-        player1_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone()[0] for poketag in player1_party_tags if poketag != '-']
-        player2_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (opponent.id, poketag.lower())).fetchone()[0] for poketag in player2_party_tags if poketag != '-']
-
-        if not player1_party or not player2_party:
-            await ctx.send("Both users must have a Pokémon in their party to battle.")
-            return
-
-        # Initialize HP for each Pokémon
+        # Initialize parties and health
+        player1_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, tag.lower())).fetchone()[0] for tag in player1_party_tags if tag != '-']
+        player2_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (opponent.id, tag.lower())).fetchone()[0] for tag in player2_party_tags if tag != '-']
         player1_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player1_party}
         player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
 
+        # Start battle
         battle_embed = Embed(title="Battle Start!")
         battle_message = await ctx.send(embed=battle_embed)
         await battle_message.add_reaction("⚔️")
+        self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
-        self.battles[ctx.author.id] = opponent.id
-        self.battles[opponent.id] = ctx.author.id
-
-        player1_pokemon_index = player2_pokemon_index = 0
-        while player1_pokemon_index < len(player1_party) and player2_pokemon_index < len(player2_party):
-            p1_pokemon = player1_party[player1_pokemon_index]
-            p2_pokemon = player2_party[player2_pokemon_index]
-
-            # Use the stored HP values
-            p1_current_hp = player1_hp[p1_pokemon]
-            p2_current_hp = player2_hp[p2_pokemon]
-
+        # Battle loop
+        for p1_pokemon, p2_pokemon in zip(player1_party, player2_party):
+            # Damage calculation and HP update using list comprehensions and lambda functions
+            calculate_damage = lambda move, multiplier: random.randint(10, 50) * multiplier
             p1_move, p1_type = self.get_random_move(p1_pokemon)
             p2_move, p2_type = self.get_random_move(p2_pokemon)
+            p1_multiplier = self.get_multiplier(requests.get(self.type_url + p1_type).json()['damage_relations'], p2_type)
+            p2_multiplier = self.get_multiplier(requests.get(self.type_url + p2_type).json()['damage_relations'], p1_type)
+            player1_hp[p1_pokemon], player2_hp[p2_pokemon] = max(player1_hp[p1_pokemon] - calculate_damage(p2_move, p2_multiplier), 0), max(player2_hp[p2_pokemon] - calculate_damage(p1_move, p1_multiplier), 0)
 
-            p1_type_data = requests.get(self.type_url + p1_type).json()
-            p2_type_data = requests.get(self.type_url + p2_type).json()
-
-            p1_multiplier = self.get_multiplier(p1_type_data['damage_relations'], p2_type)
-            p2_multiplier = self.get_multiplier(p2_type_data['damage_relations'], p1_type)
-
-            p1_damage = random.randint(10, 50) * p1_multiplier
-            p2_damage = random.randint(10, 50) * p2_multiplier
-
-            # Update HP after damage calculation
-            player1_hp[p1_pokemon] = max(p1_current_hp - p2_damage, 0)
-            player2_hp[p2_pokemon] = max(p2_current_hp - p1_damage, 0)
-
-            if player2_hp[p2_pokemon] <= 0:
-                player2_pokemon_index += 1
-
-            if player1_hp[p1_pokemon] <= 0:
-                player1_pokemon_index += 1
-
+            # Update battle embed
             battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
             battle_embed.clear_fields()
             battle_embed.add_field(name=f"{ctx.author.name}'s {p1_pokemon}", value=f"HP: {player1_hp[p1_pokemon]}\nMove: {p1_move.capitalize()}", inline=True)
             battle_embed.add_field(name=f"{opponent.name}'s {p2_pokemon}", value=f"HP: {player2_hp[p2_pokemon]}\nMove: {p2_move.capitalize()}", inline=True)
             await battle_message.edit(embed=battle_embed)
-
             await asyncio.sleep(1)  # Adjust the sleep duration as needed
 
-            # Check if any player's Pokémon have all fainted
-            if player1_pokemon_index >= len(player1_party) or player2_pokemon_index >= len(player2_party):
+            # Check for winner
+            if player1_hp[p1_pokemon] <= 0 or player2_hp[p2_pokemon] <= 0:
+                winner = ctx.author if player2_hp[p2_pokemon] <= 0 else opponent
+                await battle_message.edit(content=f"{winner.name} wins the battle!", embed=None)
                 break
 
-        winner = ctx.author if player2_pokemon_index >= len(player2_party) else opponent
-        await battle_message.edit(content=f"{winner.name} wins the battle!", embed=None)
-        del self.battles[ctx.author.id]
-        del self.battles[opponent.id]
-
-    def get_multiplier(self, damage_relations, opposing_type):
-        multiplier = 1.0
-        if any(opposing_type == relation['name'] for relation in damage_relations['double_damage_to']):
-            multiplier *= 2.0
-        if any(opposing_type == relation['name'] for relation in damage_relations['half_damage_to']):
-            multiplier *= 0.5
-        if any(opposing_type == relation['name'] for relation in damage_relations['no_damage_to']):
-            multiplier *= 0.0
-        return multiplier
+        # Clean up after battle
+        del self.battles[ctx.author.id], self.battles[opponent.id]
 
     @commands.Cog.listener()
     async def on_message(self, message):
