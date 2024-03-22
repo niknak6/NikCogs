@@ -355,10 +355,13 @@ class TreacheryPokemon(commands.Cog):
 
         # Declare the winner and update embed description
         if not player1_party:
-            battle_embed.description += f"\n{opponent.display_name} wins the battle!"
+            winner = opponent.display_name
         elif not player2_party:
-            battle_embed.description += f"\n{ctx.author.display_name} wins the battle!"
+            winner = ctx.author.display_name
 
+        # Clear fields and update embed with the winner announced in bold
+        battle_embed.clear_fields()
+        battle_embed.description += f"\n**{winner} wins the battle!**"
         await battle_message.edit(embed=battle_embed)
 
         # Clean up after battle
