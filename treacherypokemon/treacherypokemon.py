@@ -298,7 +298,7 @@ class TreacheryPokemon(commands.Cog):
         player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
 
         # Start battle
-        battle_embed = Embed(title="Battle Start!")
+        battle_embed = Embed(title="Battle Start!", description="")
         battle_message = await ctx.send(embed=battle_embed)
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
@@ -337,22 +337,25 @@ class TreacheryPokemon(commands.Cog):
             battle_embed.clear_fields()
             battle_embed.add_field(name=f"{ctx.author.name}'s {p1_pokemon}", value=f"HP: {player1_hp[p1_pokemon]}\nMove: {p1_move.capitalize()}", inline=True)
             battle_embed.add_field(name=f"{opponent.name}'s {p2_pokemon}", value=f"HP: {player2_hp[p2_pokemon]}\nMove: {p2_move.capitalize()}", inline=True)
+            
+            # Check for winner and update description
+            if player1_hp[p1_pokemon] <= 0:
+                player1_party.pop(0)  # Remove the defeated pokemon from the party
+                battle_embed.description += f"\n{ctx.author.name}'s {p1_pokemon} has been defeated!"
+            elif player2_hp[p2_pokemon] <= 0:
+                player2_party.pop(0)  # Remove the defeated pokemon from the party
+                battle_embed.description += f"\n{opponent.name}'s {p2_pokemon} has been defeated!"
+
             await battle_message.edit(embed=battle_embed)
             await asyncio.sleep(1)  # Adjust the sleep duration as needed
 
-            # Check for winner
-            if player1_hp[p1_pokemon] <= 0:
-                await ctx.send(f"{ctx.author.name}'s {p1_pokemon} has been defeated!")
-                player1_party.pop(0)  # Remove the defeated pokemon from the party
-            elif player2_hp[p2_pokemon] <= 0:
-                await ctx.send(f"{opponent.name}'s {p2_pokemon} has been defeated!")
-                player2_party.pop(0)  # Remove the defeated pokemon from the party
-
-        # If one of the parties is empty, declare the winner
+        # Declare the winner and update description
         if not player1_party:
-            await ctx.send(f"{opponent.name} wins the battle!")
+            battle_embed.description += f"\n{opponent.name} wins the battle!"
         elif not player2_party:
-            await ctx.send(f"{ctx.author.name} wins the battle!")
+            battle_embed.description += f"\n{ctx.author.name} wins the battle!"
+
+        await battle_message.edit(embed=battle_embed)
 
         # Clean up after battle
         del self.battles[ctx.author.id], self.battles[opponent.id]
