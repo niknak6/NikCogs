@@ -26,10 +26,25 @@ class TreacheryPokemon(commands.Cog):
         self.trades = {}
         self.battles = {}
 
-    def get_random_move(self, pokemon_name):
+    def get_random_move(self, pokemon_name, member_id):
+        # Fetch the Pokémon's level from the database
+        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
+        pokemon_level = self.cur.fetchone()[0]
+
+        # Proceed with fetching the Pokémon's moves from the API
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
         pokemon_data = requests.get(pokemon_url).json()
-        move = random.choice(pokemon_data['moves'])
+        
+        # Filter moves by level_learned_at
+        moves = [move for move in pokemon_data['moves']
+                if move['version_group_details'][0]['level_learned_at'] <= pokemon_level]
+        
+        # If no moves are available at the current level, return None or raise an exception
+        if not moves:
+            return None  # or raise an Exception("No moves available at this level.")
+        
+        # Select a random move from the filtered list
+        move = random.choice(moves)
         move_data = requests.get(move['move']['url']).json()
         return move['move']['name'], move_data['type']['name']
 
