@@ -334,7 +334,7 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.set_field_at(0 if player_display == ctx.author.display_name else 1, name=f"{player_display}'s {player_party[0]}", value=f"HP: {player_hp[player_party[0]]}\nMove: ", inline=True)
 
             await battle_message.edit(embed=battle_embed)
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
 
         # Declare the winner
         winner = ctx.author.display_name if player2_party else opponent.display_name
