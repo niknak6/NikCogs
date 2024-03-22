@@ -332,11 +332,18 @@ class TreacheryPokemon(commands.Cog):
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
                     if player_party:
                         battle_embed.set_field_at(0 if player_display == ctx.author.display_name else 1, name=f"{player_display}'s {player_party[0]}", value=f"HP: {player_hp[player_party[0]]}\nMove: ", inline=True)
+                    else:
+                        winner = opponent.display_name if player_display == ctx.author.display_name else ctx.author.display_name
+                        battle_embed.clear_fields()
+                        battle_embed.description += f"\n**{winner} wins the battle!**"
+                        await battle_message.edit(embed=battle_embed)
+                        del self.battles[ctx.author.id], self.battles[opponent.id]
+                        return
 
             await battle_message.edit(embed=battle_embed)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
 
-        # Declare the winner
+        # If the loop exits naturally, check for any remaining Pokémon and declare the winner
         winner = ctx.author.display_name if player2_party else opponent.display_name
         battle_embed.clear_fields()
         battle_embed.description += f"\n**{winner} wins the battle!**"
