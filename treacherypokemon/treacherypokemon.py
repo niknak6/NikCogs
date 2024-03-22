@@ -294,8 +294,7 @@ class TreacheryPokemon(commands.Cog):
         player1_party_tags = self.cur.fetchone()
         self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (opponent.id,))
         player2_party_tags = self.cur.fetchone()
-        
-                # Add a check for None here
+
         if player1_party_tags is None or player2_party_tags is None:
             raise commands.CommandError("Both players must have a party.")
 
@@ -315,7 +314,7 @@ class TreacheryPokemon(commands.Cog):
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=900, check=check)
-        except TimeoutError:
+        except asyncio.TimeoutError:
             del self.battles[ctx.author.id]
             await battle_message.edit(content="Battle request timed out.", embed=None)
             return
@@ -324,102 +323,55 @@ class TreacheryPokemon(commands.Cog):
         self.battles[opponent.id] = ctx.author.id
 
         player1_pokemon_index = player2_pokemon_index = 0
-        p1_pokemon = player1_party[player1_pokemon_index]
-        p2_pokemon = player2_party[player2_pokemon_index]
-        p1_hp = self.get_pokemon_health(p1_pokemon)
-        p2_hp = self.get_pokemon_health(p2_pokemon)
-
-        # Add a new attribute to store the last 5 actions
-        self.last_actions = []
-
-        # Initialize the list with empty strings
-        for _ in range(5):
-            self.last_actions.append("")
-
         while player1_pokemon_index < len(player1_party) and player2_pokemon_index < len(player2_party):
-            next_p1_pokemon = player1_party[player1_pokemon_index + 1] if player1_pokemon_index + 1 < len(player1_party) else None
-            next_p2_pokemon = player2_party[player2_pokemon_index + 1] if player2_pokemon_index + 1 < len(player2_party) else None
+            p1_pokemon = player1_party[player1_pokemon_index]
+            p2_pokemon = player2_party[player2_pokemon_index]
+            p1_hp = self.get_pokemon_health(p1_pokemon)
+            p2_hp = self.get_pokemon_health(p2_pokemon)
 
-            # Use the helper function to get a random move and its type for each pokemon
             p1_move, p1_type = self.get_random_move(p1_pokemon)
             p2_move, p2_type = self.get_random_move(p2_pokemon)
 
-            # Use the requests module to get the JSON data for the types from the pokeapi.co api
-            p1_type_url = self.type_url + p1_type
-            p2_type_url = self.type_url + p2_type
-            p1_type_data = requests.get(p1_type_url).json()
-            p2_type_data = requests.get(p2_type_url).json()
+            p1_type_data = requests.get(self.type_url + p1_type).json()
+            p2_type_data = requests.get(self.type_url + p2_type).json()
 
-            # Extract the damage relations from the JSON data and use them to calculate the damage multiplier for each move
-            p1_damage_relations = p1_type_data['damage_relations']
-            p2_damage_relations = p2_type_data['damage_relations']
-            p1_multiplier = 1.0
-            p2_multiplier = 1.0
-            # Check if p1_type is in the double_damage_to list of p2_type
-            if any(p1_type == relation['name'] for relation in p2_damage_relations['double_damage_to']):
-                p1_multiplier = 2.0
-            # Check if p1_type is in the half_damage_to list of p2_type
-            if any(p1_type == relation['name'] for relation in p2_damage_relations['half_damage_to']):
-                p1_multiplier = 0.5
-            # Check if p1_type is in the no_damage_to list of p2_type
-            if any(p1_type == relation['name'] for relation in p2_damage_relations['no_damage_to']):
-                p1_multiplier = 0.0
-            # Do the same for p2_type
-            if any(p2_type == relation['name'] for relation in p1_damage_relations['double_damage_to']):
-                p2_multiplier = 2.0
-            if any(p2_type == relation['name'] for relation in p1_damage_relations['half_damage_to']):
-                p2_multiplier = 0.5
-            if any(p2_type == relation['name'] for relation in p1_damage_relations['no_damage_to']):
-                p2_multiplier = 0.0
+            p1_multiplier = self.get_multiplier(p1_type_data['damage_relations'], p2_type)
+            p2_multiplier = self.get_multiplier(p2_type_data['damage_relations'], p1_type)
 
-            # Use the damage multiplier to adjust the damage done by each move
             p2_hp -= random.randint(10, 50) * p1_multiplier
+            p1_hp -= random.randint(10, 50) * p2_multiplier
+
             if p2_hp <= 0:
                 player2_pokemon_index += 1
-                if player2_pokemon_index < len(player2_party):
-                    p2_pokemon = next_p2_pokemon
-                    p2_hp = self.get_pokemon_health(p2_pokemon)
-                else:
+                if player2_pokemon_index >= len(player2_party):
                     break
-
-            p1_hp -= random.randint(10, 50) * p2_multiplier
             if p1_hp <= 0:
                 player1_pokemon_index += 1
-                if player1_pokemon_index < len(player1_party):
-                    p1_pokemon = next_p1_pokemon
-                    p1_hp = self.get_pokemon_health(p1_pokemon)
-                else:
+                if player1_pokemon_index >= len(player1_party):
                     break
 
             battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} ({p1_type}) VS {opponent.name}'s {p2_pokemon} ({p2_type})"
             battle_embed.clear_fields()
             battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}\nMove: {p1_move.capitalize()}", inline=False)
             battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}\nMove: {p2_move.capitalize()}", inline=False)
-
-            # Format the action string with the move name, the damage, and the multiplier
-            p1_action = f"{p1_pokemon} used {p1_move.capitalize()} and dealt {round(random.randint(10, 50) * p1_multiplier)} damage to {p2_pokemon} ({p1_multiplier}x)"
-            p2_action = f"{p2_pokemon} used {p2_move.capitalize()} and dealt {round(random.randint(10, 50) * p2_multiplier)} damage to {p1_pokemon} ({p2_multiplier}x)"
-
-            # Remove the oldest action and insert the newest one at the beginning of the list
-            self.last_actions.pop()
-            self.last_actions.insert(0, p2_action)
-            self.last_actions.pop()
-            self.last_actions.insert(0, p1_action)
-
-            # Join the list with newlines to create the field value
-            actions_value = "\n".join(self.last_actions)
-
-            # Add a new field to the embed with the actions value
-            battle_embed.add_field(name="Last 5 Actions", value=actions_value, inline=False)
-
             await battle_message.edit(embed=battle_embed)
 
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(1)  # Adjust the sleep duration as needed
 
         winner = ctx.author if player1_pokemon_index < len(player1_party) else opponent
         await battle_message.edit(content=f"{winner.name} wins the battle!", embed=None)
         del self.battles[ctx.author.id]
         del self.battles[opponent.id]
+
+    def get_multiplier(self, damage_relations, opposing_type):
+        multiplier = 1.0
+        if any(opposing_type == relation['name'] for relation in damage_relations['double_damage_to']):
+            multiplier *= 2.0
+        if any(opposing_type == relation['name'] for relation in damage_relations['half_damage_to']):
+            multiplier *= 0.5
+        if any(opposing_type == relation['name'] for relation in damage_relations['no_damage_to']):
+            multiplier *= 0.0
+        return multiplier
 
     @commands.Cog.listener()
     async def on_message(self, message):
