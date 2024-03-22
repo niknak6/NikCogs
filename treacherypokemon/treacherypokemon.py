@@ -303,9 +303,6 @@ class TreacheryPokemon(commands.Cog):
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
-        # Initialize a variable to hold status updates
-        status_updates = ""
-
         # Battle loop
         while player1_party and player2_party:
             p1_pokemon = player1_party[0]
@@ -332,33 +329,31 @@ class TreacheryPokemon(commands.Cog):
             p1_multiplier = get_multiplier(p1_type_data, p2_type)
             p2_multiplier = get_multiplier(p2_type_data, p1_type)
 
-            player1_hp[p1_pokemon] = max(player1_hp[p1_pokemon] - calculate_damage(p2_move, p2_multiplier), 0)
-            player2_hp[p2_pokemon] = max(player2_hp[p2_pokemon] - calculate_damage(p1_move, p1_multiplier), 0)
+            player1_hp[p1_pokemon] -= calculate_damage(p2_move, p2_multiplier)
+            player2_hp[p2_pokemon] -= calculate_damage(p1_move, p1_multiplier)
 
-            # Update battle embed
+            # Update battle embed with current HP and moves
             battle_embed.clear_fields()
-            battle_embed.add_field(name=f"{ctx.author.display_name}'s {p1_pokemon}", value=f"HP: {player1_hp[p1_pokemon]}\nMove: {p1_move.capitalize()}", inline=True)
-            battle_embed.add_field(name=f"{opponent.display_name}'s {p2_pokemon}", value=f"HP: {player2_hp[p2_pokemon]}\nMove: {p2_move.capitalize()}", inline=True)
+            battle_embed.add_field(name=f"{ctx.author.display_name}'s {p1_pokemon}", value=f"HP: {max(player1_hp[p1_pokemon], 0)}\nMove: {p1_move.capitalize()}", inline=True)
+            battle_embed.add_field(name=f"{opponent.display_name}'s {p2_pokemon}", value=f"HP: {max(player2_hp[p2_pokemon], 0)}\nMove: {p2_move.capitalize()}", inline=True)
             
-            # Check for winner and append to status updates
+            # Check for defeated Pokémon and update embed description
             if player1_hp[p1_pokemon] <= 0:
                 player1_party.pop(0)  # Remove the defeated pokemon from the party
-                status_updates += f"\n{ctx.author.display_name}'s {p1_pokemon} has been defeated!"
-            elif player2_hp[p2_pokemon] <= 0:
+                battle_embed.description += f"\n{ctx.author.display_name}'s {p1_pokemon} has been defeated!"
+            if player2_hp[p2_pokemon] <= 0:
                 player2_party.pop(0)  # Remove the defeated pokemon from the party
-                status_updates += f"\n{opponent.display_name}'s {p2_pokemon} has been defeated!"
+                battle_embed.description += f"\n{opponent.display_name}'s {p2_pokemon} has been defeated!"
 
             await battle_message.edit(embed=battle_embed)
             await asyncio.sleep(1)  # Adjust the sleep duration as needed
 
-        # Declare the winner and append to status updates
+        # Declare the winner and update embed description
         if not player1_party:
-            status_updates += f"\n{opponent.display_name} wins the battle!"
+            battle_embed.description += f"\n{opponent.display_name} wins the battle!"
         elif not player2_party:
-            status_updates += f"\n{ctx.author.display_name} wins the battle!"
+            battle_embed.description += f"\n{ctx.author.display_name} wins the battle!"
 
-        # Update the embed with the status updates at the bottom
-        battle_embed.description += status_updates
         await battle_message.edit(embed=battle_embed)
 
         # Clean up after battle
