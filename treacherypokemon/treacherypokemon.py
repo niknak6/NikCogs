@@ -315,14 +315,11 @@ class TreacheryPokemon(commands.Cog):
 
             # Inline get_multiplier logic
             def get_multiplier(damage_relations, opposing_type):
-                multiplier = 1.0
-                if any(opposing_type == relation['name'] for relation in damage_relations['double_damage_to']):
-                    multiplier *= 2.0
-                if any(opposing_type == relation['name'] for relation in damage_relations['half_damage_to']):
-                    multiplier *= 0.5
-                if any(opposing_type == relation['name'] for relation in damage_relations['no_damage_to']):
-                    multiplier *= 0.0
-                return multiplier
+                return next((multiplier for key, multiplier in {
+                    'double_damage_to': 2.0,
+                    'half_damage_to': 0.5,
+                    'no_damage_to': 0.0
+                }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0)
 
             p1_type_data = requests.get(self.type_url + p1_type).json()['damage_relations']
             p2_type_data = requests.get(self.type_url + p2_type).json()['damage_relations']
