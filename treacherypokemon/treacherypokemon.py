@@ -26,10 +26,14 @@ class TreacheryPokemon(commands.Cog):
         self.trades = {}
         self.battles = {}
 
-    def get_random_move(self, pokemon_name, member_id):
+    def get_random_move(self, ctx, pokemon_name):
+        # Fetch the member's ID from the context
+        member_id = ctx.author.id
+
         # Fetch the Pokémon's level from the database
         self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
-        pokemon_level = self.cur.fetchone()[0] if self.cur.fetchone() else 1  # Default to level 1 if not found
+        result = self.cur.fetchone()
+        pokemon_level = result[0] if result else 1  # Default to level 1 if not found
 
         # Proceed with fetching the Pokémon's moves from the API
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
@@ -336,7 +340,7 @@ class TreacheryPokemon(commands.Cog):
             # Battle mechanics
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 pokemon = player_party[0]
-                move, type_ = self.get_random_move(pokemon)
+                move, type_ = self.get_random_move(ctx, pokemon)
                 type_data = requests.get(self.type_url + type_).json()['damage_relations']
                 multiplier = get_multiplier(type_data, type_)
                 damage = calculate_damage(move, multiplier)
