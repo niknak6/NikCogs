@@ -305,19 +305,9 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("Both users must have a Pokémon in their party to battle.")
             return
 
-        battle_embed = Embed(title=f"{ctx.author.name} challenges {opponent.name} to a battle!")
+        battle_embed = Embed(title="Battle Start!")
         battle_message = await ctx.send(embed=battle_embed)
         await battle_message.add_reaction("⚔️")
-
-        def check(reaction: Reaction, user):
-            return user in [ctx.author, opponent] and str(reaction.emoji) == "⚔️" and reaction.message.id == battle_message.id
-
-        try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=900, check=check)
-        except asyncio.TimeoutError:
-            del self.battles[ctx.author.id]
-            await battle_message.edit(content="Battle request timed out.", embed=None)
-            return
 
         self.battles[ctx.author.id] = opponent.id
         self.battles[opponent.id] = ctx.author.id
@@ -341,19 +331,20 @@ class TreacheryPokemon(commands.Cog):
             p2_hp -= random.randint(10, 50) * p1_multiplier
             p1_hp -= random.randint(10, 50) * p2_multiplier
 
-            if p2_hp <= 0:
+            if p2_hp <= 0 and player2_pokemon_index < len(player2_party) - 1:
                 player2_pokemon_index += 1
-                if player2_pokemon_index >= len(player2_party):
-                    break
-            if p1_hp <= 0:
-                player1_pokemon_index += 1
-                if player1_pokemon_index >= len(player1_party):
-                    break
+                p2_pokemon = player2_party[player2_pokemon_index]
+                p2_hp = self.get_pokemon_health(p2_pokemon)
 
-            battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} ({p1_type}) VS {opponent.name}'s {p2_pokemon} ({p2_type})"
+            if p1_hp <= 0 and player1_pokemon_index < len(player1_party) - 1:
+                player1_pokemon_index += 1
+                p1_pokemon = player1_party[player1_pokemon_index]
+                p1_hp = self.get_pokemon_health(p1_pokemon)
+
+            battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
             battle_embed.clear_fields()
-            battle_embed.add_field(name=ctx.author.name, value=f"HP: {p1_hp}\nMove: {p1_move.capitalize()}", inline=False)
-            battle_embed.add_field(name=opponent.name, value=f"HP: {p2_hp}\nMove: {p2_move.capitalize()}", inline=False)
+            battle_embed.add_field(name=f"{ctx.author.name}'s {p1_pokemon}", value=f"HP: {p1_hp}\nMove: {p1_move.capitalize()}", inline=True)
+            battle_embed.add_field(name=f"{opponent.name}'s {p2_pokemon}", value=f"HP: {p2_hp}\nMove: {p2_move.capitalize()}", inline=True)
             await battle_message.edit(embed=battle_embed)
 
             await asyncio.sleep(1)  # Adjust the sleep duration as needed
