@@ -328,23 +328,31 @@ class TreacheryPokemon(commands.Cog):
             p1_multiplier = self.get_multiplier(p1_type_data['damage_relations'], p2_type)
             p2_multiplier = self.get_multiplier(p2_type_data['damage_relations'], p1_type)
 
-            p2_hp -= random.randint(10, 50) * p1_multiplier
-            p1_hp -= random.randint(10, 50) * p2_multiplier
+            p1_damage = random.randint(10, 50) * p1_multiplier
+            p2_damage = random.randint(10, 50) * p2_multiplier
+            p2_hp -= p1_damage
+            p1_hp -= p2_damage
 
-            if p2_hp <= 0 and player2_pokemon_index < len(player2_party) - 1:
+            if p2_hp <= 0:
                 player2_pokemon_index += 1
-                p2_pokemon = player2_party[player2_pokemon_index]
-                p2_hp = self.get_pokemon_health(p2_pokemon)
+                if player2_pokemon_index < len(player2_party):
+                    p2_pokemon = player2_party[player2_pokemon_index]
+                    p2_hp = self.get_pokemon_health(p2_pokemon)
+                else:
+                    break  # All Pokémon in player2's party have fainted
 
-            if p1_hp <= 0 and player1_pokemon_index < len(player1_party) - 1:
+            if p1_hp <= 0:
                 player1_pokemon_index += 1
-                p1_pokemon = player1_party[player1_pokemon_index]
-                p1_hp = self.get_pokemon_health(p1_pokemon)
+                if player1_pokemon_index < len(player1_party):
+                    p1_pokemon = player1_party[player1_pokemon_index]
+                    p1_hp = self.get_pokemon_health(p1_pokemon)
+                else:
+                    break  # All Pokémon in player1's party have fainted
 
             battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
             battle_embed.clear_fields()
-            battle_embed.add_field(name=f"{ctx.author.name}'s {p1_pokemon}", value=f"HP: {p1_hp}\nMove: {p1_move.capitalize()}", inline=True)
-            battle_embed.add_field(name=f"{opponent.name}'s {p2_pokemon}", value=f"HP: {p2_hp}\nMove: {p2_move.capitalize()}", inline=True)
+            battle_embed.add_field(name=f"{ctx.author.name}'s {p1_pokemon}", value=f"HP: {max(p1_hp, 0)}\nMove: {p1_move.capitalize()}", inline=True)
+            battle_embed.add_field(name=f"{opponent.name}'s {p2_pokemon}", value=f"HP: {max(p2_hp, 0)}\nMove: {p2_move.capitalize()}", inline=True)
             await battle_message.edit(embed=battle_embed)
 
             await asyncio.sleep(1)  # Adjust the sleep duration as needed
