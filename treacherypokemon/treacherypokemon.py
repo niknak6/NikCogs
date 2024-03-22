@@ -364,6 +364,16 @@ class TreacheryPokemon(commands.Cog):
         del self.battles[ctx.author.id]
         del self.battles[opponent.id]
 
+    def get_multiplier(self, damage_relations, opposing_type):
+        multiplier = 1.0
+        if any(opposing_type == relation['name'] for relation in damage_relations['double_damage_to']):
+            multiplier *= 2.0
+        if any(opposing_type == relation['name'] for relation in damage_relations['half_damage_to']):
+            multiplier *= 0.5
+        if any(opposing_type == relation['name'] for relation in damage_relations['no_damage_to']):
+            multiplier *= 0.0
+        return multiplier
+
     @commands.Cog.listener()
     async def on_message(self, message):
         """Handle the completion of the trade."""
