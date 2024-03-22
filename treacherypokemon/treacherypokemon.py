@@ -285,15 +285,17 @@ class TreacheryPokemon(commands.Cog):
         if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
             return await ctx.send("Cannot start battle due to one of the conditions not being met.")
 
-        # Fetch party tags and validate parties
-        player1_party_tags = self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,)).fetchone()
-        player2_party_tags = self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (opponent.id,)).fetchone()
-        if not player1_party_tags or not player2_party_tags:
+        # Fetch and validate parties
+        def fetch_party(member_id):
+            return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0] 
+                    for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone() 
+                    if tag != '-']
+
+        player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
+        if not player1_party or not player2_party:
             raise commands.CommandError("Both players must have a party.")
 
-        # Initialize parties and health
-        player1_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, tag.lower())).fetchone()[0] for tag in player1_party_tags if tag != '-']
-        player2_party = [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (opponent.id, tag.lower())).fetchone()[0] for tag in player2_party_tags if tag != '-']
+        # Initialize health
         player1_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player1_party}
         player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
 
@@ -305,63 +307,33 @@ class TreacheryPokemon(commands.Cog):
 
         # Battle loop
         while player1_party and player2_party:
-            p1_pokemon = player1_party[0]
-            p2_pokemon = player2_party[0]
-
-            # Damage calculation and HP update using list comprehensions and lambda functions
+            # Inline functions for damage calculation and multiplier retrieval
             calculate_damage = lambda move, multiplier: random.randint(10, 50) * multiplier
-            p1_move, p1_type = self.get_random_move(p1_pokemon)
-            p2_move, p2_type = self.get_random_move(p2_pokemon)
+            get_multiplier = lambda damage_relations, opposing_type: next((multiplier for key, multiplier in {
+                'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
+            }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0)
 
-            # Inline get_multiplier logic
-            def get_multiplier(damage_relations, opposing_type):
-                return next((multiplier for key, multiplier in {
-                    'double_damage_to': 2.0,
-                    'half_damage_to': 0.5,
-                    'no_damage_to': 0.0
-                }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0)
-
-            p1_type_data = requests.get(self.type_url + p1_type).json()['damage_relations']
-            p2_type_data = requests.get(self.type_url + p2_type).json()['damage_relations']
-            p1_multiplier = get_multiplier(p1_type_data, p2_type)
-            p2_multiplier = get_multiplier(p2_type_data, p1_type)
-
-            # Calculate damage
-            p1_damage = calculate_damage(p1_move, p1_multiplier)
-            p2_damage = calculate_damage(p2_move, p2_multiplier)
-
-            # Update HP
-            player1_hp[p1_pokemon] = max(player1_hp[p1_pokemon] - p2_damage, 0)
-            player2_hp[p2_pokemon] = max(player2_hp[p2_pokemon] - p1_damage, 0)
-
-            # Update battle embed with current HP, moves, and multipliers
-            battle_embed.clear_fields()
-            battle_embed.add_field(name=f"{ctx.author.display_name}'s {p1_pokemon}", value=f"HP: {player1_hp[p1_pokemon]}\nMove: {p1_move.capitalize()} ({p1_multiplier}x)", inline=True)
-            battle_embed.add_field(name=f"{opponent.display_name}'s {p2_pokemon}", value=f"HP: {player2_hp[p2_pokemon]}\nMove: {p2_move.capitalize()} ({p2_multiplier}x)", inline=True)
-            
-            # Check for defeated Pokémon and update embed description
-            if player1_hp[p1_pokemon] <= 0:
-                player1_party.pop(0)  # Remove the defeated pokemon from the party
-                battle_embed.description += f"\n{ctx.author.display_name}'s {p1_pokemon} has been defeated!"
-            if player2_hp[p2_pokemon] <= 0:
-                player2_party.pop(0)  # Remove the defeated pokemon from the party
-                battle_embed.description += f"\n{opponent.display_name}'s {p2_pokemon} has been defeated!"
+            # Battle mechanics
+            for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
+                pokemon = player_party[0]
+                move, type_ = self.get_random_move(pokemon)
+                type_data = requests.get(self.type_url + type_).json()['damage_relations']
+                multiplier = get_multiplier(type_data, type_)
+                damage = calculate_damage(move, multiplier)
+                player_hp[pokemon] = max(player_hp[pokemon] - damage, 0)
+                battle_embed.add_field(name=f"{player_display}'s {pokemon}", value=f"HP: {player_hp[pokemon]}\nMove: {move.capitalize()} ({multiplier}x)", inline=True)
+                if player_hp[pokemon] <= 0:
+                    player_party.pop(0)
+                    battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
 
             await battle_message.edit(embed=battle_embed)
-            await asyncio.sleep(1)  # Adjust the sleep duration as needed
+            await asyncio.sleep(1)
 
-        # Declare the winner and update embed description
-        if not player1_party:
-            winner = opponent.display_name
-        elif not player2_party:
-            winner = ctx.author.display_name
-
-        # Clear fields and update embed with the winner announced in bold
+        # Declare the winner
+        winner = ctx.author.display_name if player2_party else opponent.display_name
         battle_embed.clear_fields()
         battle_embed.description += f"\n**{winner} wins the battle!**"
         await battle_message.edit(embed=battle_embed)
-
-        # Clean up after battle
         del self.battles[ctx.author.id], self.battles[opponent.id]
 
     @commands.Cog.listener()
