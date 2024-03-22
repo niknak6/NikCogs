@@ -305,6 +305,11 @@ class TreacheryPokemon(commands.Cog):
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
+        # Initialize embed fields for HP and moves
+        battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_party[0]}", value=f"HP: {player1_hp[player1_party[0]]}\nMove: ", inline=True)
+        battle_embed.add_field(name=f"{opponent.display_name}'s {player2_party[0]}", value=f"HP: {player2_hp[player2_party[0]]}\nMove: ", inline=True)
+        await battle_message.edit(embed=battle_embed)
+
         # Battle loop
         while player1_party and player2_party:
             # Inline functions for damage calculation and multiplier retrieval
@@ -321,10 +326,12 @@ class TreacheryPokemon(commands.Cog):
                 multiplier = get_multiplier(type_data, type_)
                 damage = calculate_damage(move, multiplier)
                 player_hp[pokemon] = max(player_hp[pokemon] - damage, 0)
-                battle_embed.add_field(name=f"{player_display}'s {pokemon}", value=f"HP: {player_hp[pokemon]}\nMove: {move.capitalize()} ({multiplier}x)", inline=True)
+                battle_embed.set_field_at(0 if player_display == ctx.author.display_name else 1, name=f"{player_display}'s {pokemon}", value=f"HP: {player_hp[pokemon]}\nMove: {move.capitalize()} ({multiplier}x)", inline=True)
                 if player_hp[pokemon] <= 0:
                     player_party.pop(0)
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
+                    if player_party:
+                        battle_embed.set_field_at(0 if player_display == ctx.author.display_name else 1, name=f"{player_display}'s {player_party[0]}", value=f"HP: {player_hp[player_party[0]]}\nMove: ", inline=True)
 
             await battle_message.edit(embed=battle_embed)
             await asyncio.sleep(1)
@@ -335,6 +342,13 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.description += f"\n**{winner} wins the battle!**"
         await battle_message.edit(embed=battle_embed)
         del self.battles[ctx.author.id], self.battles[opponent.id]
+
+    # Declare the winner
+    winner = ctx.author.display_name if player2_party else opponent.display_name
+    battle_embed.clear_fields()
+    battle_embed.description += f"\n**{winner} wins the battle!**"
+    await battle_message.edit(embed=battle_embed)
+    del self.battles[ctx.author.id], self.battles[opponent.id]
 
     @commands.Cog.listener()
     async def on_message(self, message):
