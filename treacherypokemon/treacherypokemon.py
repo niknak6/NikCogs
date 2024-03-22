@@ -304,7 +304,10 @@ class TreacheryPokemon(commands.Cog):
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
         # Battle loop
-        for p1_pokemon, p2_pokemon in zip(player1_party, player2_party):
+        while player1_party and player2_party:
+            p1_pokemon = player1_party[0]
+            p2_pokemon = player2_party[0]
+
             # Damage calculation and HP update using list comprehensions and lambda functions
             calculate_damage = lambda move, multiplier: random.randint(10, 50) * multiplier
             p1_move, p1_type = self.get_random_move(p1_pokemon)
@@ -326,7 +329,8 @@ class TreacheryPokemon(commands.Cog):
             p1_multiplier = get_multiplier(p1_type_data, p2_type)
             p2_multiplier = get_multiplier(p2_type_data, p1_type)
 
-            player1_hp[p1_pokemon], player2_hp[p2_pokemon] = max(player1_hp[p1_pokemon] - calculate_damage(p2_move, p2_multiplier), 0), max(player2_hp[p2_pokemon] - calculate_damage(p1_move, p1_multiplier), 0)
+            player1_hp[p1_pokemon] = max(player1_hp[p1_pokemon] - calculate_damage(p2_move, p2_multiplier), 0)
+            player2_hp[p2_pokemon] = max(player2_hp[p2_pokemon] - calculate_damage(p1_move, p1_multiplier), 0)
 
             # Update battle embed
             battle_embed.title = f"{ctx.author.name}'s {p1_pokemon} VS {opponent.name}'s {p2_pokemon}"
@@ -337,10 +341,18 @@ class TreacheryPokemon(commands.Cog):
             await asyncio.sleep(1)  # Adjust the sleep duration as needed
 
             # Check for winner
-            if player1_hp[p1_pokemon] <= 0 or player2_hp[p2_pokemon] <= 0:
-                winner = ctx.author if player2_hp[p2_pokemon] <= 0 else opponent
-                await battle_message.edit(content=f"{winner.name} wins the battle!", embed=None)
-                break
+            if player1_hp[p1_pokemon] <= 0:
+                await ctx.send(f"{ctx.author.name}'s {p1_pokemon} has been defeated!")
+                player1_party.pop(0)  # Remove the defeated pokemon from the party
+            elif player2_hp[p2_pokemon] <= 0:
+                await ctx.send(f"{opponent.name}'s {p2_pokemon} has been defeated!")
+                player2_party.pop(0)  # Remove the defeated pokemon from the party
+
+        # If one of the parties is empty, declare the winner
+        if not player1_party:
+            await ctx.send(f"{opponent.name} wins the battle!")
+        elif not player2_party:
+            await ctx.send(f"{ctx.author.name} wins the battle!")
 
         # Clean up after battle
         del self.battles[ctx.author.id], self.battles[opponent.id]
