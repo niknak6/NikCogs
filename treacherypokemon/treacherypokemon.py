@@ -334,17 +334,50 @@ class TreacheryPokemon(commands.Cog):
         player1_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player1_party}
         player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
 
-        # Start battle
-        battle_embed = Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description="")
-        battle_message = await ctx.send(embed=battle_embed)
+        # Fetch sprite URLs for both Pokémon in battle
+        player1_pokemon_name = player1_party[0]
+        player2_pokemon_name = player2_party[0]
+        player1_sprite_url = f"{self.base_url}{player1_pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+        player2_sprite_url = f"{self.base_url}{player2_pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+
+        # Get the sprite data from the API
+        player1_response = requests.get(player1_sprite_url)
+        player1_data = player1_response.json()
+        player1_sprite = player1_data['sprites']['other']['official-artwork']['front_default']
+
+        player2_response = requests.get(player2_sprite_url)
+        player2_data = player2_response.json()
+        player2_sprite = player2_data['sprites']['other']['official-artwork']['front_default']
+
+        # Download the sprites using requests and open them with PIL
+        player1_sprite_image = Image.open(BytesIO(requests.get(player1_sprite).content))
+        player2_sprite_image = Image.open(BytesIO(requests.get(player2_sprite).content))
+
+        # Create a new image with a width that's the sum of both sprites' widths
+        total_width = player1_sprite_image.width + player2_sprite_image.width
+        max_height = max(player1_sprite_image.height, player2_sprite_image.height)
+        combined_sprite = Image.new('RGBA', (total_width, max_height))
+
+        # Paste the two sprites side by side in the new image
+        combined_sprite.paste(player1_sprite_image, (0, 0))
+        combined_sprite.paste(player2_sprite_image, (player1_sprite_image.width, 0))
+
+        # Save the combined image to a BytesIO object and create a discord.File from it
+        combined_image_io = BytesIO()
+        combined_sprite.save(combined_image_io, format='PNG')
+        combined_image_io.seek(0)
+        combined_image_file = discord.File(combined_image_io, filename='combined_sprite.png')
+
+        # Create an embed with the combined image
+        battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description="")
+        battle_embed.set_image(url="attachment://combined_sprite.png")
+
+        # Send the initial battle message with the combined image
+        battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
+
+        # Add reactions to the battle message for interactive battling
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
-
-        # Initialize embed fields for HP and moves
-        battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_party[0]} HP", value=f"{player1_hp[player1_party[0]]}", inline=True)
-        battle_embed.add_field(name=f"{opponent.display_name}'s {player2_party[0]} HP", value=f"{player2_hp[player2_party[0]]}", inline=True)
-        battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
-        await battle_message.edit(embed=battle_embed)
 
         # Battle loop
         while player1_party and player2_party:
