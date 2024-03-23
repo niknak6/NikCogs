@@ -329,7 +329,7 @@ class TreacheryPokemon(commands.Cog):
         # Initialize embed fields for HP and moves
         battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_party[0]} HP", value=f"{player1_hp[player1_party[0]]}", inline=True)
         battle_embed.add_field(name=f"{opponent.display_name}'s {player2_party[0]} HP", value=f"{player2_hp[player2_party[0]]}", inline=True)
-        battle_embed.add_field(name="Move", value="Waiting...", inline=False)
+        battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
         await battle_message.edit(embed=battle_embed)
 
         # Battle loop
@@ -341,6 +341,7 @@ class TreacheryPokemon(commands.Cog):
             }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0)
 
             # Battle mechanics
+            moves_display = ""
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 pokemon = player_party[0]
                 move, type_ = self.get_random_move(ctx, pokemon)
@@ -351,7 +352,7 @@ class TreacheryPokemon(commands.Cog):
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
                 battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
                 move_display = f"{move.capitalize()} ({multiplier}x)" if move != "NULL" else "No move available"
-                battle_embed.set_field_at(2, name="Move", value=move_display, inline=False)
+                moves_display += f"{player_display}'s {pokemon}: {move_display}\n"
                 if player_hp[pokemon] <= 0:
                     player_party.pop(0)
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
@@ -365,6 +366,7 @@ class TreacheryPokemon(commands.Cog):
                         del self.battles[ctx.author.id], self.battles[opponent.id]
                         return
 
+            battle_embed.set_field_at(2, name="Moves", value=moves_display, inline=False)
             await battle_message.edit(embed=battle_embed)
             await asyncio.sleep(1)
 
