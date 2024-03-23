@@ -39,9 +39,11 @@ class TreacheryPokemon(commands.Cog):
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
         pokemon_data = requests.get(pokemon_url).json()
         
-        # Filter moves by level_learned_at, including moves learned at or before the current level
+        # Filter moves by level_learned_at and move_learn_method
         moves = [move for move in pokemon_data['moves']
-                if any(version_group['level_learned_at'] <= pokemon_level for version_group in move['version_group_details'])]
+                if any(version_group['level_learned_at'] <= pokemon_level and 
+                        version_group['move_learn_method']['name'] == 'level-up'
+                        for version_group in move['version_group_details'])]
         
         # If no moves are available at the current level, return None or raise an exception
         if not moves:
