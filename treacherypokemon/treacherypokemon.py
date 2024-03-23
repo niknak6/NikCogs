@@ -453,6 +453,7 @@ class TreacheryPokemon(commands.Cog):
         winner = ctx.author.display_name if player2_party else opponent.display_name
         battle_embed.clear_fields()
         battle_embed.description += f"\n**{winner} wins the battle!**"
+        battle_embed.set_image(url=None)  # Remove the image from the embed
         await battle_message.edit(embed=battle_embed)
         del self.battles[ctx.author.id], self.battles[opponent.id]
 
