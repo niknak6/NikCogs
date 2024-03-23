@@ -434,9 +434,9 @@ class TreacheryPokemon(commands.Cog):
                         
                         # Update the embed with the new sprite
                         battle_embed.set_image(url="attachment://combined_sprite.png")
+                        battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{new_pokemon_hp}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
                         await asyncio.sleep(3)  # Add a 3-second cooldown
-                        battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{new_pokemon_hp}", inline=True)
                     else:
                         winner = opponent.display_name if player_display == ctx.author.display_name else ctx.author.display_name
                         battle_embed.clear_fields()
