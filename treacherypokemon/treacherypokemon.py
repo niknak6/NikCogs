@@ -362,7 +362,7 @@ class TreacheryPokemon(commands.Cog):
                         return
 
             await battle_message.edit(embed=battle_embed)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
 
         # If the loop exits naturally, check for any remaining Pokémon and declare the winner
         winner = ctx.author.display_name if player2_party else opponent.display_name
