@@ -45,9 +45,9 @@ class TreacheryPokemon(commands.Cog):
                         version_group['move_learn_method']['name'] == 'level-up'
                         for version_group in move['version_group_details'])]
         
-        # If no moves are available at the current level, return None or raise an exception
+        # If no moves are available at the current level, default to "NULL"
         if not moves:
-            return None  # or raise an Exception("No moves available at this level.")
+            return "NULL", "NULL"
         
         # Select a random move from the filtered list
         move = random.choice(moves)
