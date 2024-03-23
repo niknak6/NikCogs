@@ -442,7 +442,7 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.clear_fields()
                         battle_embed.description += f"\n**{winner} wins the battle!**"
                         battle_embed.set_image(url=None)  # Remove the image from the embed
-                        await battle_message.edit(content="Battle Over", embed=battle_embed, attachments=[])
+                        await battle_message.edit(content="", embed=battle_embed, attachments=[])
                         del self.battles[ctx.author.id], self.battles[opponent.id]
                         return
 
