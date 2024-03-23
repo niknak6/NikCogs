@@ -411,6 +411,31 @@ class TreacheryPokemon(commands.Cog):
                     if player_party:
                         new_pokemon = player_party[0]
                         new_pokemon_hp = player_hp[new_pokemon]
+                        # Fetch the new sprite URL for the next Pokémon
+                        new_pokemon_sprite_url = f"{self.base_url}{new_pokemon.lower().replace(' ', '-').replace('.', '')}"
+                        new_pokemon_response = requests.get(new_pokemon_sprite_url)
+                        new_pokemon_data = new_pokemon_response.json()
+                        new_pokemon_sprite = new_pokemon_data['sprites']['other']['official-artwork']['front_default']
+                        
+                        # Download the new sprite using requests and open it with PIL
+                        new_pokemon_sprite_image = Image.open(BytesIO(requests.get(new_pokemon_sprite).content))
+                        
+                        # Update the combined sprite image
+                        if player_display == ctx.author.display_name:
+                            combined_sprite.paste(new_pokemon_sprite_image, (0, 0))
+                        else:
+                            combined_sprite.paste(new_pokemon_sprite_image, (player1_sprite_image.width, 0))
+                        
+                        # Save the updated combined image to a BytesIO object and create a discord.File from it
+                        combined_image_io.seek(0)  # Reset the pointer to the start of the BytesIO object
+                        combined_sprite.save(combined_image_io, format='PNG')
+                        combined_image_io.seek(0)
+                        combined_image_file = discord.File(combined_image_io, filename='combined_sprite.png')
+                        
+                        # Update the embed with the new sprite
+                        battle_embed.set_image(url="attachment://combined_sprite.png")
+                        await battle_message.edit(embed=battle_embed)
+                        await asyncio.sleep(3)  # Add a 3-second cooldown
                         battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{new_pokemon_hp}", inline=True)
                     else:
                         winner = opponent.display_name if player_display == ctx.author.display_name else ctx.author.display_name
