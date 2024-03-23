@@ -9,6 +9,8 @@ from io import BytesIO
 import datetime
 import asyncio
 import traceback
+from PIL import Image
+from io import BytesIO
 
 class TreacheryPokemon(commands.Cog):
     def __init__(self, bot):
