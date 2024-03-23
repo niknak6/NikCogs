@@ -327,8 +327,9 @@ class TreacheryPokemon(commands.Cog):
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
         # Initialize embed fields for HP and moves
-        battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_party[0]}", value=f"HP: {player1_hp[player1_party[0]]}\nMove: ", inline=True)
-        battle_embed.add_field(name=f"{opponent.display_name}'s {player2_party[0]}", value=f"HP: {player2_hp[player2_party[0]]}\nMove: ", inline=True)
+        battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_party[0]} HP", value=f"{player1_hp[player1_party[0]]}", inline=True)
+        battle_embed.add_field(name=f"{opponent.display_name}'s {player2_party[0]} HP", value=f"{player2_hp[player2_party[0]]}", inline=True)
+        battle_embed.add_field(name="Move", value="Waiting...", inline=False)
         await battle_message.edit(embed=battle_embed)
 
         # Battle loop
@@ -347,12 +348,15 @@ class TreacheryPokemon(commands.Cog):
                 multiplier = get_multiplier(type_data, type_)
                 damage = calculate_damage(move, multiplier)
                 player_hp[pokemon] = max(player_hp[pokemon] - damage, 0)
-                battle_embed.set_field_at(0 if player_display == ctx.author.display_name else 1, name=f"{player_display}'s {pokemon}", value=f"HP: {player_hp[pokemon]}\nMove: {move.capitalize()} ({multiplier}x)", inline=True)
+                hp_field_index = 0 if player_display == ctx.author.display_name else 1
+                battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
+                move_display = f"{move.capitalize()} ({multiplier}x)" if move != "NULL" else "No move available"
+                battle_embed.set_field_at(2, name="Move", value=move_display, inline=False)
                 if player_hp[pokemon] <= 0:
                     player_party.pop(0)
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
                     if player_party:
-                        battle_embed.set_field_at(0 if player_display == ctx.author.display_name else 1, name=f"{player_display}'s {player_party[0]}", value=f"HP: {player_hp[player_party[0]]}\nMove: ", inline=True)
+                        battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {player_party[0]} HP", value=f"{player_hp[player_party[0]]}", inline=True)
                     else:
                         winner = opponent.display_name if player_display == ctx.author.display_name else ctx.author.display_name
                         battle_embed.clear_fields()
