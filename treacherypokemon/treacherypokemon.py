@@ -306,6 +306,10 @@ class TreacheryPokemon(commands.Cog):
         if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
             return await ctx.send("Cannot start battle due to one of the conditions not being met.")
 
+        # Helper function to format move names
+        def format_move_name(move_name):
+            return ' '.join(word.capitalize() for word in move_name.replace('-', ' ').split())
+
         # Fetch and validate parties
         def fetch_party(member_id):
             return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0] 
@@ -351,8 +355,8 @@ class TreacheryPokemon(commands.Cog):
                 player_hp[pokemon] = max(player_hp[pokemon] - damage, 0)
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
                 battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
-                move_display = f"{move.capitalize()} ({multiplier}x)" if move != "NULL" else "No move available"
-                moves_display += f"{player_display}'s {pokemon}: {move_display}\n"
+                formatted_move_name = format_move_name(move) if move != "NULL" else "No move available"
+                moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} ({multiplier}x)\n"
                 if player_hp[pokemon] <= 0:
                     player_party.pop(0)
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
@@ -366,9 +370,9 @@ class TreacheryPokemon(commands.Cog):
                         del self.battles[ctx.author.id], self.battles[opponent.id]
                         return
 
-            battle_embed.set_field_at(2, name="Moves", value=moves_display, inline=False)
+            battle_embed.set_field_at(2, name="Moves", value=moves_display.strip(), inline=False)
             await battle_message.edit(embed=battle_embed)
-            await asyncio.sleep(.5)
+            await asyncio.sleep(1)
 
         # If the loop exits naturally, check for any remaining Pokémon and declare the winner
         winner = ctx.author.display_name if player2_party else opponent.display_name
