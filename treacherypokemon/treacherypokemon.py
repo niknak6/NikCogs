@@ -372,6 +372,9 @@ class TreacheryPokemon(commands.Cog):
 
         # Create an embed with the combined image
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description="")
+        battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_party[0]} HP", value="Loading...", inline=True)
+        battle_embed.add_field(name=f"{opponent.display_name}'s {player2_party[0]} HP", value="Loading...", inline=True)
+        battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
         battle_embed.set_image(url="attachment://combined_sprite.png")
 
         # Send the initial battle message with the combined image
@@ -406,7 +409,9 @@ class TreacheryPokemon(commands.Cog):
                     player_party.pop(0)
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
                     if player_party:
-                        battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {player_party[0]} HP", value=f"{player_hp[player_party[0]]}", inline=True)
+                        new_pokemon = player_party[0]
+                        new_pokemon_hp = player_hp[new_pokemon]
+                        battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{new_pokemon_hp}", inline=True)
                     else:
                         winner = opponent.display_name if player_display == ctx.author.display_name else ctx.author.display_name
                         battle_embed.clear_fields()
