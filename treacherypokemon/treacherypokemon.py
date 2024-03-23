@@ -45,7 +45,17 @@ class TreacheryPokemon(commands.Cog):
                         version_group['move_learn_method']['name'] == 'level-up'
                         for version_group in move['version_group_details'])]
         
-        # If no moves are available at the current level, default to "NULL"
+        # Define a set of moves to blacklist
+        blacklisted_moves = {
+            'after-you', 'quash', 'helping-hand', 'ally-switch', 
+            'follow-me', 'rage-powder', 'aromatic-mist', 
+            'hold-hands', 'spotlight'
+        }
+
+        # Filter out blacklisted moves
+        moves = [move for move in moves if move['move']['name'] not in blacklisted_moves]
+
+        # If no moves are available at the current level or all are blacklisted, default to "NULL"
         if not moves:
             return "NULL", "NULL"
         
