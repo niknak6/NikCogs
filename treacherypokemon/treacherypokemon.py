@@ -328,74 +328,48 @@ class TreacheryPokemon(commands.Cog):
                     for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone() 
                     if tag != '-']
 
-        player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
-        if not player1_party or not player2_party:
-            raise commands.CommandError("Both players must have a party.")
-
         # Initialize health
-        player1_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player1_party}
-        player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
+        def initialize_health(party):
+            return {pokemon: self.get_pokemon_health(pokemon) for pokemon in party}
 
-        # Fetch sprite URLs for both Pokémon in battle
-        player1_pokemon_name = player1_party[0]
-        player2_pokemon_name = player2_party[0]
-        player1_sprite_url = f"{self.base_url}{player1_pokemon_name.lower().replace(' ', '-').replace('.', '')}"
-        player2_sprite_url = f"{self.base_url}{player2_pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+        # Create the initial battle embed
+        async def create_initial_battle_embed(player1_pokemon, player2_pokemon):
+            combined_image_file = await combine_sprites(player1_pokemon, player2_pokemon)
+            battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description="")
+            battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_pokemon} HP", value="Loading...", inline=True)
+            battle_embed.add_field(name=f"{opponent.display_name}'s {player2_pokemon} HP", value="Loading...", inline=True)
+            battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
+            battle_embed.set_image(url="attachment://combined_sprite.png")
+            battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
+            await battle_message.add_reaction("⚔️")
+            return battle_embed, battle_message
 
-        # Get the sprite data from the API
-        player1_response = requests.get(player1_sprite_url)
-        player1_data = player1_response.json()
-        player1_sprite = player1_data['sprites']['other']['official-artwork']['front_default']
+        # Combine sprites into a single image
+        async def combine_sprites(player1_pokemon, player2_pokemon):
+            player1_sprite = await fetch_sprite(player1_pokemon)
+            player2_sprite = await fetch_sprite(player2_pokemon)
+            total_width = player1_sprite.width + player2_sprite.width
+            max_height = max(player1_sprite.height, player2_sprite.height)
+            combined_sprite = Image.new('RGBA', (total_width, max_height))
+            combined_sprite.paste(player1_sprite, (0, 0))
+            combined_sprite.paste(player2_sprite, (player1_sprite.width, 0))
+            combined_image_io = BytesIO()
+            combined_sprite.save(combined_image_io, format='PNG')
+            combined_image_io.seek(0)
+            return discord.File(combined_image_io, filename='combined_sprite.png')
 
-        player2_response = requests.get(player2_sprite_url)
-        player2_data = player2_response.json()
-        player2_sprite = player2_data['sprites']['other']['official-artwork']['front_default']
+        # Fetch sprite from the API
+        async def fetch_sprite(pokemon_name):
+            sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+            response = requests.get(sprite_url)
+            response.raise_for_status()
+            sprite_data = response.json()['sprites']['other']['official-artwork']['front_default']
+            return Image.open(BytesIO(requests.get(sprite_data).content))
 
-        # Download the sprites using requests and open them with PIL
-        player1_sprite_image = Image.open(BytesIO(requests.get(player1_sprite).content))
-        player2_sprite_image = Image.open(BytesIO(requests.get(player2_sprite).content))
-
-        # Create a new image with a width that's the sum of both sprites' widths
-        total_width = player1_sprite_image.width + player2_sprite_image.width
-        max_height = max(player1_sprite_image.height, player2_sprite_image.height)
-        combined_sprite = Image.new('RGBA', (total_width, max_height))
-
-        # Paste the two sprites side by side in the new image
-        combined_sprite.paste(player1_sprite_image, (0, 0))
-        combined_sprite.paste(player2_sprite_image, (player1_sprite_image.width, 0))
-
-        # Save the combined image to a BytesIO object and create a discord.File from it
-        combined_image_io = BytesIO()
-        combined_sprite.save(combined_image_io, format='PNG')
-        combined_image_io.seek(0)
-        combined_image_file = discord.File(combined_image_io, filename='combined_sprite.png')
-
-        # Create an embed with the combined image
-        battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description="")
-        battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_party[0]} HP", value="Loading...", inline=True)
-        battle_embed.add_field(name=f"{opponent.display_name}'s {player2_party[0]} HP", value="Loading...", inline=True)
-        battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
-        battle_embed.set_image(url="attachment://combined_sprite.png")
-
-        # Send the initial battle message with the combined image
-        battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
-
-        # Add reactions to the battle message for interactive battling
-        await battle_message.add_reaction("⚔️")
-        self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
-
-        # Battle loop
-        while player1_party and player2_party:
-            # Inline functions for damage calculation and multiplier retrieval
-            calculate_damage = lambda move, multiplier: random.randint(10, 50) * multiplier
-            get_multiplier = lambda damage_relations, opposing_type: next((multiplier for key, multiplier in {
-                'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
-            }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0)
-
-            # Battle mechanics
+        # Perform a round of battle
+        def perform_battle_round(player_party, player_hp, player_display, battle_embed):
             moves_display = ""
-            for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
-                pokemon = player_party[0]
+            for pokemon in player_party:
                 move, type_ = self.get_random_move(ctx, pokemon)
                 type_data = requests.get(self.type_url + type_).json()['damage_relations']
                 multiplier = get_multiplier(type_data, type_)
@@ -408,54 +382,37 @@ class TreacheryPokemon(commands.Cog):
                 if player_hp[pokemon] <= 0:
                     player_party.pop(0)
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
-                    if player_party:
-                        new_pokemon = player_party[0]
-                        new_pokemon_hp = player_hp[new_pokemon]
-                        # Fetch the new sprite URL for the next Pokémon
-                        new_pokemon_sprite_url = f"{self.base_url}{new_pokemon.lower().replace(' ', '-').replace('.', '')}"
-                        new_pokemon_response = requests.get(new_pokemon_sprite_url)
-                        new_pokemon_data = new_pokemon_response.json()
-                        new_pokemon_sprite = new_pokemon_data['sprites']['other']['official-artwork']['front_default']
-                        
-                        # Download the new sprite using requests and open it with PIL
-                        new_pokemon_sprite_image = Image.open(BytesIO(requests.get(new_pokemon_sprite).content))
-                        
-                        # Update the combined sprite image
-                        if player_display == ctx.author.display_name:
-                            combined_sprite.paste(new_pokemon_sprite_image, (0, 0))
-                        else:
-                            combined_sprite.paste(new_pokemon_sprite_image, (player1_sprite_image.width, 0))
-                        
-                        # Save the updated combined image to a BytesIO object and create a discord.File from it
-                        combined_image_io.seek(0)  # Reset the pointer to the start of the BytesIO object
-                        combined_sprite.save(combined_image_io, format='PNG')
-                        combined_image_io.seek(0)
-                        combined_image_file = discord.File(combined_image_io, filename='combined_sprite.png')
-                        
-                        # Update the embed with the new sprite
-                        battle_embed.set_image(url="attachment://combined_sprite.png")
-                        battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{new_pokemon_hp}", inline=True)
-                        await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
-                        await asyncio.sleep(3)  # Add a 3-second cooldown
-                    else:
-                        winner = opponent.display_name if player_display == ctx.author.display_name else ctx.author.display_name
-                        battle_embed.clear_fields()
-                        battle_embed.description += f"\n**{winner} wins the battle!**"
-                        battle_embed.set_image(url=None)  # Remove the image from the embed
-                        await battle_message.edit(content="", embed=battle_embed, attachments=[])
-                        del self.battles[ctx.author.id], self.battles[opponent.id]
-                        return
+            return moves_display.strip()
 
-            battle_embed.set_field_at(2, name="Moves", value=moves_display.strip(), inline=False)
+        # Calculate damage
+        def calculate_damage(move, multiplier):
+            return random.randint(10, 50) * multiplier
+
+        # Retrieve multiplier based on type effectiveness
+        def get_multiplier(damage_relations, opposing_type):
+            return next((multiplier for key, multiplier in {
+                'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
+            }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0)
+
+        player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
+        if not player1_party or not player2_party:
+            raise commands.CommandError("Both players must have a party.")
+
+        player1_hp, player2_hp = initialize_health(player1_party), initialize_health(player2_party)
+        battle_embed, battle_message = await create_initial_battle_embed(player1_party[0], player2_party[0])
+
+        while player1_party and player2_party:
+            moves_display = perform_battle_round(player1_party, player1_hp, ctx.author.display_name, battle_embed)
+            moves_display += perform_battle_round(player2_party, player2_hp, opponent.display_name, battle_embed)
+            battle_embed.set_field_at(2, name="Moves", value=moves_display, inline=False)
             await battle_message.edit(embed=battle_embed)
             await asyncio.sleep(.5)
 
-        # If the loop exits naturally, check for any remaining Pokémon and declare the winner
         winner = ctx.author.display_name if player2_party else opponent.display_name
         battle_embed.clear_fields()
         battle_embed.description += f"\n**{winner} wins the battle!**"
-        battle_embed.set_image(url=None)  # Remove the image from the embed
-        await battle_message.edit(content="", embed=battle_embed, attachments=[])
+        battle_embed.set_image(url=None)
+        await battle_message.edit(content="", embed=battle_embed)
         del self.battles[ctx.author.id], self.battles[opponent.id]
 
     @commands.Cog.listener()
