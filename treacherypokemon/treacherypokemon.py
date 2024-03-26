@@ -313,32 +313,8 @@ class TreacheryPokemon(commands.Cog):
             print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
-    @commands.command()
-    async def battle(self, ctx, opponent: discord.Member):
-        if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
-            return await ctx.send("Cannot start battle due to one of the conditions not being met.")
-
-        # Helper function to format move names
-        def format_move_name(move_name):
-            return ' '.join(word.capitalize() for word in move_name.replace('-', ' ').split())
-
-        # Fetch and validate parties
-        def fetch_party(member_id):
-            return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0] 
-                    for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone() 
-                    if tag != '-']
-
-        player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
-        if not player1_party or not player2_party:
-            raise commands.CommandError("Both players must have a party.")
-
-        # Initialize health
-        player1_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player1_party}
-        player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
-
+    def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
         # Fetch sprite URLs for both Pokémon in battle
-        player1_pokemon_name = player1_party[0]
-        player2_pokemon_name = player2_party[0]
         player1_sprite_url = f"{self.base_url}{player1_pokemon_name.lower().replace(' ', '-').replace('.', '')}"
         player2_sprite_url = f"{self.base_url}{player2_pokemon_name.lower().replace(' ', '-').replace('.', '')}"
 
@@ -369,6 +345,38 @@ class TreacheryPokemon(commands.Cog):
         combined_sprite.save(combined_image_io, format='PNG')
         combined_image_io.seek(0)
         combined_image_file = discord.File(combined_image_io, filename='combined_sprite.png')
+
+        return combined_image_file
+    
+    @commands.command()
+    async def battle(self, ctx, opponent: discord.Member):
+        if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
+            return await ctx.send("Cannot start battle due to one of the conditions not being met.")
+
+        # Helper function to format move names
+        def format_move_name(move_name):
+            return ' '.join(word.capitalize() for word in move_name.replace('-', ' ').split())
+
+        # Fetch and validate parties
+        def fetch_party(member_id):
+            return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0]
+                    for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
+                    if tag != '-']
+
+        player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
+        if not player1_party or not player2_party:
+            raise commands.CommandError("Both players must have a party.")
+
+        # Initialize health
+        player1_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player1_party}
+        player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
+
+        # Get the initial Pokémon names for sprite generation
+        player1_pokemon_name = player1_party[0]
+        player2_pokemon_name = player2_party[0]
+
+        # Generate the combined sprite image
+        combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
 
         # Create an embed with the combined image
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description="")
@@ -411,28 +419,12 @@ class TreacheryPokemon(commands.Cog):
                     if player_party:
                         new_pokemon = player_party[0]
                         new_pokemon_hp = player_hp[new_pokemon]
-                        # Fetch the new sprite URL for the next Pokémon
-                        new_pokemon_sprite_url = f"{self.base_url}{new_pokemon.lower().replace(' ', '-').replace('.', '')}"
-                        new_pokemon_response = requests.get(new_pokemon_sprite_url)
-                        new_pokemon_data = new_pokemon_response.json()
-                        new_pokemon_sprite = new_pokemon_data['sprites']['other']['official-artwork']['front_default']
-                        
-                        # Download the new sprite using requests and open it with PIL
-                        new_pokemon_sprite_image = Image.open(BytesIO(requests.get(new_pokemon_sprite).content))
-                        
-                        # Update the combined sprite image
+                        # Update the combined sprite image with the new Pokémon
                         if player_display == ctx.author.display_name:
-                            combined_sprite.paste(new_pokemon_sprite_image, (0, 0))
+                            player1_pokemon_name = new_pokemon
                         else:
-                            combined_sprite.paste(new_pokemon_sprite_image, (player1_sprite_image.width, 0))
-                        
-                        # Save the updated combined image to a BytesIO object and create a discord.File from it
-                        combined_image_io.seek(0)  # Reset the pointer to the start of the BytesIO object
-                        combined_sprite.save(combined_image_io, format='PNG')
-                        combined_image_io.seek(0)
-                        combined_image_file = discord.File(combined_image_io, filename='combined_sprite.png')
-                        
-                        # Update the embed with the new sprite
+                            player2_pokemon_name = new_pokemon
+                        combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
                         battle_embed.set_image(url="attachment://combined_sprite.png")
                         battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{new_pokemon_hp}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
@@ -443,7 +435,7 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.description += f"\n**{winner} wins the battle!**"
                         battle_embed.set_image(url=None)  # Remove the image from the embed
                         await battle_message.edit(content="", embed=battle_embed, attachments=[])
-                        
+
                         # Get the winner's party
                         if winner == ctx.author.display_name:
                             winner_id = ctx.author.id
