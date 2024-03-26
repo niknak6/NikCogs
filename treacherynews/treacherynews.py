@@ -1,17 +1,27 @@
-from redbot.core import commands
-import discord
+from redbot.core import commands, Config
+import tiktokpy
+from tiktokpy.utils.client import Client
 
-class TreacheryNews(commands.Cog):
+class TikTokDownloader(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
 
-    @commands.command()
-    async def deleteforumpost(self, ctx, thread_id: int):
-        """Delete a forum post by its thread ID."""
-        guild = ctx.guild
-        thread = discord.utils.get(guild.threads, id=thread_id)
-        if thread is not None:
-            await thread.delete()
-            await ctx.send(f"Deleted thread with ID {thread_id}.")
-        else:
-            await ctx.send(f"No thread found with ID {thread_id}.")
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        # Check if the message contains a TikTok URL
+        if "tiktok.com" in message.content:
+            await self.download_and_post_video(message)
+
+    async def download_and_post_video(self, message):
+        # Initialize TikTokPy client
+        async with tiktokpy.TikTokPy() as bot:
+            video = await bot.video(id=message.content.split('/')[-1])
+            file_path = await video.download()
+            
+            # Post the video file to the channel where the URL was posted
+            with open(file_path, 'rb') as video_file:
+                await message.channel.send(file=discord.File(video_file, 'tiktok_video.mp4'))
+
+def setup(bot):
+    bot.add_cog(TikTokDownloader(bot))
