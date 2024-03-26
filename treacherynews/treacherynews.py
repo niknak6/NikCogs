@@ -24,4 +24,4 @@ class TreacheryNews(commands.Cog):
                 await message.channel.send(file=discord.File(video_file, 'tiktok_video.mp4'))
 
 def setup(bot):
-    bot.add_cog(TikTokDownloader(bot))
+    bot.add_cog(TreacheryNews(bot))
