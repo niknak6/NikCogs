@@ -456,18 +456,18 @@ class TreacheryPokemon(commands.Cog):
                         winner_party = self.cur.fetchone()
 
                         # Update the levels of the winner's Pokémon
-                        #for poketag in winner_party:
-                        #    if poketag != '-':
-                        #        self.cur.execute('UPDATE pokedex SET level = level + 1 WHERE member_id = ? AND poketag = ?', (winner_id, poketag.lower()))
+                        for poketag in winner_party:
+                            if poketag != '-':
+                                self.cur.execute('UPDATE pokedex SET level = level + 1 WHERE member_id = ? AND poketag = ?', (winner_id, poketag.lower()))
 
-                        #self.conn.commit()
+                        self.conn.commit()
 
                         # Inform the winner that their Pokémon have leveled up
-                        #winner_member = ctx.guild.get_member(winner_id)
-                        #await ctx.send(f"{winner_member.mention}, your Pokémon have leveled up after winning the battle!")
+                        winner_member = ctx.guild.get_member(winner_id)
+                        await ctx.send(f"{winner_member.mention}, your Pokémon have leveled up after winning the battle!")
 
-                        #del self.battles[ctx.author.id], self.battles[opponent.id]
-                        #return
+                        del self.battles[ctx.author.id], self.battles[opponent.id]
+                        return
 
             battle_embed.set_field_at(2, name="Moves", value=moves_display.strip(), inline=False)
             await battle_message.edit(embed=battle_embed)
