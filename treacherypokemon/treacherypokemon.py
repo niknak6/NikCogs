@@ -458,7 +458,7 @@ class TreacheryPokemon(commands.Cog):
                         # Update the levels of the winner's Pokémon
                         for poketag in winner_party:
                             if poketag != '-':
-                                self.cur.execute('UPDATE pokedex SET level = level + 1 WHERE member_id = ? AND poketag = ?', (winner_id, poketag.lower()))
+                                self.cur.execute('UPDATE pokedex SET level = level + 0 WHERE member_id = ? AND poketag = ?', (winner_id, poketag.lower()))
 
                         self.conn.commit()
 
