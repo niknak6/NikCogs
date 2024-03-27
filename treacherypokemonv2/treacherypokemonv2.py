@@ -17,13 +17,11 @@ class TreacheryPokemonV2(commands.Cog):
         # Assuming the first pokemon in the list is the one you want
         pokemon = pokemon_list[0] if pokemon_list else None
         if pokemon:
-            # Create the embed
-            embed = discord.Embed(title="A wild Pokémon has appeared!", color=discord.Color.green())
-            embed.set_thumbnail(url=pokemon.sprites.other['official-artwork'].front_default)
-            # Send the embed
-            await ctx.send(embed=embed)
+            # Output the list of all attributes of the sprites object
+            attributes = dir(pokemon.sprites)
+            await ctx.send(f"Attributes of the sprites object: {attributes}")
         else:
             await ctx.send("No Pokémon found.")
 
 def setup(bot):
-    bot.add_cog(PokemonSpawn(bot))
+    bot.add_cog(TreacheryPokemonV2(bot))
