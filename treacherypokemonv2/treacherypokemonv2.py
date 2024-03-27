@@ -19,7 +19,7 @@ class TreacheryPokemonV2(commands.Cog):
         if pokemon:
             # Create the embed
             embed = discord.Embed(title="A wild Pokémon has appeared!", color=discord.Color.green())
-            embed.set_thumbnail(url=pokemon.sprites.other.official-artwork.front_default)
+            embed.set_thumbnail(url=pokemon.sprites.official-artwork.front_default)
             # Send the embed
             await ctx.send(embed=embed)
         else:
