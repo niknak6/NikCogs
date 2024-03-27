@@ -3,7 +3,7 @@ import discord
 import pokepy
 import random
 
-class PokemonSpawn(commands.Cog):
+class TreacheryPokemonV2(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.client = pokepy.V2Client()
