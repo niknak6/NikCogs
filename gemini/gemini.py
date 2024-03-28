@@ -57,7 +57,7 @@ class Gemini(commands.Cog):
             image_max_output_tokens = await self.config.get_attr("image_max_output_tokens")()
             image_safety_settings = await self.config.get_attr("image_safety_settings")()
             # Initialize the text model
-            self.text_model = genai.GenerativeModel(model_name="gemini-1.5-pro-latest", generation_config={"temperature": text_temperature, "top_p": text_top_p, "top_k": text_top_k, "max_output_tokens": text_max_output_tokens}, safety_settings=text_safety_settings)
+            self.text_model = genai.GenerativeModel(model_name="gemini-pro", generation_config={"temperature": text_temperature, "top_p": text_top_p, "top_k": text_top_k, "max_output_tokens": text_max_output_tokens}, safety_settings=text_safety_settings)
             # Initialize the image model
             self.image_model = genai.GenerativeModel(model_name="gemini-pro-vision", generation_config={"temperature": image_temperature, "top_p": image_top_p, "top_k": image_top_k, "max_output_tokens": image_max_output_tokens}, safety_settings=image_safety_settings)
 
