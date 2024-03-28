@@ -1,27 +1,26 @@
 from redbot.core import commands
+import pokebase as pb
 import discord
-import pokepy
 import random
 
 class TreacheryPokemonV2(commands.Cog):
+    """TreacheryPokemonV2 - A Redbot cog to spawn Pokemon images."""
+
     def __init__(self, bot):
         self.bot = bot
-        self.client = pokepy.V2Client()
 
     @commands.command()
     async def v2spawn(self, ctx):
-        # Generate a random pokemon number between 1 and 1025
-        pokemon_number = random.randint(1, 1025)
-        # Fetch the pokemon
-        pokemon_list = self.client.get_pokemon(pokemon_number)
-        # Assuming the first pokemon in the list is the one you want
-        pokemon = pokemon_list[0] if pokemon_list else None
-        if pokemon:
-            # Output the list of all attributes of the sprites object
-            attributes = dir(pokemon.sprites)
-            await ctx.send(f"Attributes of the sprites object: {attributes}")
-        else:
-            await ctx.send("No Pokémon found.")
+        """Spawns a random Pokemon image."""
+        # Get a random pokemon number
+        pokemon_number = random.randint(1, pb.APIResourceList('pokemon').count)
+        # Fetch the official artwork using the SpriteResource
+        sprite_resource = pb.SpriteResource('pokemon', pokemon_number, other=True, official_artwork=True)
+        artwork_url = sprite_resource.url
+        # Create an embed with the Pokemon image
+        embed = discord.Embed(title="A wild Pokémon appeared!")
+        embed.set_image(url=artwork_url)
+        await ctx.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(TreacheryPokemonV2(bot))
