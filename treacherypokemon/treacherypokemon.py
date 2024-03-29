@@ -362,8 +362,9 @@ class TreacheryPokemon(commands.Cog):
 
         # Fetch and validate parties
         def fetch_party(member_id):
-            return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0]
-                    for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
+            party = self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
+            return [(self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0], tag.lower())
+                    for tag in party
                     if tag != '-']
 
         player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
@@ -371,8 +372,8 @@ class TreacheryPokemon(commands.Cog):
             raise commands.CommandError("Both players must have a party.")
 
         # Initialize health
-        player1_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player1_party}
-        player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
+        player1_hp = {pokemon: self.get_pokemon_health(pokemon_name, poketag) for pokemon_name, poketag in player1_party}
+        player2_hp = {pokemon: self.get_pokemon_health(pokemon_name, poketag) for pokemon_name, poketag in player2_party}
 
         # Get the initial Pokémon names for sprite generation
         player1_pokemon_name = player1_party[0]
