@@ -66,29 +66,21 @@ class TreacheryPokemon(commands.Cog):
         move_data = requests.get(move['move']['url']).json()
         return move['move']['name'], move_data['type']['name']
 
-    def get_pokemon_health(self, poketag):
-        # Fetch the Pokémon's level and name using the poketag from the database
-        self.cur.execute('SELECT level, pokemon_name FROM pokedex WHERE poketag = ?', (poketag,))
-        result = self.cur.fetchone()
-        if not result:
-            # Handle the case where the poketag does not exist in the database
-            return None  # Or any other error handling you prefer
-
-        pokemon_level, pokemon_name = result
-
-        # Fetch the Pokémon's base stats from the API
+    def get_pokemon_health(self, pokemon_name):
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
         response = requests.get(pokemon_url)
         response.raise_for_status()
         pokemon_data = response.json()
-
-        # Extract all stats using the same method
-        stats = {stat['stat']['name']: stat['base_stat'] for stat in pokemon_data['stats']}
-        hp, attack, defense, special_attack, speed = stats['hp'], stats['attack'], stats['defense'], stats['special-attack'], stats['speed']
-
-        # Calculate the health using the formula from the original games
-        health = ((2 * hp + 100) * pokemon_level) / 100 + 10
-        return round(health)
+        level = pokemon_data['stats'][0]['base_stat']
+        attack = pokemon_data['stats'][1]['base_stat']
+        defense = pokemon_data['stats'][2]['base_stat']
+        special_attack = pokemon_data['stats'][3]['base_stat']
+        speed = pokemon_data['stats'][5]['base_stat']
+        base_health = 50
+        level_modifier = level * 2
+        stat_modifier = (attack + defense + special_attack + speed) / 8
+        health = round(base_health + level_modifier + stat_modifier)
+        return health
     
     async def on_command_error(self, ctx: commands.Context, error):
         # Handle your errors here
