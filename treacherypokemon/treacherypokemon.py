@@ -66,21 +66,32 @@ class TreacheryPokemon(commands.Cog):
         move_data = requests.get(move['move']['url']).json()
         return move['move']['name'], move_data['type']['name']
 
-    def get_pokemon_health(self, pokemon_name):
+    def get_pokemon_health(self, ctx, poketag):
+        # Fetch the member's ID from the context
+        member_id = ctx.author.id
+
+        # Fetch the Pokémon's level and name using the poketag from the database
+        self.cur.execute('SELECT level, pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+        result = self.cur.fetchone()
+        if result:
+            pokemon_level, pokemon_name = result
+        else:
+            # Handle the case where the Pokémon's level or name could not be found
+            return None
+
+        # Fetch the Pokémon's base stats from the API
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
         response = requests.get(pokemon_url)
         response.raise_for_status()
         pokemon_data = response.json()
-        level = pokemon_data['stats'][0]['base_stat']
-        attack = pokemon_data['stats'][1]['base_stat']
-        defense = pokemon_data['stats'][2]['base_stat']
-        special_attack = pokemon_data['stats'][3]['base_stat']
-        speed = pokemon_data['stats'][5]['base_stat']
-        base_health = 50
-        level_modifier = level * 2
-        stat_modifier = (attack + defense + special_attack + speed) / 8
-        health = round(base_health + level_modifier + stat_modifier)
-        return health
+
+        # Extract all stats using the same method
+        stats = {stat['stat']['name']: stat['base_stat'] for stat in pokemon_data['stats']}
+        hp, attack, defense, special_attack, speed = stats['hp'], stats['attack'], stats['defense'], stats['special-attack'], stats['speed']
+
+        # Calculate the health using the formula from the original games
+        health = ((2 * hp + 100) * pokemon_level) / 100 + 10
+        return round(health)
     
     async def on_command_error(self, ctx: commands.Context, error):
         # Handle your errors here
