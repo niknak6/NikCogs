@@ -66,18 +66,15 @@ class TreacheryPokemon(commands.Cog):
         move_data = requests.get(move['move']['url']).json()
         return move['move']['name'], move_data['type']['name']
 
-    def get_pokemon_health(self, ctx, poketag):
-        # Fetch the member's ID from the context
-        member_id = ctx.author.id
-
+    def get_pokemon_health(self, poketag):
         # Fetch the Pokémon's level and name using the poketag from the database
-        self.cur.execute('SELECT level, pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+        self.cur.execute('SELECT level, pokemon_name FROM pokedex WHERE poketag = ?', (poketag,))
         result = self.cur.fetchone()
-        if result:
-            pokemon_level, pokemon_name = result
-        else:
-            # Handle the case where the Pokémon's level or name could not be found
-            return None
+        if not result:
+            # Handle the case where the poketag does not exist in the database
+            return None  # Or any other error handling you prefer
+
+        pokemon_level, pokemon_name = result
 
         # Fetch the Pokémon's base stats from the API
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
