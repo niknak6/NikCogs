@@ -66,22 +66,12 @@ class TreacheryPokemon(commands.Cog):
         move_data = requests.get(move['move']['url']).json()
         return move['move']['name'], move_data['type']['name']
 
-    def get_pokemon_health(self, ctx, pokemon_name, poketag):
+    def get_pokemon_health(self, pokemon_name):
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
         response = requests.get(pokemon_url)
         response.raise_for_status()
         pokemon_data = response.json()
-        base_hp = pokemon_data['stats'][0]['base_stat']
-
-        # Retrieve the Pokémon's level from the database using the poketag
-        member_id = ctx.author.id
-        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ? AND poketag = ?', (member_id, pokemon_name, poketag))
-        result = self.cur.fetchone()
-        level = result[0] if result else 1  # Default to level 1 if not found
-
-        # Calculate the HP based on the Pokémon's level
-        hp = ((2 * base_hp * level) // 100) + level + 10
-
+        hp = pokemon_data['stats'][0]['base_stat']
         return hp
 
     
@@ -362,9 +352,8 @@ class TreacheryPokemon(commands.Cog):
 
         # Fetch and validate parties
         def fetch_party(member_id):
-            party = self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
-            return [(self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0], tag.lower())
-                    for tag in party
+            return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0]
+                    for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
                     if tag != '-']
 
         player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
@@ -372,8 +361,8 @@ class TreacheryPokemon(commands.Cog):
             raise commands.CommandError("Both players must have a party.")
 
         # Initialize health
-        player1_hp = {pokemon_name: self.get_pokemon_health(pokemon_name, poketag) for pokemon_name, poketag in player1_party}
-        player2_hp = {pokemon_name: self.get_pokemon_health(pokemon_name, poketag) for pokemon_name, poketag in player2_party}
+        player1_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player1_party}
+        player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
 
         # Get the initial Pokémon names for sprite generation
         player1_pokemon_name = player1_party[0]
