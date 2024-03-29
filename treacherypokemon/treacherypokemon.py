@@ -66,12 +66,22 @@ class TreacheryPokemon(commands.Cog):
         move_data = requests.get(move['move']['url']).json()
         return move['move']['name'], move_data['type']['name']
 
-    def get_pokemon_health(self, pokemon_name):
+    def get_pokemon_health(self, ctx, pokemon_name, poketag):
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
         response = requests.get(pokemon_url)
         response.raise_for_status()
         pokemon_data = response.json()
-        hp = pokemon_data['stats'][0]['base_stat']
+        base_hp = pokemon_data['stats'][0]['base_stat']
+
+        # Retrieve the Pokémon's level from the database using the poketag
+        member_id = ctx.author.id
+        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ? AND poketag = ?', (member_id, pokemon_name, poketag))
+        result = self.cur.fetchone()
+        level = result[0] if result else 1  # Default to level 1 if not found
+
+        # Calculate the HP based on the Pokémon's level
+        hp = ((2 * base_hp * level) // 100) + level + 10
+
         return hp
 
     
