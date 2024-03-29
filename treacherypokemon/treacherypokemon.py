@@ -71,16 +71,9 @@ class TreacheryPokemon(commands.Cog):
         response = requests.get(pokemon_url)
         response.raise_for_status()
         pokemon_data = response.json()
-        level = pokemon_data['stats'][0]['base_stat']
-        attack = pokemon_data['stats'][1]['base_stat']
-        defense = pokemon_data['stats'][2]['base_stat']
-        special_attack = pokemon_data['stats'][3]['base_stat']
-        speed = pokemon_data['stats'][5]['base_stat']
-        base_health = 50
-        level_modifier = level * 2
-        stat_modifier = (attack + defense + special_attack + speed) / 8
-        health = round(base_health + level_modifier + stat_modifier)
-        return health
+        hp = pokemon_data['stats'][0]['base_stat']
+        return hp
+
     
     async def on_command_error(self, ctx: commands.Context, error):
         # Handle your errors here
