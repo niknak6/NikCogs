@@ -385,8 +385,8 @@ class TreacheryPokemon(commands.Cog):
             raise commands.CommandError("Both players must have a party.")
 
         # Initialize health
-        player1_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player1_party}
-        player2_hp = {pokemon: self.get_pokemon_health(pokemon) for pokemon in player2_party}
+        player1_hp = {pokemon: self.get_pokemon_health(ctx,pokemon) for pokemon in player1_party}
+        player2_hp = {pokemon: self.get_pokemon_health(ctx,pokemon) for pokemon in player2_party}
 
         # Get the initial Pokémon names for sprite generation
         player1_pokemon_name = player1_party[0]
