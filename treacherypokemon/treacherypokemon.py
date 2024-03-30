@@ -354,7 +354,7 @@ class TreacheryPokemon(commands.Cog):
         if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
             return await ctx.send("Cannot start battle due to one of the conditions not being met.")
 
-        player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
+        player1_party, player2_party = self.fetch_party(ctx.author.id), self.fetch_party(opponent.id)
         if not player1_party or not player2_party:
             raise commands.CommandError("Both players must have a party.")
 
