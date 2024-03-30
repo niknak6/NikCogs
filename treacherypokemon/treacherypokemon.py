@@ -59,12 +59,13 @@ class TreacheryPokemon(commands.Cog):
 
         # If no moves are available at the current level or all are blacklisted, default to "NULL"
         if not moves:
-            return "NULL", "NULL"
+            return "NULL", "NULL", 0
         
         # Select a random move from the filtered list
         move = random.choice(moves)
         move_data = requests.get(move['move']['url']).json()
-        return move['move']['name'], move_data['type']['name']
+        move_power = move_data.get('power', 0)  # Get the move power, default to 0 if not available
+        return move['move']['name'], move_data['type']['name'], move_power
 
     def get_pokemon_health(self, pokemon_name):
         pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
@@ -388,7 +389,7 @@ class TreacheryPokemon(commands.Cog):
         # Battle loop
         while player1_party and player2_party:
             # Inline functions for damage calculation and multiplier retrieval
-            calculate_damage = lambda move, multiplier: random.randint(10, 50) * multiplier
+            calculate_damage = lambda move_power, multiplier: move_power * multiplier
             get_multiplier = lambda damage_relations, opposing_type: next((multiplier for key, multiplier in {
                 'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
             }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0)
@@ -397,10 +398,10 @@ class TreacheryPokemon(commands.Cog):
             moves_display = ""
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 pokemon = player_party[0]
-                move, type_ = self.get_random_move(ctx, pokemon)
+                move, type_, move_power = self.get_random_move(ctx, pokemon)
                 type_data = requests.get(self.type_url + type_).json()['damage_relations']
                 multiplier = get_multiplier(type_data, type_)
-                damage = calculate_damage(move, multiplier)
+                damage = calculate_damage(move_power, multiplier)
                 player_hp[pokemon] = max(player_hp[pokemon] - damage, 0)
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
                 battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
