@@ -417,36 +417,31 @@ class TreacheryPokemon(commands.Cog):
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 pokemon = player_party[0]
                 move, type_, move_power = self.get_random_move(ctx, pokemon)
-                move_power = move_power or 0  # If move_power is None, assign 0 as the default value
+                move_power = move_power or 0  # Ensure move_power is not None
                 type_data = requests.get(self.type_url + type_).json()['damage_relations']
                 multiplier = get_multiplier(type_data, type_)
                 damage = calculate_damage(move_power, multiplier)
                 player_hp[pokemon] = max(player_hp[pokemon] - damage, 0)
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
                 battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
-                formatted_move_name = format_move_name(move) if move != "NULL" else "No move available"
+                formatted_move_name = "No move available" if move == "NULL" else format_move_name(move)
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} ({multiplier}x)\n"
                 if player_hp[pokemon] <= 0:
                     player_party.pop(0)
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
                     if player_party:
                         new_pokemon = player_party[0]
-                        new_pokemon_hp = player_hp[new_pokemon]
-                        # Update the combined sprite image with the new Pokémon
-                        if player_display == ctx.author.display_name:
-                            player1_pokemon_name = new_pokemon
-                        else:
-                            player2_pokemon_name = new_pokemon
+                        player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if player_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
                         combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
                         battle_embed.set_image(url="attachment://combined_sprite.png")
-                        battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{new_pokemon_hp}", inline=True)
+                        battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{player_hp[new_pokemon]}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
-                        await asyncio.sleep(3)  # Add a 3-second cooldown
+                        await asyncio.sleep(3)
                     else:
-                        winner = opponent.display_name if player_display == ctx.author.display_name else ctx.author.display_name
+                        winner = ctx.author.display_name if player_display != ctx.author.display_name else opponent.display_name
                         battle_embed.clear_fields()
                         battle_embed.description += f"\n**{winner} wins the battle!**"
-                        battle_embed.set_image(url=None)  # Remove the image from the embed
+                        battle_embed.set_image(url=None)
                         await battle_message.edit(content="", embed=battle_embed, attachments=[])
 
                         # Get the winner's party
