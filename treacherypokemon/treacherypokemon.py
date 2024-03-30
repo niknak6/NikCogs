@@ -326,24 +326,18 @@ class TreacheryPokemon(commands.Cog):
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
     def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
-        # Fetch sprite URLs for both Pokémon in battle
-        player1_sprite_url = f"{self.base_url}{player1_pokemon_name.lower().replace(' ', '-').replace('.', '')}"
-        player2_sprite_url = f"{self.base_url}{player2_pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+        # Helper function to fetch and process a sprite
+        def fetch_sprite(pokemon_name):
+            sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+            response = requests.get(sprite_url)
+            sprite = response.json()['sprites']['other']['official-artwork']['front_default']
+            return Image.open(BytesIO(requests.get(sprite).content))
 
-        # Get the sprite data from the API
-        player1_response = requests.get(player1_sprite_url)
-        player1_data = player1_response.json()
-        player1_sprite = player1_data['sprites']['other']['official-artwork']['front_default']
+        # Fetch and process sprites
+        player1_sprite_image = fetch_sprite(player1_pokemon_name)
+        player2_sprite_image = fetch_sprite(player2_pokemon_name)
 
-        player2_response = requests.get(player2_sprite_url)
-        player2_data = player2_response.json()
-        player2_sprite = player2_data['sprites']['other']['official-artwork']['front_default']
-
-        # Download the sprites using requests and open them with PIL
-        player1_sprite_image = Image.open(BytesIO(requests.get(player1_sprite).content))
-        player2_sprite_image = Image.open(BytesIO(requests.get(player2_sprite).content))
-
-        # Create a new image with a width that's the sum of both sprites' widths
+        # Create a new image with a width that's the sum of both sprites' widths and the max height
         total_width = player1_sprite_image.width + player2_sprite_image.width
         max_height = max(player1_sprite_image.height, player2_sprite_image.height)
         combined_sprite = Image.new('RGBA', (total_width, max_height))
