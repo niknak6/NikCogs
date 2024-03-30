@@ -67,19 +67,22 @@ class TreacheryPokemon(commands.Cog):
         move_power = move_data.get('power', 0)  # Use get() to return 0 if 'power' key is not present
         return move['move']['name'], move_data['type']['name'], move_power
 
-    def get_pokemon_health(self, ctx, poketag):
+    def get_pokemon_health(self, ctx, pokemon_name):
         # Fetch the member's ID from the context
         member_id = ctx.author.id
 
-        # Fetch the Pokémon's level from the database using the poketag
-        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+        # Fetch the Pokémon's poketag from the database using the member_id and pokemon_name
+        self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
         result = self.cur.fetchone()
-        pokemon_level = result[0] if result else 1  # Default to level 1 if not found
+        poketag = result[0] if result else None
 
-        # Fetch the Pokémon's name from the database using the poketag
-        self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
-        result = self.cur.fetchone()
-        pokemon_name = result[0] if result else ""
+        if poketag:
+            # Fetch the Pokémon's level from the database using the member_id and poketag
+            self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+            result = self.cur.fetchone()
+            pokemon_level = result[0] if result else 1  # Default to level 1 if not found
+        else:
+            pokemon_level = 1  # Default to level 1 if poketag is not found
 
         # Proceed with fetching the Pokémon's base stats from the API
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
