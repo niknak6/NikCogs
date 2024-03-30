@@ -67,10 +67,7 @@ class TreacheryPokemon(commands.Cog):
         move_power = move_data.get('power', 0)  # Use get() to return 0 if 'power' key is not present
         return move['move']['name'], move_data['type']['name'], move_power
 
-    def get_pokemon_health(self, ctx, pokemon_name):
-        # Fetch the member's ID from the context
-        member_id = ctx.author.id
-
+    def get_pokemon_health(self, member_id, pokemon_name):
         # Fetch the Pokémon's poketag and level from the database using the member_id and pokemon_name
         self.cur.execute('SELECT poketag, level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
         result = self.cur.fetchone()
@@ -96,8 +93,6 @@ class TreacheryPokemon(commands.Cog):
         hp = ((base_hp * 2) * pokemon_level / 100) + pokemon_level + 10
 
         return int(hp)
-
-
 
     async def on_command_error(self, ctx: commands.Context, error):
         # Handle your errors here
