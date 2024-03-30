@@ -57,15 +57,20 @@ class TreacheryPokemon(commands.Cog):
         # Filter out blacklisted moves
         moves = [move for move in moves if move['move']['name'] not in blacklisted_moves]
 
-        # If no moves are available at the current level or all are blacklisted, default to "NULL"
-        if not moves:
-            return "NULL", "NULL", 0  # Return 0 as the default move power
-        
-        # Select a random move from the filtered list
-        move = random.choice(moves)
+        # Filter moves to only include those with a power value
+        moves_with_power = [move for move in moves if requests.get(move['move']['url']).json().get('power')]
+
+        # If no moves with power are available, default to "NULL"
+        if not moves_with_power:
+            return "NULL", "NULL", 0  # Return "NULL" as the move and type, and 0 as the default move power
+
+        # Select a random move from the list of moves with power
+        move = random.choice(moves_with_power)
         move_data = requests.get(move['move']['url']).json()
-        move_power = move_data.get('power', 0)  # Use get() to return 0 if 'power' key is not present
+        move_power = move_data.get('power', 0)  # Use get() to return 0 if 'power' key is not present, though this should not happen now
+
         return move['move']['name'], move_data['type']['name'], move_power
+
 
     def get_pokemon_health(self, member_id, pokemon_name):
         # Fetch the Pokémon's poketag and level from the database using the member_id and pokemon_name
