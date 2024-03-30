@@ -341,15 +341,13 @@ class TreacheryPokemon(commands.Cog):
 
         return combined_image_file
     
-    #Helper function to format move names
     def format_move_name(move_name):
-            return ' '.join(word.capitalize() for word in move_name.replace('-', ' ').split())
+        return ' '.join(word.capitalize() for word in move_name.replace('-', ' ').split())
 
-    # Fetch and validate parties
-    def fetch_party(member_id):
-            return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0]
-                    for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
-                    if tag != '-']
+    def fetch_party(self, member_id):
+        return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0]
+            for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
+            if tag != '-']
     
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
