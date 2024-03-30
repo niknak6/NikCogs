@@ -254,44 +254,48 @@ class TreacheryPokemon(commands.Cog):
         if len(poketags) == 0:
             self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,))
             current_party = self.cur.fetchone()
-            if current_party:
-                pokemon_data = []
-                for poketag in current_party:
-                    if poketag and poketag != '-':
-                        self.cur.execute('SELECT pokemon_name, level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower()))
-                        pokemon_info = self.cur.fetchone()
-                        if pokemon_info:
-                            pokemon_data.append((poketag, *pokemon_info))
-                
-                if pokemon_data:
-                    output = "\n".join([f"{poketag.upper()} - {name.capitalize()} (Level {level}, EXP {exp}/{required})" for poketag, name, level, exp in pokemon_data for required in [round(0.02 * level ** 2 + 0.2 * level + 1)]])
-                    embed = discord.Embed(title=f"{ctx.author.name}'s Party", description=output, color=discord.Color.random())
-                    await ctx.send(embed=embed)
-                else:
-                    await ctx.send("You don't have a party yet.")
+            if current_party is not None:
+                pokemon_data = [self.cur.execute('SELECT pokemon_name, level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower())).fetchone() for poketag in current_party if poketag != '-']
+                experience = [exp for _, _, exp in pokemon_data]
+                messages_required = [round(0.02 * level ** 2 + 0.2 * level + 1) for _, level, _ in pokemon_data]
+                experience_left = [required - exp for required, exp in zip(messages_required, experience)]
+                experience_fraction = [f"{exp}/{required}" for exp, required in zip(experience, messages_required)]
+                output = [f"{poketag.upper()} - {pokemon_name.capitalize()} (Level {level}, EXP {exp_frac})" for poketag, (pokemon_name, level, _), exp_frac in zip(current_party, pokemon_data, experience_fraction)]
+                output = "\n".join(output)
+                embed = discord.Embed(title=f"{ctx.author.name}'s Party", description=output, color=discord.Color.random())
+                await ctx.send(embed=embed)
             else:
                 await ctx.send("You don't have a party yet.")
         elif len(poketags) != 6:
             await ctx.send("You must provide exactly 6 Pokétags.")
         else:
-            valid_poketags = self.validate_poketags(ctx.author.id, poketags)
-            if valid_poketags:
-                positions = ['position1', 'position2', 'position3', 'position4', 'position5', 'position6']
-                update_values = list(poketags) + [ctx.author.id]
-                self.cur.execute(f'UPDATE party SET {", ".join([f"{pos} = ?" for pos in positions])} WHERE member_id = ?', update_values)
-                self.conn.commit()
-                await ctx.send("Your party has been updated.")
+            self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
+            user_poketags = [row[0] for row in self.cur.fetchall()]
+            if all(poketag.lower() in user_poketags or poketag == '-' for poketag in poketags):
+                self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (ctx.author.id,))
+                current_party = self.cur.fetchone()
+
+                if current_party is not None:
+                    positions = dict(zip(['position1', 'position2', 'position3', 'position4', 'position5', 'position6'], poketags))
+
+                    columns = []
+                    values = []
+                    for column, value in positions.items():
+                        if value != '-':
+                            columns.append(f"{column} = ?")
+                            values.append(value)
+                    columns = ", ".join(columns)
+                    values.append(ctx.author.id)
+                    self.cur.execute(f'UPDATE party SET {columns} WHERE member_id = ?', values)
+                    self.conn.commit()
+                    await ctx.send("Your party has been updated.")
+                else:
+                    self.cur.execute('INSERT INTO party (member_id, position1, position2, position3, position4, position5, position6) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+                                    (ctx.author.id, *poketags))
+                    self.conn.commit()
+                    await ctx.send("Your party has been created.")
             else:
                 await ctx.send("You do not have all of these Pokétags in your Pokédex.")
-
-    def validate_poketags(self, member_id, poketags):
-        self.cur.execute('SELECT poketag FROM pokedex WHERE member_id = ?', (member_id,))
-        user_poketags = {row[0].lower() for row in self.cur.fetchall()}  # Ensure poketags are compared in lowercase
-        return all(poketag.lower() in user_poketags or poketag == '-' for poketag in poketags)
-
-
-    def create_embed(self, author_name, output):
-        return discord.Embed(title=f"{author_name}'s Party", description=output, color=discord.Color.random())
 
     @commands.guild_only()
     @commands.command()
