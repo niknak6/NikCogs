@@ -341,20 +341,22 @@ class TreacheryPokemon(commands.Cog):
 
         return combined_image_file
     
-    def format_move_name(move_name):
-        return ' '.join(word.capitalize() for word in move_name.replace('-', ' ').split())
-
-    def fetch_party(self, member_id):
-        return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0]
-            for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
-            if tag != '-']
-    
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
         if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
             return await ctx.send("Cannot start battle due to one of the conditions not being met.")
 
-        player1_party, player2_party = self.fetch_party(ctx.author.id), self.fetch_party(opponent.id)
+        # Helper function to format move names
+        def format_move_name(move_name):
+            return ' '.join(word.capitalize() for word in move_name.replace('-', ' ').split())
+
+        # Fetch and validate parties
+        def fetch_party(member_id):
+            return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0]
+                    for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
+                    if tag != '-']
+
+        player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
         if not player1_party or not player2_party:
             raise commands.CommandError("Both players must have a party.")
 
