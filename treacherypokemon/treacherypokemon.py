@@ -389,7 +389,7 @@ class TreacheryPokemon(commands.Cog):
         # Battle loop
         while player1_party and player2_party:
             # Inline functions for damage calculation and multiplier retrieval
-            calculate_damage = lambda move_power, multiplier: move_power * multiplier
+            calculate_damage = lambda move_power, multiplier: 10 if move_power == 0 else move_power * multiplier
             get_multiplier = lambda damage_relations, opposing_type: next((multiplier for key, multiplier in {
                 'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
             }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0)
@@ -399,6 +399,7 @@ class TreacheryPokemon(commands.Cog):
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 pokemon = player_party[0]
                 move, type_, move_power = self.get_random_move(ctx, pokemon)
+                move_power = move_power or 0  # If move_power is None, assign 0 as the default value
                 type_data = requests.get(self.type_url + type_).json()['damage_relations']
                 multiplier = get_multiplier(type_data, type_)
                 damage = calculate_damage(move_power, multiplier)
