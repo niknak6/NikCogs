@@ -59,12 +59,12 @@ class TreacheryPokemon(commands.Cog):
 
         # If no moves are available at the current level or all are blacklisted, default to "NULL"
         if not moves:
-            return "NULL", "NULL", 0
+            return "NULL", "NULL", 0  # Return 0 as the default move power
         
         # Select a random move from the filtered list
         move = random.choice(moves)
         move_data = requests.get(move['move']['url']).json()
-        move_power = move_data.get('power', 0)  # Get the move power, default to 0 if not available
+        move_power = move_data.get('power', 0)  # Use get() to return 0 if 'power' key is not present
         return move['move']['name'], move_data['type']['name'], move_power
 
     def get_pokemon_health(self, pokemon_name):
