@@ -67,15 +67,30 @@ class TreacheryPokemon(commands.Cog):
         move_power = move_data.get('power', 0)  # Use get() to return 0 if 'power' key is not present
         return move['move']['name'], move_data['type']['name'], move_power
 
-    def get_pokemon_health(self, pokemon_name):
-        pokemon_url = self.base_url + pokemon_name.lower().replace(" ", "-").replace(".", "")
-        response = requests.get(pokemon_url)
-        response.raise_for_status()
-        pokemon_data = response.json()
-        hp = pokemon_data['stats'][0]['base_stat']
-        return hp
+    def get_pokemon_health(self, ctx, poketag):
+        # Fetch the member's ID from the context
+        member_id = ctx.author.id
 
-    
+        # Fetch the Pokémon's level from the database using the poketag
+        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+        result = self.cur.fetchone()
+        pokemon_level = result[0] if result else 1  # Default to level 1 if not found
+
+        # Fetch the Pokémon's name from the database using the poketag
+        self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+        result = self.cur.fetchone()
+        pokemon_name = result[0] if result else ""
+
+        # Proceed with fetching the Pokémon's base stats from the API
+        pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+        pokemon_data = requests.get(pokemon_url).json()
+        base_hp = pokemon_data['stats'][0]['base_stat']
+
+        # Calculate the Pokémon's HP using the formula
+        hp = ((base_hp * 2) * pokemon_level / 100) + pokemon_level + 10
+
+        return int(hp)
+
     async def on_command_error(self, ctx: commands.Context, error):
         # Handle your errors here
         if isinstance(error, commands.MemberNotFound):
