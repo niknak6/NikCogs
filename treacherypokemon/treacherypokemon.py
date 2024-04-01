@@ -80,14 +80,9 @@ class TreacheryPokemon(commands.Cog):
         if result:
             poketag, pokemon_level = result
         else:
-            # If no matching poketag is found, select the first poketag for the given pokemon_name and member_id
-            self.cur.execute('SELECT poketag, level FROM pokedex WHERE member_id = ? AND pokemon_name = ? LIMIT 1', (member_id, pokemon_name))
-            result = self.cur.fetchone()
-            if result:
-                poketag, pokemon_level = result
-            else:
-                # If no poketag is found at all, default to level 1
-                pokemon_level = 1
+            # If no poketag is found at all, default to level 1
+            pokemon_level = 1
+
 
         # Proceed with fetching the Pokémon's base stats from the API
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
