@@ -246,12 +246,18 @@ class TreacheryPokemon(commands.Cog):
                 poketag = secrets.token_hex(3)
                 self.cur.execute('UPDATE pokedex SET poketag = ? WHERE member_id = ? AND pokemon_id = ?', (poketag, ctx.author.id, pokemon_id))
                 self.conn.commit()
-            pokemon_name = "{} (#{})".format(pokemon_name.capitalize(), pokemon_id)
+            pokemon_name_formatted = "{} (#{})".format(pokemon_name.capitalize(), pokemon_id)
             messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
             experience_left = messages_required - experience
             experience_fraction = f"{experience}/{messages_required}"
-            embed.add_field(name=pokemon_name, value=f"Poketag: {poketag.upper()}\nLevel: {level}\nEXP: {experience_fraction}", inline=True)
+            
+            # Fetch the current HP of the Pokémon
+            current_hp = self.get_pokemon_health(ctx.author.id, pokemon_name)
+            
+            # Add the Pokémon's current HP to the embed field
+            embed.add_field(name=pokemon_name_formatted, value=f"Poketag: {poketag.upper()}\nLevel: {level}\nEXP: {experience_fraction}\nHP: {current_hp}", inline=True)
         return embed
+
 
     @commands.guild_only()
     @commands.command()
