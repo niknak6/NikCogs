@@ -69,3 +69,5 @@ class PinFill(commands.Cog):
                                                 message += "\n".join(active_storms)
                                                 if ping_user_id:
                                                     ping_user = guild.get_member(ping_user_id)
+                                                    if ping_user:
+                                                        message = f"{ping_user.mention}\n{message}"
