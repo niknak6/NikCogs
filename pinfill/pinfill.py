@@ -27,9 +27,12 @@ class PinFill(commands.Cog):
                             for item in data:
                                 if 'class' in item and 'tiw-upcoming' in item['class']:
                                     zone = item['name']
-                                    timer = item['ending']
+                                    timer = item.get('ending', 'N/A')
                                     message += f"{zone}: {timer}\n"
-                            await ctx.send(message)
+                            if message.strip() == "Upcoming Elemental Storms:":
+                                await ctx.send("No upcoming Elemental Storms found.")
+                            else:
+                                await ctx.send(message)
                         except json.JSONDecodeError as e:
                             await ctx.send("Failed to parse the Elemental Storms data.")
                     else:
