@@ -74,10 +74,15 @@ class PinFill(commands.Cog):
                 await ctx.send("No active Elemental Storms found for the specified zones and elements.")
 
     @commands.command()
-    async def stopelementalstorm(self, ctx):
-        """Stops the auto-checking of Elemental Storms."""
-        if self.auto_check_task and not self.auto_check_task.done():
-            self.auto_check_task.cancel()
-            await ctx.send("Stopped auto-checking for Elemental Storms.")
-        else:
-            await ctx.send("Auto-checking for Elemental
+        async def stopelementalstorm(self, ctx):
+            """Stops the auto-checking of Elemental Storms."""
+            if self.auto_check_task and not self.auto_check_task.done():
+                self.auto_check_task.cancel()
+                self.channel = None
+                self.user_to_ping = None
+                await ctx.send("Stopped auto-checking for Elemental Storms.")
+            else:
+                await ctx.send("Auto-checking for Elemental Storms is not currently running.")
+
+    async def setup(bot):
+        bot.add_cog(PinFill(bot))
