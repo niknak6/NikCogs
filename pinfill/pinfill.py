@@ -18,11 +18,17 @@ class PinFill(commands.Cog):
             async with session.get(url) as response:
                 if response.status == 200:
                     html = await response.text()
-                    # Find the JSON data for the Elemental Storms using a regular expression
+                    # Attempt to find the JSON data for the Elemental Storms using a regular expression
                     match = re.search(r'new WH\.Wow\.TodayInWow\(WH\.ge\(\'tiw-standalone\'\), (\[.*?\])\);', html, re.DOTALL)
                     if match:
-                        data = json.loads(match.group(1))
-                        # Iterate through the data to find the Elemental Storms section
+                        # Attempt to parse the JSON data
+                        try:
+                            data = json.loads(match.group(1))
+                        except json.JSONDecodeError as e:
+                            await ctx.send("Failed to parse the Elemental Storms data.")
+                            return
+                        
+                        # Process the data to find the Elemental Storms section
                         for item in data:
                             if item['id'] == 'elemental-storms':
                                 message = "Upcoming Elemental Storms:\n"
@@ -37,7 +43,7 @@ class PinFill(commands.Cog):
                     else:
                         await ctx.send("Failed to find the Elemental Storms data on WoWhead.")
                 else:
-                    await ctx.send("Failed to fetch data from WoWhead.")
+                    await ctx.send(f"Failed to fetch data from WoWhead. Status Code: {response.status}")
 
 async def setup(bot):
     bot.add_cog(PinFill(bot))
