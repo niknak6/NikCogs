@@ -18,8 +18,8 @@ class PinFill(commands.Cog):
             async with session.get(url) as response:
                 if response.status == 200:
                     html = await response.text()
-                    # Attempt to find the JSON data for the Elemental Storms using a regular expression
-                    match = re.search(r'new WH\.Wow\.TodayInWow\(WH\.ge\(\'tiw-standalone\'\), (\[.*?\])\);', html, re.DOTALL)
+                    # Adjusted regex pattern to exclude trailing JavaScript code
+                    match = re.search(r'new WH\.Wow\.TodayInWow\(WH\.ge\(\'tiw-standalone\'\), (\[.*?\])\s*,\s*true\);', html, re.DOTALL)
                     if match:
                         json_str = match.group(1)
                         try:
