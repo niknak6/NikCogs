@@ -62,7 +62,7 @@ class PinFill(commands.Cog):
                                                         timer = item.get('ending', 'N/A')
                                                         element = item['class'].split('-')[-1].capitalize()
                                                         if (zone == "Ohn'ahran Plains" and element == "Fire") or \
-                                                           (zone == "Thaldraszus" and element == "Air"):
+                                                        (zone == "Thaldraszus" and element == "Air"):
                                                             active_storms.append(f"{zone} ({element}): {timer}")
                                             if active_storms:
                                                 message = "Active Elemental Storms:\n"
@@ -72,3 +72,4 @@ class PinFill(commands.Cog):
                                                     if ping_user:
                                                         message = f"{ping_user.mention}\n{message}"
                                                 await channel.send(message)
+
