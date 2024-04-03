@@ -71,5 +71,12 @@ class PinFill(commands.Cog):
                                                     ping_user = guild.get_member(ping_user_id)
                                                     if ping_user:
                                                         message = f"{ping_user.mention}\n{message}"
-                                                await channel.send(message)
+                                                try:
+                                                    await channel.send(message)
+                                                except discord.HTTPException as e:
+                                                    # Handle the exception here
+                                                    print(f"Error sending message: {e}")
+                                        except json.JSONDecodeError:
+                                            # Handle the JSON decoding error here
+                                            print("Error decoding JSON data from WoWhead")
 
