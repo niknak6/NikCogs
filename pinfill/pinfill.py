@@ -1,9 +1,10 @@
 from redbot.core import commands
 import discord
 import aiohttp
-from bs4 import BeautifulSoup
+import json
+import re
 
-class PinFill(commands.Cog):
+class ElementalStormCog(commands.Cog):
     """A cog for fetching Elemental Storms timers from WoWhead."""
 
     def __init__(self, bot):
@@ -17,26 +18,26 @@ class PinFill(commands.Cog):
             async with session.get(url) as response:
                 if response.status == 200:
                     html = await response.text()
-                    soup = BeautifulSoup(html, 'html.parser')
-                    # Find the section by ID
-                    storms_section = soup.find(id='US-group-elemental-storms')
-                    if storms_section:
-                        # Find all upcoming storms
-                        upcoming_storms = storms_section.find_all('section', class_='tiw-line-name elemental-storm tiw-upcoming')
-                        upcoming_times = storms_section.find_all('section', class_='tiw-line-ending elemental-storm tiw-upcoming tiw-active')
-                        if upcoming_storms and upcoming_times:
-                            message = "Upcoming Elemental Storms:\n"
-                            for storm, time in zip(upcoming_storms, upcoming_times):
-                                zone = storm.span.text
-                                timer = time.text
-                                message += f"{zone}: {timer}\n"
-                            await ctx.send(message)
-                        else:
-                            await ctx.send("No upcoming Elemental Storms found.")
+                    # Find the JSON data for the Elemental Storms using a regular expression
+                    match = re.search(r'new WH\.Wow\.TodayInWow\(WH\.ge\(\'tiw-standalone\'\), (\[.*?\])\);', html, re.DOTALL)
+                    if match:
+                        data = json.loads(match.group(1))
+                        # Iterate through the data to find the Elemental Storms section
+                        for item in data:
+                            if item['id'] == 'elemental-storms':
+                                message = "Upcoming Elemental Storms:\n"
+                                for line in item['content']['lines']:
+                                    if 'class' in line and 'tiw-upcoming' in line['class']:
+                                        zone = line['name']
+                                        timer = line['ending']
+                                        message += f"{zone}: {timer}\n"
+                                await ctx.send(message)
+                                return
+                        await ctx.send("No upcoming Elemental Storms found.")
                     else:
-                        await ctx.send("Failed to find the Elemental Storms section on WoWhead.")
+                        await ctx.send("Failed to find the Elemental Storms data on WoWhead.")
                 else:
                     await ctx.send("Failed to fetch data from WoWhead.")
 
 async def setup(bot):
-    bot.add_cog(PinFill(bot))
+    bot.add_cog(ElementalStormCog(bot))
