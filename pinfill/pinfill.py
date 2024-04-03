@@ -71,3 +71,4 @@ class PinFill(commands.Cog):
                                                     ping_user = guild.get_member(ping_user_id)
                                                     if ping_user:
                                                         message = f"{ping_user.mention}\n{message}"
+                                                await channel.send(message)
