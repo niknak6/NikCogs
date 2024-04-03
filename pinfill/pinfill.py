@@ -1,37 +1,41 @@
-import discord
 from redbot.core import commands
+import discord
+import aiohttp
+from bs4 import BeautifulSoup
 
 class PinFill(commands.Cog):
+    """A cog for fetching Elemental Storms timers from WoWhead."""
+
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command()
-    async def pinfill(self, ctx):
-        # Create a variable to store the current number
-        number = 1
-        # Create a loop that runs until the channel's pins are full or a pin cannot be added
-        while True:
-            # Send a message with the current number and store it in a variable
-            message = await ctx.send(number)
-            # Try to pin the message using the pin method of the message object
-            try:
-                await message.pin()
-            except discord.HTTPException:
-                # If it fails, break the loop and send an error message
-                await ctx.send("I can't pin any more messages in this channel.")
-                break
-            # Increment the current number by 1
-            number += 1
+    async def elementalstorm(self, ctx):
+        """Fetches and displays upcoming Elemental Storms timers."""
+        url = "https://www.wowhead.com/today-in-wow"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    html = await response.text()
+                    soup = BeautifulSoup(html, 'html.parser')
+                    # Find the section containing Elemental Storms information
+                    storms_section = soup.find('section', {'data-tiw-section': 'group-elemental-storms'})
+                    if storms_section:
+                        upcoming_storms = storms_section.find_all('section', class_='tiw-line-name elemental-storm tiw-upcoming')
+                        upcoming_times = storms_section.find_all('section', class_='tiw-line-ending elemental-storm tiw-upcoming tiw-active')
+                        if upcoming_storms and upcoming_times:
+                            message = "Upcoming Elemental Storms:\n"
+                            for storm, time in zip(upcoming_storms, upcoming_times):
+                                zone = storm.span.text
+                                timer = time.text
+                                message += f"{zone}: {timer}\n"
+                            await ctx.send(message)
+                        else:
+                            await ctx.send("No upcoming Elemental Storms found.")
+                    else:
+                        await ctx.send("Failed to find the Elemental Storms section on WoWhead.")
+                else:
+                    await ctx.send("Failed to fetch data from WoWhead.")
 
-    @commands.command()
-    async def unpinfill(self, ctx):
-        # Get a list of all pinned messages in the channel
-        pins = await ctx.channel.pins()
-        # Iterate over the pinned messages and unpin them
-        for pin in pins:
-            await pin.unpin()
-        # Send a confirmation message
-        await ctx.send("I have removed all pins from this channel.")
-
-def setup(bot):
+async def setup(bot):
     bot.add_cog(PinFill(bot))
