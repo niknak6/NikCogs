@@ -2,6 +2,7 @@ from redbot.core import commands
 import discord
 import aiohttp
 import json
+import time
 
 class PinFill(commands.Cog):
     """A cog for fetching Elemental Storms timers from WoWhead."""
@@ -12,7 +13,7 @@ class PinFill(commands.Cog):
     @commands.command()
     async def elementalstorm(self, ctx):
         """Fetches and displays upcoming Elemental Storms timers."""
-        url = "https://www.wowhead.com/today-in-wow"
+        url = "https://www.wowhead.com/today-in-wow?_=" + str(int(time.time()))
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.status == 200:
