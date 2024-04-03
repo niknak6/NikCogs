@@ -4,7 +4,7 @@ import aiohttp
 import json
 import re
 
-class ElementalStormCog(commands.Cog):
+class PinFill(commands.Cog):
     """A cog for fetching Elemental Storms timers from WoWhead."""
 
     def __init__(self, bot):
@@ -40,4 +40,4 @@ class ElementalStormCog(commands.Cog):
                     await ctx.send("Failed to fetch data from WoWhead.")
 
 async def setup(bot):
-    bot.add_cog(ElementalStormCog(bot))
+    bot.add_cog(PinFill(bot))
