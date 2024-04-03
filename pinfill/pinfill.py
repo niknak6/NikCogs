@@ -31,7 +31,7 @@ class PinFill(commands.Cog):
                                         zone = item['name']
                                         timer = item.get('ending', 'N/A')
                                         element = item['class'].split('-')[-1].capitalize()
-                                        if (zone == "The Azure Span" and element == "Fire") or \
+                                        if (zone == "Ohn'ahran Plains" and element == "Fire") or \
                                            (zone == "Thaldraszus" and element == "Air"):
                                             active_storms.append(f"{zone} ({element}): {timer}")
                             if active_storms:
