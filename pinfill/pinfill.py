@@ -31,7 +31,8 @@ class PinFill(commands.Cog):
                                     if 'tiw-upcoming' not in item['class']:
                                         zone = item['name']
                                         timer = item.get('ending', 'N/A')
-                                        active_storms.append(f"{zone}: {timer}")
+                                        element = item['class'].split('-')[-1].capitalize()
+                                        active_storms.append(f"{zone} ({element}): {timer}")
                                     else:
                                         upcoming_storms.append(item['name'])
                             message = ""
