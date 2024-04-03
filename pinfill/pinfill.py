@@ -23,14 +23,25 @@ class PinFill(commands.Cog):
                         json_str = html[start_index:end_index]
                         try:
                             data = json.loads(json_str)
-                            message = "Upcoming Elemental Storms:\n"
+                            active_storms = []
+                            upcoming_storms = []
                             for item in data:
-                                if 'class' in item and 'tiw-upcoming' in item['class']:
-                                    zone = item['name']
-                                    timer = item.get('ending', 'N/A')
-                                    message += f"{zone}: {timer}\n"
-                            if message.strip() == "Upcoming Elemental Storms:":
-                                await ctx.send("No upcoming Elemental Storms found.")
+                                if 'class' in item:
+                                    if 'tiw-upcoming' not in item['class']:
+                                        zone = item['name']
+                                        timer = item.get('ending', 'N/A')
+                                        active_storms.append(f"{zone}: {timer}")
+                                    else:
+                                        upcoming_storms.append(item['name'])
+                            message = ""
+                            if active_storms:
+                                message += "Active Elemental Storms:\n"
+                                message += "\n".join(active_storms) + "\n\n"
+                            if upcoming_storms:
+                                message += "Upcoming Elemental Storms:\n"
+                                message += "\n".join(upcoming_storms)
+                            if not message:
+                                await ctx.send("No active or upcoming Elemental Storms found.")
                             else:
                                 await ctx.send(message)
                         except json.JSONDecodeError as e:
