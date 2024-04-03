@@ -25,27 +25,21 @@ class PinFill(commands.Cog):
                         try:
                             data = json.loads(json_str)
                             active_storms = []
-                            upcoming_storms = []
                             for item in data:
                                 if 'class' in item:
                                     if 'tiw-upcoming' not in item['class']:
                                         zone = item['name']
                                         timer = item.get('ending', 'N/A')
                                         element = item['class'].split('-')[-1].capitalize()
-                                        active_storms.append(f"{zone} ({element}): {timer}")
-                                    else:
-                                        upcoming_storms.append(item['name'])
-                            message = ""
+                                        if (zone == "Ohn'ahran Plains" and element == "Fire") or \
+                                           (zone == "Thaldraszus" and element == "Air"):
+                                            active_storms.append(f"{zone} ({element}): {timer}")
                             if active_storms:
-                                message += "Active Elemental Storms:\n"
-                                message += "\n".join(active_storms) + "\n\n"
-                            if upcoming_storms:
-                                message += "Upcoming Elemental Storms:\n"
-                                message += "\n".join(upcoming_storms)
-                            if not message:
-                                await ctx.send("No active or upcoming Elemental Storms found.")
-                            else:
+                                message = "Active Elemental Storms:\n"
+                                message += "\n".join(active_storms)
                                 await ctx.send(message)
+                            else:
+                                await ctx.send("No active Elemental Storms found for the specified zones and elements.")
                         except json.JSONDecodeError as e:
                             await ctx.send("Failed to parse the Elemental Storms data.")
                     else:
