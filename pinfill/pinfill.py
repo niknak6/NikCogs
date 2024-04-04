@@ -45,7 +45,8 @@ class PinFill(commands.Cog):
                                         timer = item.get('ending', 'N/A')
                                         element = item['class'].split('-')[-1].capitalize()
                                         if (zone == "Ohn'ahran Plains" and element == "Fire") or \
-                                           (zone == "Thaldraszus" and element == "Air"):
+                                        (zone == "Thaldraszus" and element == "Air") or \
+                                        (zone == "The Azure Span" and element == "Water"):
                                             active_storms.append(f"{zone} ({element}): {timer}")
                             return active_storms
                         except json.JSONDecodeError as e:
