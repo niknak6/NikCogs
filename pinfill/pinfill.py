@@ -23,7 +23,7 @@ class PinFill(commands.Cog):
                 if self.user_to_ping:
                     message = f"{self.user_to_ping.mention}\n{message}"
                 await self.channel.send(message)
-            await asyncio.sleep(1800)  # 30 minutes!
+            await asyncio.sleep(1800)  # 30 minutes
 
     async def get_active_storms(self):
         url = "https://www.wowhead.com/today-in-wow?_=" + str(int(time.time()))
