@@ -404,13 +404,22 @@ class TreacheryPokemon(commands.Cog):
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
+        # Helper function to fetch the Pokémon's type
+        async def fetch_pokemon_type(pokemon_name):
+            pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(pokemon_url) as resp:
+                    pokemon_data = await resp.json()
+                    types = [t['type']['name'] for t in pokemon_data['types']]
+                    return types
+
         # Battle loop
         while player1_party and player2_party:
             # Inline functions for damage calculation and multiplier retrieval
             calculate_damage = lambda move_power, multiplier: 10 if move_power == 0 else move_power * multiplier
-            get_multiplier = lambda damage_relations, opposing_type: next((multiplier for key, multiplier in {
+            get_multiplier = lambda damage_relations, opposing_types: max([next((multiplier for key, multiplier in {
                 'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
-            }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0)
+            }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0) for opposing_type in opposing_types])
 
             # Battle mechanics
             moves_display = ""
@@ -419,7 +428,9 @@ class TreacheryPokemon(commands.Cog):
                 move, type_, move_power = self.get_random_move(ctx, pokemon)
                 move_power = move_power or 0  # Ensure move_power is not None
                 type_data = requests.get(self.type_url + type_).json()['damage_relations']
-                multiplier = get_multiplier(type_data, type_)
+                opposing_pokemon_name = player2_party[0] if player_display == ctx.author.display_name else player1_party[0]
+                opposing_types = await fetch_pokemon_type(opposing_pokemon_name)
+                multiplier = get_multiplier(type_data, opposing_types)
                 damage = calculate_damage(move_power, multiplier)
                 player_hp[pokemon] = max(player_hp[pokemon] - damage, 0)
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
