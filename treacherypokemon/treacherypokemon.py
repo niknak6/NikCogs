@@ -9,8 +9,6 @@ from io import BytesIO
 import datetime
 import asyncio
 import traceback
-import aiohttp
-import asyncio
 from PIL import Image
 from io import BytesIO
 
@@ -74,20 +72,19 @@ class TreacheryPokemon(commands.Cog):
         return move['move']['name'], move_data['type']['name'], move_power
 
 
-    def get_pokemon_health(self, member_id, poketag):
-        # Fetch the Pokémon's level from the database using the member_id and poketag
-        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+    def get_pokemon_health(self, member_id, pokemon_name):
+        # Fetch the Pokémon's poketag and level from the database using the member_id and pokemon_name
+        self.cur.execute('SELECT poketag, level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
         result = self.cur.fetchone()
 
         if result:
-            pokemon_level = result[0]
+            poketag, pokemon_level = result
         else:
-            # If no level is found, default to level 1
+            # If no poketag is found at all, default to level 1
             pokemon_level = 1
 
+
         # Proceed with fetching the Pokémon's base stats from the API
-        self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
-        pokemon_name = self.cur.fetchone()[0]
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
         pokemon_data = requests.get(pokemon_url).json()
         base_hp = pokemon_data['stats'][0]['base_stat']
@@ -249,8 +246,8 @@ class TreacheryPokemon(commands.Cog):
             experience_left = messages_required - experience
             experience_fraction = f"{experience}/{messages_required}"
             
-            # Fetch the current HP of the Pokémon using the poketag
-            current_hp = self.get_pokemon_health(ctx.author.id, poketag)
+            # Fetch the current HP of the Pokémon
+            current_hp = self.get_pokemon_health(ctx.author.id, pokemon_name)
             
             # Add the Pokémon's current HP to the embed field
             embed.add_field(name=pokemon_name_formatted, value=f"Poketag: {poketag.upper()}\nLevel: {level}\nEXP: {experience_fraction}\nHP: {current_hp}", inline=True)
