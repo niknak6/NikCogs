@@ -51,7 +51,7 @@ class TreacheryPokemon(commands.Cog):
         blacklisted_moves = {
             'after-you', 'quash', 'helping-hand', 'ally-switch', 
             'follow-me', 'rage-powder', 'aromatic-mist', 
-            'hold-hands', 'spotlight', 'dragon-breath'
+            'hold-hands', 'spotlight'
         }
 
         # Filter out blacklisted moves
