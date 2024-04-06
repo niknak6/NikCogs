@@ -8,6 +8,7 @@ from discord import Embed, Reaction
 from io import BytesIO
 import datetime
 import asyncio
+import aiohttp
 import traceback
 from PIL import Image
 from io import BytesIO
