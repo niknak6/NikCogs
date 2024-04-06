@@ -1,32 +1,92 @@
-import random, requests, sqlite3, secrets, discord
-from redbot.core.commands import converter
-from discord.utils import get
-from redbot.core import commands, Config
-from redbot.core.commands.converter import Optional
+from redbot.core import commands
 from redbot.core.data_manager import cog_data_path
+import sqlite3
+from typing import Dict, List, Any
+import random, requests, secrets, discord
+from discord.utils import get
+from redbot.core.commands.converter import Optional
 from discord import Embed, Reaction
-from io import BytesIO
 import datetime
 import asyncio
+import aiohttp
 import traceback
 from PIL import Image
 from io import BytesIO
 
 class TreacheryPokemon(commands.Cog):
+    """Interacts with a database for querying, updating, and managing Pokemon-related functionalities."""
+    
     def __init__(self, bot):
-        self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
-        self.type_url = "https://pokeapi.co/api/v2/type/"
-        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
-        self.config.register_guild(spawn_channel=None, spawn_rate=0.0, spawn_cooldown=15.0)
-        self.spawn_message, self.pokemon_id = None, None
+        self.bot = bot
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
+        self.current_pokemon, self.current_sprite = None, None
+        self.base_url = "https://pokeapi.co/api/v2/pokemon/"
+        self.type_url = "https://pokeapi.co/api/v2/type/"
+        self.pokemon_count = 1025
+        self.spawn_message, self.pokemon_id = None, None
+        self.last_spawn = None
+        self.trades = {}
+        self.battles = {}
+        
+        # Database setup
         self.cur = self.conn.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, level INTEGER, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, position6 TEXT, PRIMARY KEY (member_id))')
         self.conn.commit()
-        self.last_spawn = None
-        self.trades = {}
-        self.battles = {}
+
+    def cog_unload(self):
+        self.conn.close()
+
+    async def execute_query(self, query: str, values: tuple = ()) -> List[Dict[str, Any]]:
+        """Executes a query and returns the results as a list of dictionaries."""
+        try:
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(query, values)
+                return [dict(zip((col[0] for col in cursor.description), row)) 
+                        for row in cursor.fetchall()] if query.lower().startswith("select") else []
+        except sqlite3.Error as e:
+            print(f"SQLite error: {e}")
+        return []
+
+    @commands.command(name="querydb")
+    async def query_db(self, ctx, table: str, columns: str, *, filters: str = ""):
+        """Queries the database based on provided table, columns, and filters, supporting case-insensitive searches and comparison operators."""
+        columns_query_part = ", ".join(column.strip() for column in columns.split(','))
+        query = f"SELECT {columns_query_part} FROM {table}"
+        filter_conditions = []
+        filter_values = []
+
+        for filter_item in filters.split(" AND "):
+            for operator in [">=", "<=", ">", "<", "=", "!="]:
+                if operator in filter_item:
+                    column, value = map(str.strip, filter_item.split(operator))
+                    value = value.lower().replace("*", "%")
+                    filter_conditions.append(f"LOWER({column}) {'LIKE' if '%' in value else operator} ?")
+                    filter_values.append(value)
+                    break
+
+        if filter_conditions:
+            query += f" WHERE {' AND '.join(filter_conditions)}"
+
+        result = await self.execute_query(query, tuple(filter_values))
+        if not result:
+            await ctx.send("No results found.")
+            return
+
+        result_str = str(result)
+        char_limit = 2000
+        for chunk in [result_str[i:i+char_limit] for i in range(0, len(result_str), char_limit)]:
+            await ctx.send(chunk)
+
+    @commands.command(name="updatedb")
+    @commands.is_owner()
+    async def update_db(self, ctx, table: str, field: str, value: str, **filters: str):
+        """Updates a field in the database based on provided table, field, value, and filters."""
+        # Ensure the command is only usable by the bot owner
+        query = f"UPDATE {table} SET {field} = ? WHERE {' AND '.join(f'{k} = ?' for k in filters) or '1=1'}"
+        await self.execute_query(query, (*filters.values(), value))
+        await ctx.send("Update successful.")
 
     def get_random_move(self, ctx, pokemon_name):
         # Fetch the member's ID from the context
@@ -110,7 +170,7 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     @commands.command()
-    async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter, spawn_rate: float, cooldown: converter.Optional[float] = 15.0): # added cooldown argument
+    async def setpokemonspawn(self, ctx, channel: commands.TextChannelConverter, spawn_rate: float, cooldown: Optional[float] = 15.0): # added cooldown argument
         await self.config.guild(ctx.guild).spawn_channel.set(channel.id)
         await self.config.guild(ctx.guild).spawn_rate.set(spawn_rate / 100)
         await self.config.guild(ctx.guild).spawn_cooldown.set(cooldown)
@@ -404,27 +464,62 @@ class TreacheryPokemon(commands.Cog):
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
+        # Helper function to fetch the Pokémon's type
+        async def fetch_pokemon_type(pokemon_name):
+            pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(pokemon_url) as resp:
+                    pokemon_data = await resp.json()
+                    types = [t['type']['name'] for t in pokemon_data['types']]
+                    return types
+
         # Battle loop
         while player1_party and player2_party:
-            # Inline functions for damage calculation and multiplier retrieval
-            calculate_damage = lambda move_power, multiplier: 10 if move_power == 0 else move_power * multiplier
-            get_multiplier = lambda damage_relations, opposing_type: next((multiplier for key, multiplier in {
-                'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
-            }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0)
-
-            # Battle mechanics
             moves_display = ""
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 pokemon = player_party[0]
                 move, type_, move_power = self.get_random_move(ctx, pokemon)
                 move_power = move_power or 0  # Ensure move_power is not None
-                type_data = requests.get(self.type_url + type_).json()['damage_relations']
-                multiplier = get_multiplier(type_data, type_)
+                
+                # Simplified fetching and handling of type data
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(f"{self.type_url}{type_}") as response:
+                        if response.status == 200:
+                            type_data = await response.json()
+                            damage_relations = type_data.get('damage_relations', {})
+                        else:
+                            damage_relations = {}
+
+                opposing_pokemon_name = player2_party[0] if player_display == ctx.author.display_name else player1_party[0]
+                opposing_types = await fetch_pokemon_type(opposing_pokemon_name)
+
+                # Simplified multiplier calculation with default fallback
+                multipliers = {
+                    'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
+                }
+                multiplier = 1.0  # Default multiplier
+                for opposing_type in opposing_types:
+                    for key, value in multipliers.items():
+                        if opposing_type in [relation['name'] for relation in damage_relations.get(key, [])]:
+                            multiplier = max(multiplier, value)
+                            break  # Stop checking if a match is found
+
+                # Calculate damage with simplified lambda function
+                calculate_damage = lambda move_power, multiplier: 10 if move_power == 0 else move_power * multiplier
                 damage = calculate_damage(move_power, multiplier)
-                player_hp[pokemon] = max(player_hp[pokemon] - damage, 0)
+                # Determine if the current player is player1 or player2
+                if player_party == player1_party:
+                    # If player1 is attacking, apply damage to player2's Pokémon
+                    player2_hp[player2_party[0]] = max(player2_hp[player2_party[0]] - damage, 0)
+                else:
+                    # If player2 is attacking, apply damage to player1's Pokémon
+                    player1_hp[player1_party[0]] = max(player1_hp[player1_party[0]] - damage, 0)
+
+                # Update battle embed
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
                 battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
-                formatted_move_name = "No move available" if move == "NULL" else format_move_name(move)
+                formatted_move_name = "No move available" if move == "NULL" else ' '.join(word.capitalize() for word in move.replace('-', ' ').split())
+
                 # Include the damage in the moves display
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
                 if player_hp[pokemon] <= 0:
