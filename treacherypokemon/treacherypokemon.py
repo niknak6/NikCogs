@@ -454,7 +454,6 @@ class TreacheryPokemon(commands.Cog):
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
                 battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
                 formatted_move_name = "No move available" if move == "NULL" else ' '.join(word.capitalize() for word in move.replace('-', ' ').split())
-                moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
 
                 # Include the damage in the moves display
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
