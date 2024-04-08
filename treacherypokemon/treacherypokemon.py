@@ -416,27 +416,46 @@ class TreacheryPokemon(commands.Cog):
 
         # Battle loop
         while player1_party and player2_party:
-            # Inline functions for damage calculation and multiplier retrieval
-            calculate_damage = lambda move_power, multiplier: 10 if move_power == 0 else move_power * multiplier
-            get_multiplier = lambda damage_relations, opposing_types: max([next((multiplier for key, multiplier in {
-                'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
-            }.items() if opposing_type in [relation['name'] for relation in damage_relations[key]]), 1.0) for opposing_type in opposing_types])
-
-            # Battle mechanics
             moves_display = ""
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 pokemon = player_party[0]
                 move, type_, move_power = self.get_random_move(ctx, pokemon)
                 move_power = move_power or 0  # Ensure move_power is not None
-                type_data = requests.get(self.type_url + type_).json()['damage_relations']
+                
+                # Simplified fetching and handling of type data
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(f"{self.type_url}{type_}") as response:
+                        if response.status == 200:
+                            type_data = await response.json()
+                            damage_relations = type_data.get('damage_relations', {})
+                        else:
+                            damage_relations = {}
+
                 opposing_pokemon_name = player2_party[0] if player_display == ctx.author.display_name else player1_party[0]
                 opposing_types = await fetch_pokemon_type(opposing_pokemon_name)
-                multiplier = get_multiplier(type_data, opposing_types)
+
+                # Simplified multiplier calculation with default fallback
+                multipliers = {
+                    'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
+                }
+                multiplier = 1.0  # Default multiplier
+                for opposing_type in opposing_types:
+                    for key, value in multipliers.items():
+                        if opposing_type in [relation['name'] for relation in damage_relations.get(key, [])]:
+                            multiplier = max(multiplier, value)
+                            break  # Stop checking if a match is found
+
+                # Calculate damage with simplified lambda function
+                calculate_damage = lambda move_power, multiplier: 10 if move_power == 0 else move_power * multiplier
                 damage = calculate_damage(move_power, multiplier)
                 player_hp[pokemon] = max(player_hp[pokemon] - damage, 0)
+
+                # Update battle embed
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
                 battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
-                formatted_move_name = "No move available" if move == "NULL" else format_move_name(move)
+                formatted_move_name = "No move available" if move == "NULL" else ' '.join(word.capitalize() for word in move.replace('-', ' ').split())
+                moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
+
                 # Include the damage in the moves display
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
                 if player_hp[pokemon] <= 0:
