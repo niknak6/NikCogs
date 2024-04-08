@@ -33,8 +33,8 @@ class TreacheryPokemon(commands.Cog):
         # Fetch the member's ID from the context
         member_id = ctx.author.id
 
-        # Fetch the Pokémon's level from the database
-        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
+        # Fetch the Pokémon's level from the database using poketag
+        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
         result = self.cur.fetchone()
         pokemon_level = result[0] if result else 1  # Default to level 1 if not found
 
