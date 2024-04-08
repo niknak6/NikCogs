@@ -419,7 +419,7 @@ class TreacheryPokemon(commands.Cog):
             moves_display = ""
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 pokemon = player_party[0]
-                move, type_, move_power = self.get_random_move(ctx, pokemon)
+                move, type_, move_power = self.get_random_move(ctx, poketag)
                 move_power = move_power or 0  # Ensure move_power is not None
                 
                 # Simplified fetching and handling of type data
