@@ -29,7 +29,7 @@ class TreacheryPokemon(commands.Cog):
         self.trades = {}
         self.battles = {}
 
-    def get_random_move(self, ctx, poketag):
+    def get_random_move(self, ctx, pokemon_name,poketag):
         # Fetch the member's ID from the context
         member_id = ctx.author.id
 
