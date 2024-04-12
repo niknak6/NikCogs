@@ -1,11 +1,11 @@
-import random, requests, sqlite3, secrets, discord
-from redbot.core.commands import converter
-from discord.utils import get
-from redbot.core import commands, Config
-from redbot.core.commands.converter import Optional
+from redbot.core import commands
 from redbot.core.data_manager import cog_data_path
+import sqlite3
+from typing import Dict, List, Any
+import random, requests, secrets, discord
+from discord.utils import get
+from redbot.core.commands.converter import Optional
 from discord import Embed, Reaction
-from io import BytesIO
 import datetime
 import asyncio
 import aiohttp
@@ -14,20 +14,54 @@ from PIL import Image
 from io import BytesIO
 
 class TreacheryPokemon(commands.Cog):
+    """Interacts with a database for querying, updating, and managing Pokemon-related functionalities."""
+    
     def __init__(self, bot):
-        self.bot, self.current_pokemon, self.current_sprite, self.base_url, self.pokemon_count = bot, None, None, "https://pokeapi.co/api/v2/pokemon/", 1025
-        self.type_url = "https://pokeapi.co/api/v2/type/"
-        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
-        self.config.register_guild(spawn_channel=None, spawn_rate=0.0, spawn_cooldown=15.0)
-        self.spawn_message, self.pokemon_id = None, None
+        self.bot = bot
         self.conn = sqlite3.connect(cog_data_path(self) / 'pokemon.db')
+        self.current_pokemon, self.current_sprite = None, None
+        self.base_url = "https://pokeapi.co/api/v2/pokemon/"
+        self.type_url = "https://pokeapi.co/api/v2/type/"
+        self.pokemon_count = 1025
+        self.spawn_message, self.pokemon_id = None, None
+        self.last_spawn = None
+        self.trades = {}
+        self.battles = {}
+        
+        # Database setup
         self.cur = self.conn.cursor()
         self.cur.execute('CREATE TABLE IF NOT EXISTS pokedex (member_id INTEGER, pokemon_id INTEGER, pokemon_name VARCHAR, level INTEGER, poketag VARCHAR (5), experience INTEGER, PRIMARY KEY (member_id, pokemon_id))')
         self.cur.execute('CREATE TABLE IF NOT EXISTS party (member_id INTEGER, position1 TEXT, position2 TEXT, position3 TEXT, position4 TEXT, position5 TEXT, position6 TEXT, PRIMARY KEY (member_id))')
         self.conn.commit()
-        self.last_spawn = None
-        self.trades = {}
-        self.battles = {}
+
+    def cog_unload(self):
+        self.conn.close()
+
+    async def execute_query(self, query: str, values: tuple = ()) -> List[Dict[str, Any]]:
+        """Executes a query and returns the results as a list of dictionaries."""
+        try:
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(query, values)
+                return [dict(zip((col[0] for col in cursor.description), row)) 
+                        for row in cursor.fetchall()] if query.lower().startswith("select") else []
+        except sqlite3.Error as e:
+            print(f"SQLite error: {e}")
+        return []
+
+    @commands.command(name="querydb")
+    async def query_db(self, ctx, table: str, columns: str, **filters: str):
+        """Queries the database based on provided table, columns, and filters."""
+        query = f"SELECT {columns} FROM {table} WHERE {' AND '.join(f'{k} = ?' for k in filters) or '1=1'}"
+        result = await self.execute_query(query, tuple(filters.values()))
+        await ctx.send(f"Query Result: {result}" if result else "No results found.")
+
+    @commands.command(name="updatedb")
+    async def update_db(self, ctx, table: str, field: str, value: str, **filters: str):
+        """Updates a field in the database based on provided table, field, value, and filters."""
+        query = f"UPDATE {table} SET {field} = ? WHERE {' AND '.join(f'{k} = ?' for k in filters) or '1=1'}"
+        await self.execute_query(query, (*filters.values(), value))
+        await ctx.send("Update successful.")
 
     def get_random_move(self, ctx, pokemon_name):
         # Fetch the member's ID from the context
