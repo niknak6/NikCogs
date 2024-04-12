@@ -68,7 +68,7 @@ class TreacheryPokemon(commands.Cog):
             return
 
         # Convert the result to a string representation
-        result_str = f"Query Result: {result}"
+        result_str = f"{result}"
         
         # Send the result in chunks if it exceeds Discord's character limit
         char_limit = 2000
