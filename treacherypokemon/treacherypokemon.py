@@ -54,7 +54,20 @@ class TreacheryPokemon(commands.Cog):
         """Queries the database based on provided table, columns, and filters."""
         query = f"SELECT {columns} FROM {table} WHERE {' AND '.join(f'{k} = ?' for k in filters) or '1=1'}"
         result = await self.execute_query(query, tuple(filters.values()))
-        await ctx.send(f"Query Result: {result}" if result else "No results found.")
+        if not result:
+            await ctx.send("No results found.")
+            return
+
+        # Convert the result to a string representation
+        result_str = f"Query Result: {result}"
+        
+        # Check if the result exceeds Discord's character limit
+        if len(result_str) <= 4000:
+            await ctx.send(result_str)
+        else:
+            # Split the result into chunks of 4000 characters
+            for chunk in [result_str[i:i+4000] for i in range(0, len(result_str), 4000)]:
+                await ctx.send(chunk)
 
     @commands.command(name="updatedb")
     async def update_db(self, ctx, table: str, field: str, value: str, **filters: str):
