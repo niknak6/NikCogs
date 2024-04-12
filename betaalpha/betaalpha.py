@@ -14,8 +14,8 @@ class BetaAlpha(commands.Cog):
     def cog_unload(self):
         self.conn.close()
 
-    async def execute_query(self, query: str, values: tuple = ()) -> List[Dict[str, Any]]:
-        """Executes a query and returns the results as a list of dictionaries."""
+    async def execute(self, query: str, values: tuple = ()) -> List[Dict[str, Any]]:
+        """Executes a query and returns the results if it's a SELECT query."""
         try:
             with self.conn:
                 cursor = self.conn.cursor()
@@ -27,20 +27,25 @@ class BetaAlpha(commands.Cog):
             print(f"SQLite error: {e}")
         return []
 
-    @commands.command(name="querydb")
+    @commands.group(name="db", invoke_without_command=True)
+    async def db_group(self, ctx):
+        """Database commands."""
+        await ctx.send_help()
+
+    @db_group.command(name="query")
     async def query_db(self, ctx, table: str, columns: str, **filters: str):
         """Queries the database based on provided table, columns, and filters."""
         where_clause = " AND ".join([f"{k} = ?" for k in filters]) if filters else "1=1"
         query = f"SELECT {columns} FROM {table} WHERE {where_clause}"
-        result = await self.execute_query(query, tuple(filters.values()))
+        result = await self.execute(query, tuple(filters.values()))
         await ctx.send(f"Query Result: {result}" if result else "No results found.")
 
-    @commands.command(name="updatedb")
+    @db_group.command(name="update")
     async def update_db(self, ctx, table: str, field: str, value: str, **filters: str):
         """Updates a field in the database based on provided table, field, value, and filters."""
         where_clause = " AND ".join([f"{k} = ?" for k in filters]) if filters else "1=1"
         query = f"UPDATE {table} SET {field} = ? WHERE {where_clause}"
-        await self.execute_query(query, (*filters.values(), value))
+        await self.execute(query, (*filters.values(), value))
         await ctx.send("Update successful.")
 
 async def setup(bot):
