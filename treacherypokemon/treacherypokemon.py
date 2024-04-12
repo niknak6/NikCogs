@@ -78,20 +78,6 @@ class TreacheryPokemon(commands.Cog):
             for chunk in [result_str[i:i+char_limit] for i in range(0, len(result_str), char_limit)]:
                 await ctx.send(chunk)
 
-        # Convert the result to a string representation
-        result_str = f"Query Result: {result}"
-        
-        # Discord's character limit for messages is 2000
-        char_limit = 2000
-        
-        # Check if the result exceeds Discord's character limit
-        if len(result_str) <= char_limit:
-            await ctx.send(result_str)
-        else:
-            # Split the result into chunks of 2000 characters
-            for chunk in [result_str[i:i+char_limit] for i in range(0, len(result_str), char_limit)]:
-                await ctx.send(chunk)
-
     @commands.command(name="updatedb")
     async def update_db(self, ctx, table: str, field: str, value: str, **filters: str):
         """Updates a field in the database based on provided table, field, value, and filters."""
