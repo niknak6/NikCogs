@@ -53,9 +53,15 @@ class TreacheryPokemon(commands.Cog):
     async def query_db(self, ctx, table: str, columns: str, *, filters: str = ""):
         """Queries the database based on provided table, columns, and filters."""
         query = f"SELECT {columns} FROM {table}"
+        filter_conditions = []
+        filter_values = []
         if filters:
-            query += f" WHERE {filters}"
-        result = await self.execute_query(query)
+            for filter_item in filters.split(" AND "):
+                column, value = filter_item.split("=")
+                filter_conditions.append(f"{column} = ?")
+                filter_values.append(value)
+            query += f" WHERE {' AND '.join(filter_conditions)}"
+        result = await self.execute_query(query, tuple(filter_values))
         if not result:
             await ctx.send("No results found.")
             return
