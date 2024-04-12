@@ -58,13 +58,25 @@ class TreacheryPokemon(commands.Cog):
         if filters:
             for filter_item in filters.split(" AND "):
                 column, value = filter_item.split("=")
-                filter_conditions.append(f"{column} = ?")
-                filter_values.append(value)
+                # Adjust for case-insensitive comparison if necessary
+                filter_conditions.append(f"LOWER({column}) = LOWER(?)")
+                filter_values.append(value.strip())  # Strip to remove any leading/trailing spaces
             query += f" WHERE {' AND '.join(filter_conditions)}"
         result = await self.execute_query(query, tuple(filter_values))
         if not result:
             await ctx.send("No results found.")
             return
+
+        # Convert the result to a string representation
+        result_str = f"Query Result: {result}"
+        
+        # Send the result in chunks if it exceeds Discord's character limit
+        char_limit = 2000
+        if len(result_str) <= char_limit:
+            await ctx.send(result_str)
+        else:
+            for chunk in [result_str[i:i+char_limit] for i in range(0, len(result_str), char_limit)]:
+                await ctx.send(chunk)
 
         # Convert the result to a string representation
         result_str = f"Query Result: {result}"
