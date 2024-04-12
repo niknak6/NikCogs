@@ -50,10 +50,12 @@ class TreacheryPokemon(commands.Cog):
         return []
 
     @commands.command(name="querydb")
-    async def query_db(self, ctx, table: str, columns: str, **filters: str):
+    async def query_db(self, ctx, table: str, columns: str, *, filters: str = ""):
         """Queries the database based on provided table, columns, and filters."""
-        query = f"SELECT {columns} FROM {table} WHERE {' AND '.join(f'{k} = ?' for k in filters) or '1=1'}"
-        result = await self.execute_query(query, tuple(filters.values()))
+        query = f"SELECT {columns} FROM {table}"
+        if filters:
+            query += f" WHERE {filters}"
+        result = await self.execute_query(query)
         if not result:
             await ctx.send("No results found.")
             return
