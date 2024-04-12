@@ -61,12 +61,15 @@ class TreacheryPokemon(commands.Cog):
         # Convert the result to a string representation
         result_str = f"Query Result: {result}"
         
+        # Discord's character limit for messages is 2000
+        char_limit = 2000
+        
         # Check if the result exceeds Discord's character limit
-        if len(result_str) <= 4000:
+        if len(result_str) <= char_limit:
             await ctx.send(result_str)
         else:
-            # Split the result into chunks of 4000 characters
-            for chunk in [result_str[i:i+4000] for i in range(0, len(result_str), 4000)]:
+            # Split the result into chunks of 2000 characters
+            for chunk in [result_str[i:i+char_limit] for i in range(0, len(result_str), char_limit)]:
                 await ctx.send(chunk)
 
     @commands.command(name="updatedb")
