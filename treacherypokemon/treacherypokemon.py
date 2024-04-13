@@ -58,16 +58,20 @@ class TreacheryPokemon(commands.Cog):
         if filters:
             for filter_item in filters.split(" AND "):
                 # Split each filter into its column and value components
-                column, value = filter_item.split("=")
-                # Check if the value contains a wildcard character (*), indicating a LIKE search
+                parts = filter_item.split("=")
+                if len(parts) != 2:
+                    await ctx.send(f"Error in filter format: {filter_item}. Expected format: column=value.")
+                    return
+                column, value = parts
+                # Determine if this is a LIKE search or an exact match
                 if "*" in value:
-                    # Replace * with % for SQL LIKE syntax
+                    # LIKE search: replace * with % for SQL LIKE syntax
                     value = value.replace("*", "%")
                     filter_conditions.append(f"{column} LIKE ?")
                 else:
-                    # For exact matches, use the equality operator
+                    # Exact match
                     filter_conditions.append(f"{column} = ?")
-                filter_values.append(value.strip())  # Strip to remove any leading/trailing spaces
+                filter_values.append(value.strip())  # Remove leading/trailing spaces
             query += f" WHERE {' AND '.join(filter_conditions)}"
         
         result = await self.execute_query(query, tuple(filter_values))
@@ -76,7 +80,7 @@ class TreacheryPokemon(commands.Cog):
             return
 
         # Convert the result to a string representation
-        result_str = f"{result}"
+        result_str = f"Results: {result}"
         
         # Send the result in chunks if it exceeds Discord's character limit
         char_limit = 2000
@@ -85,7 +89,6 @@ class TreacheryPokemon(commands.Cog):
         else:
             for chunk in [result_str[i:i+char_limit] for i in range(0, len(result_str), char_limit)]:
                 await ctx.send(chunk)
-
 
     @commands.command(name="updatedb")
     async def update_db(self, ctx, table: str, field: str, value: str, **filters: str):
