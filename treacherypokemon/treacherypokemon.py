@@ -50,36 +50,40 @@ class TreacheryPokemon(commands.Cog):
         return []
 
     @commands.command(name="querydb")
-    async def query_db(self, ctx, table: str, columns: str, *, filters: str = ""):
-        """Queries the database based on provided table, columns, and filters, supporting case-insensitive searches."""
-        query = f"SELECT {columns} FROM {table}"
+    async def query_db(self, ctx, table: str, columns_input: str, *, filters: str = ""):
+        """Queries the database based on provided table, multiple columns, and filters, supporting case-insensitive searches."""
+        # Splitting the columns_input by comma to support multiple columns
+        columns = [column.strip() for column in columns_input.split(',')]
+        # Joining the columns for the SQL query, ensuring they are formatted correctly
+        columns_query_part = ", ".join(columns)
+
+        query = f"SELECT {columns_query_part} FROM {table}"
         filter_conditions = []
         filter_values = []
         if filters:
             for filter_item in filters.split(" AND "):
                 column, value = filter_item.split("=")
-                # Prepare the value for case-insensitive comparison
-                value = value.strip().lower()  # Convert value to lowercase
+                # Check if the value contains a wildcard character (*) for LIKE pattern matching
                 if "*" in value:
-                    # Use LIKE for pattern matching, replacing * with % and ensuring case-insensitive search
+                    value = value.replace("*", "%").lower()  # Lowercase for case-insensitive LIKE
                     filter_condition = f"LOWER({column}) LIKE ?"
-                    value = value.replace("*", "%")
                 else:
-                    # Use = for exact match, ensuring case-insensitive search
+                    value = value.lower()  # Lowercase for case-insensitive exact match
                     filter_condition = f"LOWER({column}) = ?"
                 filter_conditions.append(filter_condition)
-                filter_values.append(value)  # Value is already lowercase
+                filter_values.append(value)
+
             query += f" WHERE {' AND '.join(filter_conditions)}"
-        
+
         result = await self.execute_query(query, tuple(filter_values))
         if not result:
             await ctx.send("No results found.")
             return
 
-        # Convert the result to a string representation
-        result_str = f"{result}"
-        
-        # Send the result in chunks if it exceeds Discord's character limit
+        # Formatting the result for display
+        result_str = str(result)  # Adjust this line based on how your results are formatted and how you want them displayed
+
+        # Sending the result in chunks if it exceeds Discord's character limit
         char_limit = 2000
         if len(result_str) <= char_limit:
             await ctx.send(result_str)
