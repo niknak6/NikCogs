@@ -88,8 +88,10 @@ class TreacheryPokemon(commands.Cog):
                 await ctx.send(chunk)
 
     @commands.command(name="updatedb")
+    @commands.is_owner()
     async def update_db(self, ctx, table: str, field: str, value: str, **filters: str):
         """Updates a field in the database based on provided table, field, value, and filters."""
+        # Ensure the command is only usable by the bot owner
         query = f"UPDATE {table} SET {field} = ? WHERE {' AND '.join(f'{k} = ?' for k in filters) or '1=1'}"
         await self.execute_query(query, (*filters.values(), value))
         await ctx.send("Update successful.")
