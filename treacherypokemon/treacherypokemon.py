@@ -51,27 +51,23 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.command(name="querydb")
     async def query_db(self, ctx, table: str, columns: str, *, filters: str = ""):
-        """Queries the database based on provided table, columns, and filters, supporting LIKE operator for pattern matching and exact matches."""
+        """Queries the database based on provided table, columns, and filters."""
         query = f"SELECT {columns} FROM {table}"
         filter_conditions = []
         filter_values = []
         if filters:
             for filter_item in filters.split(" AND "):
-                # Split each filter into its column and value components
-                parts = filter_item.split("=")
-                if len(parts) != 2:
-                    await ctx.send(f"Error in filter format: {filter_item}. Expected format: column=value.")
-                    return
-                column, value = parts
-                # Determine if this is a LIKE search or an exact match
+                column, value = filter_item.split("=")
+                # Check for wildcard character (*) for LIKE pattern matching
                 if "*" in value:
-                    # LIKE search: replace * with % for SQL LIKE syntax
+                    # Use LIKE for pattern matching, replacing * with %
+                    filter_condition = f"{column} LIKE ?"
                     value = value.replace("*", "%")
-                    filter_conditions.append(f"{column} LIKE ?")
                 else:
-                    # Exact match
-                    filter_conditions.append(f"{column} = ?")
-                filter_values.append(value.strip())  # Remove leading/trailing spaces
+                    # Use = for exact match
+                    filter_condition = f"{column} = ?"
+                filter_conditions.append(filter_condition)
+                filter_values.append(value.strip())  # Strip to remove any leading/trailing spaces
             query += f" WHERE {' AND '.join(filter_conditions)}"
         
         result = await self.execute_query(query, tuple(filter_values))
@@ -80,7 +76,7 @@ class TreacheryPokemon(commands.Cog):
             return
 
         # Convert the result to a string representation
-        result_str = f"Results: {result}"
+        result_str = f"{result}"
         
         # Send the result in chunks if it exceeds Discord's character limit
         char_limit = 2000
