@@ -51,23 +51,24 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.command(name="querydb")
     async def query_db(self, ctx, table: str, columns: str, *, filters: str = ""):
-        """Queries the database based on provided table, columns, and filters."""
+        """Queries the database based on provided table, columns, and filters, supporting case-insensitive searches."""
         query = f"SELECT {columns} FROM {table}"
         filter_conditions = []
         filter_values = []
         if filters:
             for filter_item in filters.split(" AND "):
                 column, value = filter_item.split("=")
-                # Check for wildcard character (*) for LIKE pattern matching
+                # Prepare the value for case-insensitive comparison
+                value = value.strip().lower()  # Convert value to lowercase
                 if "*" in value:
-                    # Use LIKE for pattern matching, replacing * with %
-                    filter_condition = f"{column} LIKE ?"
+                    # Use LIKE for pattern matching, replacing * with % and ensuring case-insensitive search
+                    filter_condition = f"LOWER({column}) LIKE ?"
                     value = value.replace("*", "%")
                 else:
-                    # Use = for exact match
-                    filter_condition = f"{column} = ?"
+                    # Use = for exact match, ensuring case-insensitive search
+                    filter_condition = f"LOWER({column}) = ?"
                 filter_conditions.append(filter_condition)
-                filter_values.append(value.strip())  # Strip to remove any leading/trailing spaces
+                filter_values.append(value)  # Value is already lowercase
             query += f" WHERE {' AND '.join(filter_conditions)}"
         
         result = await self.execute_query(query, tuple(filter_values))
