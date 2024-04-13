@@ -51,17 +51,25 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.command(name="querydb")
     async def query_db(self, ctx, table: str, columns: str, *, filters: str = ""):
-        """Queries the database based on provided table, columns, and filters."""
+        """Queries the database based on provided table, columns, and filters, supporting LIKE operator."""
         query = f"SELECT {columns} FROM {table}"
         filter_conditions = []
         filter_values = []
         if filters:
             for filter_item in filters.split(" AND "):
+                # Split each filter into its column and value components
                 column, value = filter_item.split("=")
-                # Adjust for case-insensitive comparison if necessary
-                filter_conditions.append(f"LOWER({column}) = LOWER(?)")
+                # Check if the value contains a wildcard character (*), indicating a LIKE search
+                if "*" in value:
+                    # Replace * with % for SQL LIKE syntax
+                    value = value.replace("*", "%")
+                    filter_conditions.append(f"{column} LIKE ?")
+                else:
+                    # For exact matches, use the equality operator
+                    filter_conditions.append(f"{column} = ?")
                 filter_values.append(value.strip())  # Strip to remove any leading/trailing spaces
             query += f" WHERE {' AND '.join(filter_conditions)}"
+        
         result = await self.execute_query(query, tuple(filter_values))
         if not result:
             await ctx.send("No results found.")
