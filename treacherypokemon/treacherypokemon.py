@@ -50,35 +50,23 @@ class TreacheryPokemon(commands.Cog):
         return []
 
     @commands.command(name="querydb")
-    async def query_db(self, ctx, table: str, columns_input: str, *, filters: str = ""):
-        """Queries the database based on provided table, multiple columns, and filters, supporting case-insensitive searches and comparison operators."""
-        # Splitting the columns_input by comma to support multiple columns
-        columns = [column.strip() for column in columns_input.split(',')]
-        columns_query_part = ", ".join(columns)  # Joining the columns for the SQL query
-
+    async def query_db(self, ctx, table: str, columns: str, *, filters: str = ""):
+        """Queries the database based on provided table, columns, and filters, supporting case-insensitive searches and comparison operators."""
+        columns_query_part = ", ".join(column.strip() for column in columns.split(','))
         query = f"SELECT {columns_query_part} FROM {table}"
         filter_conditions = []
         filter_values = []
-        if filters:
-            # Splitting filters on " AND " to support multiple conditions
-            for filter_item in filters.split(" AND "):
-                # Attempting to split the filter by comparison operators
-                for operator in [">=", "<=", ">", "<", "=", "!="]:
-                    if operator in filter_item:
-                        column, value = filter_item.split(operator)
-                        column = column.strip()
-                        value = value.strip().lower()  # Convert value to lowercase for case-insensitive comparison
-                        
-                        # Adjusting the filter condition based on the operator
-                        if "*" in value:  # For LIKE patterns
-                            value = value.replace("*", "%")
-                            filter_condition = f"LOWER({column}) LIKE ?"
-                        else:
-                            filter_condition = f"LOWER({column}) {operator} ?"
-                        filter_conditions.append(filter_condition)
-                        filter_values.append(value)
-                        break  # Break after finding the first matching operator
 
+        for filter_item in filters.split(" AND "):
+            for operator in [">=", "<=", ">", "<", "=", "!="]:
+                if operator in filter_item:
+                    column, value = map(str.strip, filter_item.split(operator))
+                    value = value.lower().replace("*", "%")
+                    filter_conditions.append(f"LOWER({column}) {'LIKE' if '%' in value else operator} ?")
+                    filter_values.append(value)
+                    break
+
+        if filter_conditions:
             query += f" WHERE {' AND '.join(filter_conditions)}"
 
         result = await self.execute_query(query, tuple(filter_values))
@@ -86,16 +74,10 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("No results found.")
             return
 
-        # Formatting the result for display
-        result_str = str(result)  # Adjust this line based on your result formatting
-
-        # Sending the result in chunks if it exceeds Discord's character limit
+        result_str = str(result)
         char_limit = 2000
-        if len(result_str) <= char_limit:
-            await ctx.send(result_str)
-        else:
-            for chunk in [result_str[i:i+char_limit] for i in range(0, len(result_str), char_limit)]:
-                await ctx.send(chunk)
+        for chunk in [result_str[i:i+char_limit] for i in range(0, len(result_str), char_limit)]:
+            await ctx.send(chunk)
 
     @commands.command(name="updatedb")
     @commands.is_owner()
