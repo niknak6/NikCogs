@@ -51,7 +51,7 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.command(name="querydb")
     async def query_db(self, ctx, table: str, columns: str, *, filters: str = ""):
-        """Queries the database based on provided table, columns, and filters, supporting LIKE operator."""
+        """Queries the database based on provided table, columns, and filters, supporting LIKE operator for pattern matching and exact matches."""
         query = f"SELECT {columns} FROM {table}"
         filter_conditions = []
         filter_values = []
@@ -85,6 +85,7 @@ class TreacheryPokemon(commands.Cog):
         else:
             for chunk in [result_str[i:i+char_limit] for i in range(0, len(result_str), char_limit)]:
                 await ctx.send(chunk)
+
 
     @commands.command(name="updatedb")
     async def update_db(self, ctx, table: str, field: str, value: str, **filters: str):
