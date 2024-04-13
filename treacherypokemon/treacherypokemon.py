@@ -51,27 +51,33 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.command(name="querydb")
     async def query_db(self, ctx, table: str, columns_input: str, *, filters: str = ""):
-        """Queries the database based on provided table, multiple columns, and filters, supporting case-insensitive searches."""
+        """Queries the database based on provided table, multiple columns, and filters, supporting case-insensitive searches and comparison operators."""
         # Splitting the columns_input by comma to support multiple columns
         columns = [column.strip() for column in columns_input.split(',')]
-        # Joining the columns for the SQL query, ensuring they are formatted correctly
-        columns_query_part = ", ".join(columns)
+        columns_query_part = ", ".join(columns)  # Joining the columns for the SQL query
 
         query = f"SELECT {columns_query_part} FROM {table}"
         filter_conditions = []
         filter_values = []
         if filters:
+            # Splitting filters on " AND " to support multiple conditions
             for filter_item in filters.split(" AND "):
-                column, value = filter_item.split("=")
-                # Check if the value contains a wildcard character (*) for LIKE pattern matching
-                if "*" in value:
-                    value = value.replace("*", "%").lower()  # Lowercase for case-insensitive LIKE
-                    filter_condition = f"LOWER({column}) LIKE ?"
-                else:
-                    value = value.lower()  # Lowercase for case-insensitive exact match
-                    filter_condition = f"LOWER({column}) = ?"
-                filter_conditions.append(filter_condition)
-                filter_values.append(value)
+                # Attempting to split the filter by comparison operators
+                for operator in [">=", "<=", ">", "<", "=", "!="]:
+                    if operator in filter_item:
+                        column, value = filter_item.split(operator)
+                        column = column.strip()
+                        value = value.strip().lower()  # Convert value to lowercase for case-insensitive comparison
+                        
+                        # Adjusting the filter condition based on the operator
+                        if "*" in value:  # For LIKE patterns
+                            value = value.replace("*", "%")
+                            filter_condition = f"LOWER({column}) LIKE ?"
+                        else:
+                            filter_condition = f"LOWER({column}) {operator} ?"
+                        filter_conditions.append(filter_condition)
+                        filter_values.append(value)
+                        break  # Break after finding the first matching operator
 
             query += f" WHERE {' AND '.join(filter_conditions)}"
 
@@ -81,7 +87,7 @@ class TreacheryPokemon(commands.Cog):
             return
 
         # Formatting the result for display
-        result_str = str(result)  # Adjust this line based on how your results are formatted and how you want them displayed
+        result_str = str(result)  # Adjust this line based on your result formatting
 
         # Sending the result in chunks if it exceeds Discord's character limit
         char_limit = 2000
