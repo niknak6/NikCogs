@@ -21,8 +21,7 @@ class TikTokCog(commands.Cog):
             'tiktok': 'tnktok.com/',
             'twitter': 'vxtwitter.com/',
             'x': 'fixvx.com/',
-            # Add 'reel' to the new domain for instagram
-            'instagram': 'ddinstagram.com/reel/' # UPDATED
+            'instagram': 'ddinstagram.com/reel/'
         }
 
     @commands.Cog.listener()
