@@ -14,15 +14,13 @@ class TikTokCog(commands.Cog):
             'tiktok': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?tiktok.com/(\S*)"),
             'twitter': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?twitter.com/(\S*)"),
             'x': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?x.com/(\S*)"),
-            # Update the pattern for instagram to include 'reel'
             'instagram': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?instagram.com/reel/(\S*)") # UPDATED
         }
         self.new_domains = {
-            'tiktok': 'vxtiktok.com/',
+            'tiktok': 'tnktok.com/',
             'twitter': 'vxtwitter.com/',
             'x': 'fixvx.com/',
-            # Add 'reel' to the new domain for instagram
-            'instagram': 'ddinstagram.com/reel/' # UPDATED
+            'instagram': 'ddinstagram.com/reel/'
         }
 
     @commands.Cog.listener()
