@@ -14,7 +14,6 @@ class TikTokCog(commands.Cog):
             'tiktok': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?tiktok.com/(\S*)"),
             'twitter': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?twitter.com/(\S*)"),
             'x': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?x.com/(\S*)"),
-            # Update the pattern for instagram to include 'reel'
             'instagram': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?instagram.com/reel/(\S*)") # UPDATED
         }
         self.new_domains = {
