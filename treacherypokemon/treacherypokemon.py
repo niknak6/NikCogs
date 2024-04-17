@@ -1,4 +1,4 @@
-from redbot.core import commands
+from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
 import sqlite3
 from typing import Dict, List, Any
@@ -23,6 +23,8 @@ class TreacheryPokemon(commands.Cog):
         self.base_url = "https://pokeapi.co/api/v2/pokemon/"
         self.type_url = "https://pokeapi.co/api/v2/type/"
         self.pokemon_count = 1025
+        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
+        self.config.register_guild(spawn_channel=None, spawn_rate=0.0, spawn_cooldown=15.0)
         self.spawn_message, self.pokemon_id = None, None
         self.last_spawn = None
         self.trades = {}
@@ -178,31 +180,34 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.channel)
-    async def spawn(self, ctx):
+    async def spawn(self, ctx, pokemon_number: int = None):
         if ctx.invoked_with == "spawn" and not await self.bot.is_owner(ctx.author):
             await ctx.send("Only the owner of the bot can manually spawn a Pokémon.")
             return
         spawn_channel = discord.utils.get(ctx.guild.channels, id=await self.config.guild(ctx.guild).spawn_channel())
         spawn_cooldown = await self.config.guild(ctx.guild).spawn_cooldown()
         if ctx.channel == spawn_channel:
-                now = datetime.datetime.now()
-                if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60 or await self.bot.is_owner(ctx.author):
+            now = datetime.datetime.now()
+            if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60 or await self.bot.is_owner(ctx.author):
+                if pokemon_number is None:
                     pokemon_id = random.randint(1, self.pokemon_count)
-                    pokemon_url = self.base_url + str(pokemon_id)
-                    response = requests.get(pokemon_url)
-                    if response.status_code == 200:
-                        pokemon_data = response.json()
-                        self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
-                        self.pokemon_id = pokemon_data['id']
-                        image_data = BytesIO (requests.get (self.current_sprite).content)
-                        image_file = discord.File (image_data, filename="pokemon.png")
-                        embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
-                        embed = discord.Embed.from_dict(embed_dict)
-                        message = await ctx.send(file=image_file, embed=embed)
-                        self.spawn_message = message
-                        self.last_spawn = now
-                    else:
-                        await ctx.send("Failed to spawn a Pokémon. Please try again.")
+                else:
+                    pokemon_id = pokemon_number
+                pokemon_url = self.base_url + str(pokemon_id)
+                response = requests.get(pokemon_url)
+                if response.status_code == 200:
+                    pokemon_data = response.json()
+                    self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
+                    self.pokemon_id = pokemon_data['id']
+                    image_data = BytesIO(requests.get(self.current_sprite).content)
+                    image_file = discord.File(image_data, filename="pokemon.png")
+                    embed_dict = {"title": "A wild Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
+                    embed = discord.Embed.from_dict(embed_dict)
+                    message = await ctx.send(file=image_file, embed=embed)
+                    self.spawn_message = message
+                    self.last_spawn = now
+                else:
+                    await ctx.send("Failed to spawn a Pokémon. Please try again.")
         else:
             raise commands.CheckFailure("You are not the owner of this bot.")
 
@@ -247,20 +252,22 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command(name="catch")
     async def pokecatch(self, ctx, *, pokemon: str):
-        pokemon = pokemon.replace(" ", "-")
-        if self.current_pokemon and self.current_pokemon == pokemon.lower():
-            await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
-            level, experience = 1, 0
-            poketag = secrets.token_hex(3)
-            pokemon_name = self.current_pokemon.title()
-            self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, level, poketag, experience) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, pokemon_name, level, poketag, experience))
-            self.conn.commit()
-            if self.spawn_message:
-                new_embed = discord.Embed(title="Pokemon Caught", description=f"{pokemon_name} was caught by {ctx.author.name}.")
-                await self.spawn_message.edit(embed=new_embed)
-            self.current_pokemon, self.current_sprite, self.spawn_message = None, None, None
-        else:
-            await ctx.send("That is not the correct Pokémon name or there is no Pokémon to catch.")
+        pokemon = pokemon.replace(" ", "-").lower()
+        if self.current_pokemon:
+            api_pokemon_name = self.current_pokemon.lower().replace(" ", "-").replace(".", "")
+            if pokemon in api_pokemon_name or api_pokemon_name in pokemon:
+                await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
+                level, experience = 1, 0
+                poketag = secrets.token_hex(3)
+                pokemon_name = self.current_pokemon.title()
+                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, level, poketag, experience) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, pokemon_name, level, poketag, experience))
+                self.conn.commit()
+                if self.spawn_message:
+                    new_embed = discord.Embed(title="Pokemon Caught", description=f"{pokemon_name} was caught by {ctx.author.name}.")
+                    await self.spawn_message.edit(embed=new_embed)
+                self.current_pokemon, self.current_sprite, self.spawn_message = None, None, None
+            else:
+                await ctx.send("That is not the correct Pokémon name or there is no Pokémon to catch.")
 
     @commands.guild_only()
     @commands.command()
