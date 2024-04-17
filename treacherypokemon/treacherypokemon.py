@@ -1,4 +1,4 @@
-from redbot.core import commands
+from redbot.core import commands, Config
 from redbot.core.data_manager import cog_data_path
 import sqlite3
 from typing import Dict, List, Any
