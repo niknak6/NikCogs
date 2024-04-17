@@ -23,6 +23,8 @@ class TreacheryPokemon(commands.Cog):
         self.base_url = "https://pokeapi.co/api/v2/pokemon/"
         self.type_url = "https://pokeapi.co/api/v2/type/"
         self.pokemon_count = 1025
+        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
+        self.config.register_guild(spawn_channel=None, spawn_rate=0.0, spawn_cooldown=15.0)
         self.spawn_message, self.pokemon_id = None, None
         self.last_spawn = None
         self.trades = {}
