@@ -249,20 +249,22 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command(name="catch")
     async def pokecatch(self, ctx, *, pokemon: str):
-        pokemon = pokemon.replace(" ", "-")
-        if self.current_pokemon and self.current_pokemon == pokemon.lower():
-            await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
-            level, experience = 1, 0
-            poketag = secrets.token_hex(3)
-            pokemon_name = self.current_pokemon.title()
-            self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, level, poketag, experience) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, pokemon_name, level, poketag, experience))
-            self.conn.commit()
-            if self.spawn_message:
-                new_embed = discord.Embed(title="Pokemon Caught", description=f"{pokemon_name} was caught by {ctx.author.name}.")
-                await self.spawn_message.edit(embed=new_embed)
-            self.current_pokemon, self.current_sprite, self.spawn_message = None, None, None
-        else:
-            await ctx.send("That is not the correct Pokémon name or there is no Pokémon to catch.")
+        pokemon = pokemon.replace(" ", "-").lower()
+        if self.current_pokemon:
+            api_pokemon_name = self.current_pokemon.lower().replace(" ", "-").replace(".", "")
+            if pokemon in api_pokemon_name or api_pokemon_name in pokemon:
+                await ctx.send(f"Congratulations! You caught a {self.current_pokemon.capitalize()}!")
+                level, experience = 1, 0
+                poketag = secrets.token_hex(3)
+                pokemon_name = self.current_pokemon.title()
+                self.cur.execute('INSERT INTO pokedex (member_id, pokemon_id, pokemon_name, level, poketag, experience) VALUES (?, ?, ?, ?, ?, ?)', (ctx.author.id, self.pokemon_id, pokemon_name, level, poketag, experience))
+                self.conn.commit()
+                if self.spawn_message:
+                    new_embed = discord.Embed(title="Pokemon Caught", description=f"{pokemon_name} was caught by {ctx.author.name}.")
+                    await self.spawn_message.edit(embed=new_embed)
+                self.current_pokemon, self.current_sprite, self.spawn_message = None, None, None
+            else:
+                await ctx.send("That is not the correct Pokémon name or there is no Pokémon to catch.")
 
     @commands.guild_only()
     @commands.command()
