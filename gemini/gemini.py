@@ -82,8 +82,8 @@ class Gemini(commands.Cog):
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
 
-            async with message.channel.typing():
-                if cleaned_text.upper().startswith("GENERATE"):
+            if cleaned_text.upper().startswith("GENERATE"):
+                async with message.channel.typing():
                     await message.add_reaction('🎨')
                     prompt = cleaned_text[8:].strip()
                     response = self.client.images.generate(
@@ -94,33 +94,34 @@ class Gemini(commands.Cog):
                     )
                     image_data = response.data[0].b64_json
                     await message.channel.send(file=discord.File(io.BytesIO(base64.b64decode(image_data)), filename="generated_image.png"))
-                    return
-                elif cleaned_text.upper().startswith("RESET"):
-                    context_mode = await self.config.context_mode()
-                    context_id = message.channel.id if context_mode == 'channel' else message.author.id
-                    if context_id in self.message_history:
-                        del self.message_history[context_id]
-                    await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
-                    return
-                else:
-                    await message.add_reaction('💬')
+                return
+            elif cleaned_text.upper().startswith("RESET"):
+                context_mode = await self.config.context_mode()
+                context_id = message.channel.id if context_mode == 'channel' else message.author.id
+                if context_id in self.message_history:
+                    del self.message_history[context_id]
+                await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
+                return
 
-                    context_mode = await self.config.context_mode()
-                    context_id = message.channel.id if context_mode == 'channel' else message.author.id
+            async with message.channel.typing():
+                await message.add_reaction('💬')
 
-                    max_history = await self.config.max_history()
-                    if max_history == 0:
-                        response_text = await self.generate_response_with_text(cleaned_text)
-                        await self.wrap_and_send_messages(message, response_text, 1999)
-                        return
-                    if message.reference:
-                        referenced_message = await message.channel.fetch_message(message.reference.message_id)
-                        referenced_text = self.clean_discord_message(referenced_message.content)
-                        await self.update_message_history(context_id, referenced_text)
-                    await self.update_message_history(context_id, cleaned_text)
-                    response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
-                    await self.update_message_history(context_id, response_text)
+                context_mode = await self.config.context_mode()
+                context_id = message.channel.id if context_mode == 'channel' else message.author.id
+
+                max_history = await self.config.max_history()
+                if max_history == 0:
+                    response_text = await self.generate_response_with_text(cleaned_text)
                     await self.wrap_and_send_messages(message, response_text, 1999)
+                    return
+                if message.reference:
+                    referenced_message = await message.channel.fetch_message(message.reference.message_id)
+                    referenced_text = self.clean_discord_message(referenced_message.content)
+                    await self.update_message_history(context_id, referenced_text)
+                await self.update_message_history(context_id, cleaned_text)
+                response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
+                await self.update_message_history(context_id, response_text)
+                await self.wrap_and_send_messages(message, response_text, 1999)
 
     async def generate_response_with_text(self, message_text):
         """Generate a text response using the text model."""
