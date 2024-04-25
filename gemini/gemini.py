@@ -166,7 +166,9 @@ class Gemini(commands.Cog):
     def clean_discord_message(self, input_string):
         """Remove any special Discord formatting from the message, except for bot mentions."""
         bot_mention_pattern = re.compile(f'<@!?{self.bot.user.id}>')
-        cleaned_content = bot_mention_pattern.sub(f'@{self.bot.user.name}', input_string)
+        cleaned_content = bot_mention_pattern.sub('', input_string).strip()
         non_mention_pattern = re.compile(r'<(?!@)[^>]+>')
         cleaned_content = non_mention_pattern.sub('', cleaned_content)
         return cleaned_content
+
+
