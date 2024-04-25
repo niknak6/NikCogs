@@ -219,7 +219,7 @@ class TreacheryPokemon(commands.Cog):
         spawn_rate = await self.config.guild(message.guild).spawn_rate()
         if message.channel == spawn_channel and random.random() < spawn_rate:
             ctx = await self.bot.get_context(message)
-            await self.bot.get_command("spawn").invoke(ctx)
+            await self.bot.get_command("spawn").invoke(ctx, pokemon_number=None)
         elif message.channel == spawn_channel:
             self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
             user_party = self.cur.fetchone()
