@@ -221,7 +221,7 @@ class TreacheryPokemon(commands.Cog):
             ctx = await self.bot.get_context(message)
             # Ensure there is a valid prefix, use a default if none is set
             command_prefix = ctx.prefix if ctx.prefix else "!"
-            ctx.message.content = command_prefix + "spawn"
+            ctx.message.content = command_prefix + "spawn"  # Set content to just the command
             await self.bot.get_command("spawn").invoke(ctx)
         elif message.channel == spawn_channel:
             self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
