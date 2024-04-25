@@ -219,7 +219,9 @@ class TreacheryPokemon(commands.Cog):
         spawn_rate = await self.config.guild(message.guild).spawn_rate()
         if message.channel == spawn_channel and random.random() < spawn_rate:
             ctx = await self.bot.get_context(message)
-            await self.bot.get_command("spawn").invoke(ctx, pokemon_number=None)
+            # Simulate a command invocation as if the user typed "!spawn"
+            ctx.message.content = ctx.prefix + "spawn"
+            await self.bot.get_command("spawn").invoke(ctx)
         elif message.channel == spawn_channel:
             self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
             user_party = self.cur.fetchone()
@@ -231,14 +233,14 @@ class TreacheryPokemon(commands.Cog):
                         self.cur.execute('SELECT level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                         level, experience = self.cur.fetchone()
                         messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
-                        if experience == messages_required:
+                        if experience >= messages_required:
                             level += 1
                             experience = 0
                             self.cur.execute('UPDATE pokedex SET level = ?, experience = ? WHERE member_id = ? AND poketag = ?', (level, experience, message.author.id, poketag))
                             self.conn.commit()
                             self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                             pokemon_name = self.cur.fetchone()[0]
-                            if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 99]:
+                            if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
                                 leveled_up.append((pokemon_name, level))
                         else:
                             experience += 1
