@@ -170,5 +170,3 @@ class Gemini(commands.Cog):
         non_mention_pattern = re.compile(r'<(?!@)[^>]+>')
         cleaned_content = non_mention_pattern.sub('', cleaned_content)
         return cleaned_content
-
-
