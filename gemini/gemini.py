@@ -90,7 +90,7 @@ class Gemini(commands.Cog):
                     response = self.client.images.generate(
                         prompt=prompt,
                         model="stabilityai/stable-diffusion-xl-base-1.0",
-                        steps=10,
+                        steps=5,
                         n=1,
                     )
                     image_data = response.data[0].b64_json
