@@ -86,7 +86,7 @@ class Gemini(commands.Cog):
                     for attachment in message.attachments:
                         if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
                             await message.add_reaction('🎨')
-                            response_text = "Image handling is not yet supported with Together.ai API."
+                            response_text = "Image handling is not yet enabled."
                             responses.append(response_text)
                     response_text = '\n\n'.join(responses)
                     await self.wrap_and_send_messages(message, response_text, 1700)
