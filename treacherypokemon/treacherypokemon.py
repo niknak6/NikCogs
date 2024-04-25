@@ -219,8 +219,9 @@ class TreacheryPokemon(commands.Cog):
         spawn_rate = await self.config.guild(message.guild).spawn_rate()
         if message.channel == spawn_channel and random.random() < spawn_rate:
             ctx = await self.bot.get_context(message)
-            # Simulate a command invocation as if the user typed "!spawn"
-            ctx.message.content = ctx.prefix + "spawn"
+            # Ensure there is a valid prefix, use a default if none is set
+            command_prefix = ctx.prefix if ctx.prefix else "!"
+            ctx.message.content = command_prefix + "spawn"
             await self.bot.get_command("spawn").invoke(ctx)
         elif message.channel == spawn_channel:
             self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
@@ -240,7 +241,7 @@ class TreacheryPokemon(commands.Cog):
                             self.conn.commit()
                             self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                             pokemon_name = self.cur.fetchone()[0]
-                            if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
+                            if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 99]:
                                 leveled_up.append((pokemon_name, level))
                         else:
                             experience += 1
