@@ -6,6 +6,8 @@ from redbot.core import commands, Config
 import textwrap
 import typing
 from together import Together
+import io
+import base64
 
 class Gemini(commands.Cog):
     """A Discord bot that uses Together.ai API to interact with users in text format."""
@@ -79,6 +81,21 @@ class Gemini(commands.Cog):
                 return
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
+
+            # Check if the message starts with "generate" and ends with "of"
+            if cleaned_text.lower().startswith("generate") and cleaned_text.lower().endswith("of"):
+                async with message.channel.typing():
+                    await message.add_reaction('🎨')
+                    prompt = cleaned_text[cleaned_text.lower().index("generate") + 8:cleaned_text.lower().rindex("of")].strip()
+                    response = self.client.images.generate(
+                        prompt=prompt,
+                        model="stabilityai/stable-diffusion-xl-base-1.0",
+                        steps=10,
+                        n=1,
+                    )
+                    image_data = response.data[0].b64_json
+                    await message.channel.send(file=discord.File(io.BytesIO(base64.b64decode(image_data)), filename="generated_image.png"))
+                    return
 
             async with message.channel.typing():
                 if message.attachments:
