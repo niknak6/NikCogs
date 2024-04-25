@@ -180,7 +180,7 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.channel)
-    async def spawn(self, ctx, pokemon_number: int = None):
+    async def spawn(self, ctx):
         if ctx.invoked_with == "spawn" and not await self.bot.is_owner(ctx.author):
             await ctx.send("Only the owner of the bot can manually spawn a Pokémon.")
             return
@@ -189,10 +189,7 @@ class TreacheryPokemon(commands.Cog):
         if ctx.channel == spawn_channel:
             now = datetime.datetime.now()
             if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60 or await self.bot.is_owner(ctx.author):
-                if pokemon_number is None:
-                    pokemon_id = random.randint(1, self.pokemon_count)
-                else:
-                    pokemon_id = pokemon_number
+                pokemon_id = random.randint(1, self.pokemon_count)
                 pokemon_url = self.base_url + str(pokemon_id)
                 response = requests.get(pokemon_url)
                 if response.status_code == 200:
