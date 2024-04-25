@@ -82,7 +82,14 @@ class Gemini(commands.Cog):
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
 
-            if cleaned_text.upper().startswith("GENERATE"):
+            if cleaned_text.upper().startswith("RESET"):
+                context_mode = await self.config.context_mode()
+                context_id = message.channel.id if context_mode == 'channel' else message.author.id
+                if context_id in self.message_history:
+                    del self.message_history[context_id]
+                await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
+                return
+            elif cleaned_text.upper().startswith("GENERATE"):
                 async with message.channel.typing():
                     await message.add_reaction('🎨')
                     prompt = cleaned_text[8:].strip()
@@ -94,13 +101,6 @@ class Gemini(commands.Cog):
                     )
                     image_data = response.data[0].b64_json
                     await message.channel.send(file=discord.File(io.BytesIO(base64.b64decode(image_data)), filename="generated_image.png"))
-                return
-            elif cleaned_text.upper().startswith("RESET"):
-                context_mode = await self.config.context_mode()
-                context_id = message.channel.id if context_mode == 'channel' else message.author.id
-                if context_id in self.message_history:
-                    del self.message_history[context_id]
-                await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
                 return
 
             async with message.channel.typing():
