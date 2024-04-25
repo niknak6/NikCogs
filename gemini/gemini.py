@@ -28,7 +28,14 @@ class Gemini(commands.Cog):
         """Asynchronously initialize the text model with the configured settings."""
         api_key = await self.config.together_ai_key()
         if api_key:
-            self.client = Together(api_key=api_key)
+            try:
+                self.client = Together(api_key=api_key)
+                await self.bot.send_to_owners("Together.ai client initialized successfully.")
+            except Exception as e:
+                await self.bot.send_to_owners(f"Failed to initialize Together.ai client: {str(e)}")
+        else:
+            await self.bot.send_to_owners("Together.ai API key not set. Please use the `setapikey` command to set the API key.")
+
 
     @commands.command()
     @commands.is_owner()
