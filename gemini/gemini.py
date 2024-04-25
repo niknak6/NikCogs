@@ -95,7 +95,7 @@ class Gemini(commands.Cog):
                     prompt = cleaned_text[8:].strip()
                     response = self.client.images.generate(
                         prompt=prompt,
-                        model="SG161222/Realistic_Vision_V3.0_VAE",
+                        model="prompthero/openjourney",
                         steps=10,
                         n=1,
                     )
