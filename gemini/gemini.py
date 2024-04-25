@@ -82,41 +82,27 @@ class Gemini(commands.Cog):
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
 
-            # Check if the message starts with "generate" and ends with "of"
-            if cleaned_text.lower().startswith("generate") and cleaned_text.lower().endswith("of"):
-                async with message.channel.typing():
+            async with message.channel.typing():
+                if cleaned_text.upper().startswith("GENERATE"):
                     await message.add_reaction('🎨')
-                    prompt = cleaned_text[cleaned_text.lower().index("generate") + 8:cleaned_text.lower().rindex("of")].strip()
+                    prompt = cleaned_text[8:].strip()
                     response = self.client.images.generate(
                         prompt=prompt,
                         model="stabilityai/stable-diffusion-xl-base-1.0",
-                        steps=5,
+                        steps=10,
                         n=1,
                     )
                     image_data = response.data[0].b64_json
                     await message.channel.send(file=discord.File(io.BytesIO(base64.b64decode(image_data)), filename="generated_image.png"))
                     return
-
-            async with message.channel.typing():
-                if message.attachments:
-                    responses = []
-                    for attachment in message.attachments:
-                        if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
-                            await message.add_reaction('🎨')
-                            response_text = "Image handling is not yet enabled."
-                            responses.append(response_text)
-                    response_text = '\n\n'.join(responses)
-                    await self.wrap_and_send_messages(message, response_text, 1700)
+                elif cleaned_text.upper().startswith("RESET"):
+                    context_mode = await self.config.context_mode()
+                    context_id = message.channel.id if context_mode == 'channel' else message.author.id
+                    if context_id in self.message_history:
+                        del self.message_history[context_id]
+                    await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
                     return
                 else:
-                    reset_pattern = re.compile(r'\bRESET\b')
-                    if reset_pattern.search(cleaned_text):
-                        context_mode = await self.config.context_mode()
-                        context_id = message.channel.id if context_mode == 'channel' else message.author.id
-                        if context_id in self.message_history:
-                            del self.message_history[context_id]
-                        await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
-                        return
                     await message.add_reaction('💬')
 
                     context_mode = await self.config.context_mode()
