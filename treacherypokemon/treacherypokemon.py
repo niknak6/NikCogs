@@ -180,7 +180,7 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.channel)
-    async def spawn(self, ctx, pokemon_number: int = None):
+    async def spawn(self, ctx):
         if ctx.invoked_with == "spawn" and not await self.bot.is_owner(ctx.author):
             await ctx.send("Only the owner of the bot can manually spawn a Pokémon.")
             return
@@ -189,10 +189,7 @@ class TreacheryPokemon(commands.Cog):
         if ctx.channel == spawn_channel:
             now = datetime.datetime.now()
             if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60 or await self.bot.is_owner(ctx.author):
-                if pokemon_number is None:
-                    pokemon_id = random.randint(1, self.pokemon_count)
-                else:
-                    pokemon_id = pokemon_number
+                pokemon_id = random.randint(1, self.pokemon_count)
                 pokemon_url = self.base_url + str(pokemon_id)
                 response = requests.get(pokemon_url)
                 if response.status_code == 200:
@@ -219,6 +216,9 @@ class TreacheryPokemon(commands.Cog):
         spawn_rate = await self.config.guild(message.guild).spawn_rate()
         if message.channel == spawn_channel and random.random() < spawn_rate:
             ctx = await self.bot.get_context(message)
+            # Ensure there is a valid prefix, use a default if none is set
+            command_prefix = ctx.prefix if ctx.prefix else "!"
+            ctx.message.content = command_prefix + "spawn"  # Set content to just the command
             await self.bot.get_command("spawn").invoke(ctx)
         elif message.channel == spawn_channel:
             self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
@@ -231,7 +231,7 @@ class TreacheryPokemon(commands.Cog):
                         self.cur.execute('SELECT level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                         level, experience = self.cur.fetchone()
                         messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
-                        if experience == messages_required:
+                        if experience >= messages_required:
                             level += 1
                             experience = 0
                             self.cur.execute('UPDATE pokedex SET level = ?, experience = ? WHERE member_id = ? AND poketag = ?', (level, experience, message.author.id, poketag))
