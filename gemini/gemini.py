@@ -21,10 +21,10 @@ class Gemini(commands.Cog):
             context_mode='user',
             pass_mode='single',
             max_tokens=128,
-            temperature=0.7,
-            top_p=0.7,
-            top_k=50,
-            repetition_penalty=1
+            temperature=0.4,
+            top_p=0.5,
+            top_k=20,
+            repetition_penalty=1.3
         )
         self.client = None
         self.message_history = {}
