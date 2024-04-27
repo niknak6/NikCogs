@@ -58,7 +58,10 @@ class Gemini(commands.Cog):
     async def on_message(self, message):
         if message.author == self.bot.user or (message.reference and await self.is_bot_shared_message(message)):
             return
-        if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
+        if message.content.lower().startswith(f'<@!?{self.bot.user.id}> reset'):
+            cleaned_text = self.clean_discord_message(message.content)
+            await self.reset_history(message)
+        elif self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
             if not await self.handle_commands(message, cleaned_text):
                 await self.generate_response(message, cleaned_text)
