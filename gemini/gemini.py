@@ -33,8 +33,7 @@ class Gemini(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def setapikey(self, ctx, key: str):
-        await self.config.together_ai_key.set(key)
-        await ctx.send("API key set successfully.")
+        await self.update_config(ctx, 'together_ai_key', key)
 
     @commands.command()
     @commands.is_owner()
@@ -42,8 +41,7 @@ class Gemini(commands.Cog):
         if number < 0:
             await ctx.send("The number must be positive or zero.")
             return
-        await self.config.max_history.set(number)
-        await ctx.send(f"Max history set to {number}.")
+        await self.update_config(ctx, 'max_history', number)
 
     @commands.command()
     @commands.is_owner()
@@ -51,8 +49,11 @@ class Gemini(commands.Cog):
         if mode not in ['user', 'channel']:
             await ctx.send("The mode must be either 'user' or 'channel'.")
             return
-        await self.config.context_mode.set(mode)
-        await ctx.send(f"Context mode set to {mode}.")
+        await self.update_config(ctx, 'context_mode', mode)
+
+    async def update_config(self, ctx, setting_name, value):
+        await getattr(self.config, setting_name).set(value)
+        await ctx.send(f"{setting_name.replace('_', ' ').capitalize()} set to {value}.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -60,12 +61,19 @@ class Gemini(commands.Cog):
             return
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
-            if cleaned_text.upper().startswith("RESET"):
-                await self.reset_history(message)
-            elif cleaned_text.upper().startswith("GENERATE"):
-                await self.generate_image(message, cleaned_text)
-            else:
+            if not await self.handle_commands(message, cleaned_text):
                 await self.generate_response(message, cleaned_text)
+
+    async def handle_commands(self, message, cleaned_text):
+        command_map = {
+            "RESET": self.reset_history,
+            "GENERATE": self.generate_image
+        }
+        for command, handler in command_map.items():
+            if cleaned_text.upper().startswith(command):
+                await handler(message, cleaned_text)
+                return True
+        return False
 
     async def is_bot_shared_message(self, message):
         referenced_message = await message.channel.fetch_message(message.reference.message_id)
@@ -108,7 +116,6 @@ class Gemini(commands.Cog):
         await self.wrap_and_send_messages(message, response_text, 1999)
 
     async def generate_response_with_text(self, message_text):
-        """Generate a text response using the text model."""
         max_tokens = await self.config.max_tokens()
         temperature = await self.config.temperature()
         top_p = await self.config.top_p()
