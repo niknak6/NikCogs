@@ -13,7 +13,7 @@ class Gemini(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)
         self.default_generation_params = {
-            "max_tokens": 128,
+            "max_tokens": None,
             "temperature": 0.7,
             "top_p": 0.7,
             "top_k": 50,
