@@ -108,23 +108,13 @@ class Gemini(commands.Cog):
             await self.wrap_and_send_messages(message, response_text, 1999)
 
     async def generate_response_with_text(self, message_text):
-        """Generate a text response using the text model."""
-        max_tokens = await self.config.max_tokens()
-        temperature = await self.config.temperature()
-        top_p = await self.config.top_p()
-        top_k = await self.config.top_k()
-        repetition_penalty = await self.config.repetition_penalty()
+        config_values = await self.config.get_raw("max_tokens", "temperature", "top_p", "top_k", "repetition_penalty")
         response = self.client.chat.completions.create(
             model="meta-llama/Llama-3-8b-chat-hf",
             messages=[{"role": "user", "content": message_text}],
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            repetition_penalty=repetition_penalty
+            **dict(zip(config_values, config_values))
         )
         return response.choices[0].message.content
-
 
     async def update_message_history(self, context_id, text):
         if context_id not in self.message_history:
