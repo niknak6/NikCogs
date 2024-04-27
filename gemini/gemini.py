@@ -1,10 +1,7 @@
-import os
 import re
-import aiohttp
 import discord
 from redbot.core import commands, Config
 import textwrap
-import typing
 from together import Together
 import io
 import base64
@@ -16,21 +13,14 @@ class Gemini(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)
         self.config.register_global(
-            together_ai_key=None,
-            max_history=20,
-            context_mode='user',
-            max_tokens=128,
-            temperature=0.4,
-            top_p=0.5,
-            top_k=20,
-            repetition_penalty=1.3
+            together_ai_key=None, max_history=20, context_mode='user',
+            max_tokens=128, temperature=0.4, top_p=0.5, top_k=20, repetition_penalty=1.3
         )
         self.client = None
         self.message_history = {}
         self.bot.loop.create_task(self.initialize_models())
 
     async def initialize_models(self):
-        """Asynchronously initialize the text model with the configured settings."""
         api_key = await self.config.together_ai_key()
         if api_key:
             try:
@@ -44,14 +34,12 @@ class Gemini(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def setapikey(self, ctx, key: str):
-        """Set the API key for the Together.ai services."""
         await self.config.together_ai_key.set(key)
         await ctx.send("API key set successfully.")
 
     @commands.command()
     @commands.is_owner()
     async def maxhistory(self, ctx, number: int):
-        """Set the maximum number of messages to keep in the history."""
         if number < 0:
             await ctx.send("The number must be positive or zero.")
             return
@@ -61,7 +49,6 @@ class Gemini(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def contextmode(self, ctx, mode: str):
-        """Set the context mode to either 'user' or 'channel'."""
         if mode not in ['user', 'channel']:
             await ctx.send("The mode must be either 'user' or 'channel'.")
             return
@@ -70,10 +57,7 @@ class Gemini(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        """Handle incoming messages and generate responses."""
-        if message.author == self.bot.user:
-            return
-        if message.reference and await self.is_bot_shared_message(message):
+        if message.author == self.bot.user or (message.reference and await self.is_bot_shared_message(message)):
             return
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
@@ -91,8 +75,7 @@ class Gemini(commands.Cog):
     async def reset_history(self, message):
         context_mode = await self.config.context_mode()
         context_id = message.channel.id if context_mode == 'channel' else message.author.id
-        if context_id in self.message_history:
-            del self.message_history[context_id]
+        self.message_history.pop(context_id, None)
         await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
 
     async def generate_image(self, message, cleaned_text):
@@ -100,10 +83,8 @@ class Gemini(commands.Cog):
             await message.add_reaction('🎨')
             prompt = cleaned_text[8:].strip()
             response = self.client.images.generate(
-                prompt=prompt,
-                model="stabilityai/stable-diffusion-xl-base-1.0",
-                steps=20,
-                n=1,
+                prompt=prompt, model="stabilityai/stable-diffusion-xl-base-1.0",
+                steps=20, n=1,
             )
             image_data = response.data[0].b64_json
             await message.channel.send(file=discord.File(io.BytesIO(base64.b64decode(image_data)), filename="generated_image.png"))
@@ -127,25 +108,16 @@ class Gemini(commands.Cog):
             await self.wrap_and_send_messages(message, response_text, 1999)
 
     async def generate_response_with_text(self, message_text):
-        """Generate a text response using the text model."""
-        max_tokens = await self.config.max_tokens()
-        temperature = await self.config.temperature()
-        top_p = await self.config.top_p()
-        top_k = await self.config.top_k()
-        repetition_penalty = await self.config.repetition_penalty()
+        max_tokens, temperature, top_p, top_k, repetition_penalty = await self.config.get_raw(
+            'max_tokens', 'temperature', 'top_p', 'top_k', 'repetition_penalty'
+        )
         response = self.client.chat.completions.create(
-            model="meta-llama/Llama-3-8b-chat-hf",
-            messages=[{"role": "user", "content": message_text}],
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            repetition_penalty=repetition_penalty
+            model="meta-llama/Llama-3-8b-chat-hf", messages=[{"role": "user", "content": message_text}],
+            max_tokens=max_tokens, temperature=temperature, top_p=top_p, top_k=top_k, repetition_penalty=repetition_penalty
         )
         return response.choices[0].message.content
 
     async def update_message_history(self, context_id, text):
-        """Update the message history for the given context."""
         if context_id not in self.message_history:
             self.message_history[context_id] = []
         self.message_history[context_id].append(text)
@@ -154,16 +126,13 @@ class Gemini(commands.Cog):
             self.message_history[context_id].pop(0)
 
     def get_formatted_message_history(self, context_id):
-        """Retrieve the message history for the given context."""
         return '\n\n'.join(self.message_history.get(context_id, ["No messages found for this user."]))
 
     async def wrap_and_send_messages(self, message_system, text, max_length):
-        """Wrap the text into smaller chunks based on the maximum length and send them as separate messages."""
         for string in textwrap.wrap(text, max_length, replace_whitespace=False):
             await message_system.channel.send(string)
 
     def clean_discord_message(self, input_string):
-        """Remove any special Discord formatting from the message, except for bot mentions."""
         bot_mention_pattern = re.compile(f'<@!?{self.bot.user.id}>')
         cleaned_content = bot_mention_pattern.sub('', input_string).strip()
         non_mention_pattern = re.compile(r'<(?!@)[^>]+>')
