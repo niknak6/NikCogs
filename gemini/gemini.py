@@ -27,7 +27,6 @@ class Gemini(commands.Cog):
         )
         self.client = None
         self.message_history = {}
-
         self.bot.loop.create_task(self.initialize_models())
 
     async def initialize_models(self):
@@ -74,45 +73,50 @@ class Gemini(commands.Cog):
         """Handle incoming messages and generate responses."""
         if message.author == self.bot.user:
             return
-        if message.reference:
-            referenced_message = await message.channel.fetch_message(message.reference.message_id)
-            if referenced_message.author == self.bot.user and referenced_message.content.startswith("Shared by"):
-                return
+        if message.reference and await self.is_bot_shared_message(message):
+            return
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
-
             if cleaned_text.upper().startswith("RESET"):
-                context_mode = await self.config.context_mode()
-                context_id = message.channel.id if context_mode == 'channel' else message.author.id
-                if context_id in self.message_history:
-                    del self.message_history[context_id]
-                await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
-                return
+                await self.reset_history(message)
             elif cleaned_text.upper().startswith("GENERATE"):
-                async with message.channel.typing():
-                    await message.add_reaction('🎨')
-                    prompt = cleaned_text[8:].strip()
-                    response = self.client.images.generate(
-                        prompt=prompt,
-                        model="stabilityai/stable-diffusion-xl-base-1.0",
-                        steps=20,
-                        n=1,
-                    )
-                    image_data = response.data[0].b64_json
-                    await message.channel.send(file=discord.File(io.BytesIO(base64.b64decode(image_data)), filename="generated_image.png"))
-                return
+                await self.generate_image(message, cleaned_text)
+            else:
+                await self.generate_response(message, cleaned_text)
 
-            async with message.channel.typing():
-                await message.add_reaction('💬')
+    async def is_bot_shared_message(self, message):
+        referenced_message = await message.channel.fetch_message(message.reference.message_id)
+        return referenced_message.author == self.bot.user and referenced_message.content.startswith("Shared by")
 
-                context_mode = await self.config.context_mode()
-                context_id = message.channel.id if context_mode == 'channel' else message.author.id
+    async def reset_history(self, message):
+        context_mode = await self.config.context_mode()
+        context_id = message.channel.id if context_mode == 'channel' else message.author.id
+        if context_id in self.message_history:
+            del self.message_history[context_id]
+        await message.channel.send(f"🤖 History Reset for {context_mode}: {message.channel.name if context_mode == 'channel' else message.author.name}")
 
-                max_history = await self.config.max_history()
-                if max_history == 0:
-                    response_text = await self.generate_response_with_text(cleaned_text)
-                    await self.wrap_and_send_messages(message, response_text, 1999)
-                    return
+    async def generate_image(self, message, cleaned_text):
+        async with message.channel.typing():
+            await message.add_reaction('🎨')
+            prompt = cleaned_text[8:].strip()
+            response = self.client.images.generate(
+                prompt=prompt,
+                model="stabilityai/stable-diffusion-xl-base-1.0",
+                steps=20,
+                n=1,
+            )
+            image_data = response.data[0].b64_json
+            await message.channel.send(file=discord.File(io.BytesIO(base64.b64decode(image_data)), filename="generated_image.png"))
+
+    async def generate_response(self, message, cleaned_text):
+        async with message.channel.typing():
+            await message.add_reaction('💬')
+            context_mode = await self.config.context_mode()
+            context_id = message.channel.id if context_mode == 'channel' else message.author.id
+            max_history = await self.config.max_history()
+            if max_history == 0:
+                response_text = await self.generate_response_with_text(cleaned_text)
+            else:
                 if message.reference:
                     referenced_message = await message.channel.fetch_message(message.reference.message_id)
                     referenced_text = self.clean_discord_message(referenced_message.content)
@@ -120,7 +124,7 @@ class Gemini(commands.Cog):
                 await self.update_message_history(context_id, cleaned_text)
                 response_text = await self.generate_response_with_text(self.get_formatted_message_history(context_id))
                 await self.update_message_history(context_id, response_text)
-                await self.wrap_and_send_messages(message, response_text, 1999)
+            await self.wrap_and_send_messages(message, response_text, 1999)
 
     async def generate_response_with_text(self, message_text):
         """Generate a text response using the text model."""
@@ -129,7 +133,6 @@ class Gemini(commands.Cog):
         top_p = await self.config.top_p()
         top_k = await self.config.top_k()
         repetition_penalty = await self.config.repetition_penalty()
-
         response = self.client.chat.completions.create(
             model="meta-llama/Llama-3-8b-chat-hf",
             messages=[{"role": "user", "content": message_text}],
@@ -143,25 +146,20 @@ class Gemini(commands.Cog):
 
     async def update_message_history(self, context_id, text):
         """Update the message history for the given context."""
-        if context_id in self.message_history:
-            self.message_history[context_id].append(text)
-            max_history = await self.config.max_history()
-            if len(self.message_history[context_id]) > max_history:
-                self.message_history[context_id].pop(0)
-        else:
-            self.message_history[context_id] = [text]
+        if context_id not in self.message_history:
+            self.message_history[context_id] = []
+        self.message_history[context_id].append(text)
+        max_history = await self.config.max_history()
+        if len(self.message_history[context_id]) > max_history:
+            self.message_history[context_id].pop(0)
 
     def get_formatted_message_history(self, context_id):
         """Retrieve the message history for the given context."""
-        if context_id in self.message_history:
-            return '\n\n'.join(self.message_history[context_id])
-        else:
-            return "No messages found for this user."
+        return '\n\n'.join(self.message_history.get(context_id, ["No messages found for this user."]))
 
     async def wrap_and_send_messages(self, message_system, text, max_length):
         """Wrap the text into smaller chunks based on the maximum length and send them as separate messages."""
-        messages = textwrap.wrap(text, max_length, replace_whitespace=False)
-        for string in messages:
+        for string in textwrap.wrap(text, max_length, replace_whitespace=False):
             await message_system.channel.send(string)
 
     def clean_discord_message(self, input_string):
@@ -169,5 +167,4 @@ class Gemini(commands.Cog):
         bot_mention_pattern = re.compile(f'<@!?{self.bot.user.id}>')
         cleaned_content = bot_mention_pattern.sub('', input_string).strip()
         non_mention_pattern = re.compile(r'<(?!@)[^>]+>')
-        cleaned_content = non_mention_pattern.sub('', cleaned_content)
-        return cleaned_content
+        return non_mention_pattern.sub('', cleaned_content)
