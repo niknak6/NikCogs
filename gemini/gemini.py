@@ -65,12 +65,12 @@ class Gemini(commands.Cog):
 
     async def handle_commands(self, message, cleaned_text):
         command_map = {
-            "RESET": self.reset_history,
-            "GENERATE": self.generate_image
+            "RESET": (self.reset_history, [message]),
+            "GENERATE": (self.generate_image, [message, cleaned_text])
         }
-        for command, handler in command_map.items():
+        for command, (handler, args) in command_map.items():
             if cleaned_text.upper().startswith(command):
-                await handler(message)  # Pass only the message argument
+                await handler(*args)
                 return True
         return False
 
