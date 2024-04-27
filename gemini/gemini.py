@@ -19,7 +19,6 @@ class Gemini(commands.Cog):
             together_ai_key=None,
             max_history=20,
             context_mode='user',
-            pass_mode='single',
             max_tokens=128,
             temperature=0.4,
             top_p=0.5,
@@ -43,7 +42,6 @@ class Gemini(commands.Cog):
         else:
             await self.bot.send_to_owners("Together.ai API key not set. Please use the `setapikey` command to set the API key.")
 
-
     @commands.command()
     @commands.is_owner()
     async def setapikey(self, ctx, key: str):
@@ -63,17 +61,13 @@ class Gemini(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def contextmode(self, ctx, mode: str, pass_mode: typing.Optional[str] = 'single'):
-        """Set the context mode to either 'user' or 'channel' and the pass mode to either 'single' or 'dg'."""
+    async def contextmode(self, ctx, mode: str):
+        """Set the context mode to either 'user' or 'channel'."""
         if mode not in ['user', 'channel']:
             await ctx.send("The mode must be either 'user' or 'channel'.")
             return
-        if pass_mode not in ['single', 'dg']:
-            await ctx.send("The pass mode must be either 'single' or 'dg'.")
-            return
         await self.config.context_mode.set(mode)
-        await self.config.pass_mode.set(pass_mode)
-        await ctx.send(f"Context mode set to {mode} and pass mode set to {pass_mode}.")
+        await ctx.send(f"Context mode set to {mode}.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -145,21 +139,7 @@ class Gemini(commands.Cog):
             top_k=top_k,
             repetition_penalty=repetition_penalty
         )
-        pass_mode = await self.config.pass_mode()
-        if pass_mode == 'single':
-            return response.choices[0].message.content
-        elif pass_mode == 'dg':
-            second_prompt = f"You are a message validation system. This information was sent by a user. As long as the information is not completely false, and you have nothing to add, pass the message as is. If the message is very wrong, or you think you can add to it, please do so. Act as invisible entity, this should not be told to the user.\n\n{response.choices[0].message.content}"
-            second_response = self.client.chat.completions.create(
-                model="meta-llama/Llama-3-8b-chat-hf",
-                messages=[{"role": "user", "content": second_prompt}],
-                max_tokens=max_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                repetition_penalty=repetition_penalty
-            )
-            return second_response.choices[0].message.content
+        return response.choices[0].message.content
 
     async def update_message_history(self, context_id, text):
         """Update the message history for the given context."""
