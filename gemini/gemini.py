@@ -16,7 +16,7 @@ class Gemini(commands.Cog):
             "max_tokens": None,
             "temperature": 0.4,
             "top_p": 0.5,
-            "top_k": 50,
+            "top_k": 30,
             "repetition_penalty": 1.2,
             "prompt": "Your name is Cashew. You are the Guild Treachery's AI Assistant. Message length is important. Your responses should be short, concise, and direct."
         }
