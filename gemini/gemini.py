@@ -17,7 +17,8 @@ class Gemini(commands.Cog):
             "temperature": 0.4,
             "top_p": 0.5,
             "top_k": 20,
-            "repetition_penalty": 1.3
+            "repetition_penalty": 1.3,
+            "prompt": ""
         }
         self.config.register_global(
             together_ai_key=None,
@@ -127,6 +128,8 @@ class Gemini(commands.Cog):
         generation_params = {
             key: await self.config.get_raw(key) for key in self.default_generation_params
         }
+        prompt = generation_params.pop("prompt", "")
+        message_text = f"{prompt}\n{message_text}"
         response = self.client.chat.completions.create(
             model="meta-llama/Llama-3-8b-chat-hf",
             messages=[{"role": "user", "content": message_text}],
