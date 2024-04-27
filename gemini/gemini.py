@@ -14,10 +14,10 @@ class Gemini(commands.Cog):
         self.config = Config.get_conf(self, identifier=1234567890)
         self.default_generation_params = {
             "max_tokens": None,
-            "temperature": 0.7,
-            "top_p": 0.7,
+            "temperature": 0.4,
+            "top_p": 0.5,
             "top_k": 50,
-            "repetition_penalty": 1,
+            "repetition_penalty": 1.2,
             "prompt": "Your name is Cashew. You are Treachery's AI Assistant. Message length is important. Your responses should be short, concise, and direct."
         }
         self.config.register_global(
