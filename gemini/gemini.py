@@ -131,7 +131,7 @@ class Gemini(commands.Cog):
         prompt = generation_params.pop("prompt", "")
         message_text = f"{prompt}\n{message_text}"
         response = self.client.chat.completions.create(
-            model="meta-llama/Llama-3-8b-chat-hf",
+            model="mistralai/Mistral-7B-Instruct-v0.2",
             messages=[{"role": "user", "content": message_text}],
             **generation_params
         )
