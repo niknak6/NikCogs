@@ -108,11 +108,12 @@ class Gemini(commands.Cog):
             await self.wrap_and_send_messages(message, response_text, 1999)
 
     async def generate_response_with_text(self, message_text):
-        config_values = await self.config.get_raw("max_tokens", "temperature", "top_p", "top_k", "repetition_penalty")
+        config_keys = ("max_tokens", "temperature", "top_p", "top_k", "repetition_penalty")
+        config_values = await self.config.get_raw(*config_keys)
         response = self.client.chat.completions.create(
             model="meta-llama/Llama-3-8b-chat-hf",
             messages=[{"role": "user", "content": message_text}],
-            **dict(zip(config_values, config_values))
+            **dict(zip(config_keys, config_values))
         )
         return response.choices[0].message.content
 
