@@ -43,7 +43,6 @@ class Gemini(commands.Cog):
         else:
             await self.bot.send_to_owners("Together.ai API key not set. Please use the `setapikey` command to set the API key.")
 
-
     @commands.command()
     @commands.is_owner()
     async def setapikey(self, ctx, key: str):
