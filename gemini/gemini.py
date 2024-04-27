@@ -12,9 +12,18 @@ class Gemini(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)
+        self.default_generation_params = {
+            "max_tokens": 128,
+            "temperature": 0.4,
+            "top_p": 0.5,
+            "top_k": 20,
+            "repetition_penalty": 1.3
+        }
         self.config.register_global(
-            together_ai_key=None, max_history=20, context_mode='user',
-            max_tokens=128, temperature=0.4, top_p=0.5, top_k=20, repetition_penalty=1.3
+            together_ai_key=None,
+            max_history=20,
+            context_mode='user',
+            **self.default_generation_params
         )
         self.client = None
         self.message_history = {}
@@ -115,14 +124,13 @@ class Gemini(commands.Cog):
         await self.send_response(message, response_text)
 
     async def generate_response_with_text(self, message_text):
+        generation_params = {
+            key: await self.config.get_raw(key) for key in self.default_generation_params
+        }
         response = self.client.chat.completions.create(
             model="meta-llama/Llama-3-8b-chat-hf",
             messages=[{"role": "user", "content": message_text}],
-            max_tokens=await self.config.max_tokens(),
-            temperature=await self.config.temperature(),
-            top_p=await self.config.top_p(),
-            top_k=await self.config.top_k(),
-            repetition_penalty=await self.config.repetition_penalty()
+            **generation_params
         )
         return response.choices[0].message.content
 
