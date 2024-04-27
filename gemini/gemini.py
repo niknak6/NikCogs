@@ -25,7 +25,6 @@ class Gemini(commands.Cog):
         if api_key:
             try:
                 self.client = Together(api_key=api_key)
-                await self.bot.send_to_owners("Together.ai client initialized successfully.")
             except Exception as e:
                 await self.bot.send_to_owners(f"Failed to initialize Together.ai client: {str(e)}")
         else:
