@@ -33,7 +33,8 @@ class Gemini(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def setapikey(self, ctx, key: str):
-        await self.update_config(ctx, 'together_ai_key', key)
+        await self.config.together_ai_key.set(key)
+        await ctx.send("Together.ai API key set successfully.")
 
     @commands.command()
     @commands.is_owner()
@@ -41,7 +42,8 @@ class Gemini(commands.Cog):
         if number < 0:
             await ctx.send("The number must be positive or zero.")
             return
-        await self.update_config(ctx, 'max_history', number)
+        await self.config.max_history.set(number)
+        await ctx.send(f"Max history set to {number}.")
 
     @commands.command()
     @commands.is_owner()
@@ -49,11 +51,8 @@ class Gemini(commands.Cog):
         if mode not in ['user', 'channel']:
             await ctx.send("The mode must be either 'user' or 'channel'.")
             return
-        await self.update_config(ctx, 'context_mode', mode)
-
-    async def update_config(self, ctx, setting_name, value):
-        await getattr(self.config, setting_name).set(value)
-        await ctx.send(f"{setting_name.replace('_', ' ').capitalize()} set to {value}.")
+        await self.config.context_mode.set(mode)
+        await ctx.send(f"Context mode set to {mode}.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -113,22 +112,17 @@ class Gemini(commands.Cog):
             response_text = await self.generate_response_with_text(message_history if max_history > 0 else cleaned_text)
             await self.update_message_history(context_id, response_text)
 
-        await self.wrap_and_send_messages(message, response_text, 1999)
+        await self.send_response(message, response_text)
 
     async def generate_response_with_text(self, message_text):
-        max_tokens = await self.config.max_tokens()
-        temperature = await self.config.temperature()
-        top_p = await self.config.top_p()
-        top_k = await self.config.top_k()
-        repetition_penalty = await self.config.repetition_penalty()
         response = self.client.chat.completions.create(
             model="meta-llama/Llama-3-8b-chat-hf",
             messages=[{"role": "user", "content": message_text}],
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            repetition_penalty=repetition_penalty
+            max_tokens=await self.config.max_tokens(),
+            temperature=await self.config.temperature(),
+            top_p=await self.config.top_p(),
+            top_k=await self.config.top_k(),
+            repetition_penalty=await self.config.repetition_penalty()
         )
         return response.choices[0].message.content
 
@@ -141,11 +135,11 @@ class Gemini(commands.Cog):
             self.message_history[context_id].pop(0)
 
     def get_formatted_message_history(self, context_id):
-        return '\n\n'.join(self.message_history.get(context_id, ["No messages found for this user."]))
+        return '\n\n'.join(self.message_history.get(context_id, []))
 
-    async def wrap_and_send_messages(self, message_system, text, max_length):
-        for string in textwrap.wrap(text, max_length, replace_whitespace=False):
-            await message_system.channel.send(string)
+    async def send_response(self, message, response_text, max_length=1999):
+        for string in textwrap.wrap(response_text, max_length, replace_whitespace=False):
+            await message.channel.send(string)
 
     def clean_discord_message(self, input_string):
         bot_mention_pattern = re.compile(f'<@!?{self.bot.user.id}>')
