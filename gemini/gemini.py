@@ -18,7 +18,7 @@ class Gemini(commands.Cog):
             "top_p": 0.7,
             "top_k": 50,
             "repetition_penalty": 1,
-            "prompt": "Your name is Cashew. You are Treachery's AI Assistant."
+            "prompt": "Your name is Cashew. You are Treachery's AI Assistant. Message length is important. Your responses should be short, concise, and direct."
         }
         self.config.register_global(
             together_ai_key=None,
