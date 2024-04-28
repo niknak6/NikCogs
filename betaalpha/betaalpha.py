@@ -1,4 +1,5 @@
 from redbot.core import commands, Config
+import asyncio
 from re_gpt import SyncChatGPT
 
 class BetaAlpha(commands.Cog):
@@ -17,10 +18,21 @@ class BetaAlpha(commands.Cog):
             await ctx.send("Session token is not set. Use `!betaalphasession` to set the token.")
             return
 
+        # Run the synchronous code in an executor to prevent blocking the event loop
+        try:
+            response = await self.bot.loop.run_in_executor(None, self.query_chatgpt, session_token, query)
+            await ctx.send(response)
+        except Exception as e:
+            await ctx.send(f"An error occurred: {str(e)}")
+
+    def query_chatgpt(self, session_token, query):
+        """Handles querying ChatGPT synchronously."""
         with SyncChatGPT(session_token=session_token) as chatgpt:
             conversation = chatgpt.create_new_conversation()
+            responses = []
             for message in conversation.chat(query):
-                await ctx.send(message["content"])
+                responses.append(message["content"])
+            return "\n".join(responses)
 
     @commands.command()
     async def betaalphasession(self, ctx, *, token: str):
