@@ -1,5 +1,4 @@
-from redbot.core import commands, Config
-import asyncio
+from redbot.core import commands
 from re_gpt import SyncChatGPT
 
 class BetaAlpha(commands.Cog):
@@ -7,38 +6,22 @@ class BetaAlpha(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=1234567890, force_registration=True)
-        self.config.register_global(session_token=None)
 
     @commands.command()
     async def betaalpha(self, ctx, *, query: str):
         """Query ChatGPT with a given prompt."""
-        session_token = await self.config.session_token()
-        if not session_token:
-            await ctx.send("Session token is not set. Use `!betaalphasession` to set the token.")
-            return
+        # Hardcoded session token
+        session_token = "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..z9xMBqJBntOogxgg.MumJa5TATzJZGJaIrJ4_3V-szoMJDatWP5Obq66J6L2H0E8_coheqxGnKmprRfvbhmlnwYAX42BJqa4XQr3NY02kSXGqIoZQ0-uvLCORlj_xb0mfgx_c9ytt6X_UxW6JujUhweePcxvAdACg94OTAo3-hRpVQabYytDaYbn_2cJjUy075e1da10wsmh7eRF21WIeuGNeXATzMCgB7MZA5pN--3ri1c3Y5s6zQm5aI5PGlvIvCEtSAAlAoDzYBOXUNcx7dupShVIlI459bmSno1CSVX1PptV4e30RLSYIwZJEC-2gsZtU2W0fxN1cQHf_TsLoVhYmF4ZnCCIURPoWNiNEaTozKW6XPY05WonrcviLrovgFSPhBOYC-kNR9f4FZrMk7Dc0pRaJKzfSpmwyBIYbthYG8Mfc66Lh0eqeuttsfTGu4ucxXukYiqPF2s7wnReRKe4nPAoCYsNYjrnednDwmnQQotjea4MzvCZ6GYvWHlhrG5LvZc2tx8Fmd85mQ2xRet9bIkaDt3h9TofCxOyF4kwgBi038fXaLc1OG5N3DchohbUG4JRWCW2IObi3Zro7M_YRCy34PO10ymMIwtvWNtOW5ii-CJWjFNxOs5BmTFJZ_HzJqSMEWjka1h86ZY1gE0t0xJVNeO_j9VuaLDHNeteACuqD-6C4hJzPW7p_cICN1S5k5BXLLRpkigfoDVfcyX0JNUK1rfDxSOSRnnfEnfqom1X5A-LUC4i6MsghypC_DHv0HdWP2TVK_AQ8oKupJ1lfrOGsORz_L9RS4Bt0H59_6Tsvig3YRWWT05OHUS_QFx3ThlrorHLgd3GQJDwBab3pz2BMIMeJJaCXw5nEFFSXufksUzClECu3yQ0phYtwwXqB6yLsoKJC0s6EHzGdAWdscgn7RVDOjRAS8g4GAnJg81AnrREzB48tyfwDhsraOT5y7doxRq2MnwBSuSVhWltBo9maoslzfdxkrQHvXipitn1kQcp_UxlYGG25l67DvS8SpUDP2oa5AF8sYGbgskhh7RfyxyTAOn65cHa9hPERFZUNM-I9zAFPKkP4FeB7zWUeqnD3Znmd653XpRbUnnscTuhYYtQXb71Z_YhV-fm3tcNSjwyKPIOT5QR8p2_0kOqbkuuMOg0_0REQJp5NcfR0cMetjL2zvJ51KoLRMCNI5KMHiwbzujkvU_1h6T_NvehtntXOtmzPQR5TwbNGMVHcwwgldtHU07jmpz9MeaizoouUyrwNJ2KGvNJ5ssXgKFWOX5ApNfRV8iJW1tjrZqh--Qjf48J91iy5XglprdqSQirtqqt1iTeqx4TY19psFM079bjRmc_L-shTKykb4aEc3as3X3Iy_220tUcLd2BJzGOK2ZeT_-gLr7ZnJykwbysj6iKY5y-fku2-0vT2fUsROut5ISZ6oAsOnJYQdh5JpHQ9RHxhIftEW1ZqI8ssx-uk9gVP3TEqPgBTCWDeq_k1Zmji9P8mMpbsrMw4-mM3h8SCVWeqH1QCo9-g7ZSM1CXi35J07qT6XdIFih4lFPO2KFcPZC7UTh9-BXWQMeWX-BpLGMIyObFq7K_am6ox3r5AyOWvbrk45Pk6fjd3VAix3O0_McH5EX20nNdXN3x5Sm4sFZZLMRXwPwf6_kxH8DJqprYOvK7F5bCP_xuSIIZD-3bYh1cbINtHJZA034iyE5_Jgf4-9EP6KxZRw4H9XCjtV2O5UiPXx77B4buZTKsUwdEfQyFoYCArBgeQDIWxpYKy6MjCr3oBSOwbEO1ia9U-Oi_3CGdE1g3LtqPuKUrSx4KxuoKIxMATnKTM0F2p8mQRKwTSv7mbCfHdVZhkCHEcW8WFzR68MNu0kmNc-DHZpER0BKvjaNBgGy9bF0Op6StPwvwKzut2ZOzq3tmEdZxhcXtwwRf73R0d-rnr4qJIdVosAzMCOCKRbNpQZfvyiOgwB6ybdjtNDa72r-ENTKPHv-SsKpTTkR46dSFxkUSG7aNVXUmjQJk2UGuRFthlg0-7KU-Hctnq97JbFnbh3WShoRzkidUGtWiU1XWIScar3pN5Q2hvZjcSLpaeA9xuC0eIwBztyMcdcYweB_Wp82_w6YhEW8HzyOUcsV1Op_w19JZ7BgYDmyC8J1PDTujD3NorCnp3QTMerfGcpqLpFkPWeJNdSUSpotKtTnOJayL44jV5O--gQpJtSNb10HyIhpb1G9qZK6ZZWhQx8JkcePyJ78djW3P7KlutyCXauHx-9ECxIfRclCH_eO7rLVtE_QsKS8Qm3yOylpuOd6R8TE6Jk_ryoXLApz58i7RxEFVKIDImjmq8BbX1_G3y0MJ9VDQHGLYS5PUC9MTgPxw2NO-aYqSeUjSgFw9wU6D_yCuU2E10uclfOSfTNBKIjRi0qmbxnlC95t9aJo5koFmjvBicYN_ne7TJbOXgvZRRk4ZWvq9iBywjFXNKz1x_5Y-EBPkqbFoIX2z8rONMxBWqJKP3O1OpXZTOgFQdtRLbpp2mQw8mK4pwCUV8HYQIRk7cg5vXcVOnHU4uc2jnPkF9ch9PyA40oloUuLV-RXt0QrqvVQO4TTPr7H4dNmb-rjIwrGQ6VNRk1qutHjsc4FxpbVJknE1pI_EddlnSChE9Zk5friak29THMg49t7SWOWarjfaBYp7Eeq1Jp7-mL-WTPn7OoNAuSjZOc_7M96p2la2obA0IabioRY9TewFI4G-zpn3z7Ro-whsdgJCWBiujoa3En-SYyEAe8rfTU1aSwvpJh0K-Fk_w8O0JDRN4jehbfqXJVTZxUfIWmsim1FcWbGQuKaWn6_hvVdWgJVSi-ER64eQhL7On2VtJ8mt9tAqmPEZRhxAfOLaKMeMEsNo60WVoI0JpvrAgJpKhTqwJjUTe4bRTj7Qf_olTnBn9aXr-V0vEQMZadHiQvtEKEw8Mub6RSKD4t7_tO9B-TKpBS2mUYswYEsHDlg.hGgozsUxGFt0f0s0IpIstw"
 
-        # Run the synchronous code in an executor to prevent blocking the event loop
-        try:
-            response = await self.bot.loop.run_in_executor(None, self.query_chatgpt, session_token, query)
-            await ctx.send(response)
-        except Exception as e:
-            await ctx.send(f"An error occurred: {str(e)}")
-
-    def query_chatgpt(self, session_token, query):
-        """Handles querying ChatGPT synchronously."""
         with SyncChatGPT(session_token=session_token) as chatgpt:
             conversation = chatgpt.create_new_conversation()
-            responses = []
             for message in conversation.chat(query):
-                responses.append(message["content"])
-            return "\n".join(responses)
+                await ctx.send(message["content"])
 
     @commands.command()
     async def betaalphasession(self, ctx, *, token: str):
-        """Set the session token for ChatGPT queries."""
-        await self.config.session_token.set(token)
-        await ctx.send("Session token updated successfully.")
+        """This command is now redundant but kept for potential future use."""
+        await ctx.send("This command is no longer necessary as the session token is hardcoded.")
 
 def setup(bot):
     bot.add_cog(BetaAlpha(bot))
