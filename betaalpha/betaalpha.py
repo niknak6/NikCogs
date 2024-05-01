@@ -10,9 +10,8 @@ class BetaAlpha(commands.Cog):
     @commands.command()
     async def testgpt(self, ctx, *, prompt: str):
         """Responds with output from the GPT4FREE model, starting a new conversation each time."""
-        # Create a new GPT4FREE instance for each command call
         gpt_bot = gpt4free.GPT4FREE(provider="Feedough", is_conversation=False)
-        response = gpt_bot.chat(prompt)
+        response = await self.bot.loop.run_in_executor(None, gpt_bot.chat, prompt)
         await ctx.send(response)
 
 def setup(bot):
