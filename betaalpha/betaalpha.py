@@ -4,7 +4,6 @@ import uuid
 import json
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from contextlib import asynccontextmanager
 from datetime import datetime
 import discord
 from redbot.core import commands
@@ -15,6 +14,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('red.betaalpha')
 
+# Define the FastAPI app
+app = FastAPI()
+
+# Global variables for session management
 baseURL = "https://chat.openai.com"
 tokenURL = f"{baseURL}/backend-anon/sentinel/chat-requirements"
 apiURL = f"{baseURL}/backend-anon/conversation"
@@ -54,22 +57,17 @@ async def getNewSessionToken():
                     token = res["token"]
                 await asyncio.sleep(sessionReset)
             except Exception as e:
-                logger.error("Failed to refresh session token", exc_info=True)
                 await asyncio.sleep(sessionReset)
 
-@asynccontextmanager
-async def app_lifespan(app: FastAPI):
-    await getNewSessionToken()
-    yield
-    # Add any cleanup logic here if necessary
-
-app = FastAPI(lifespan=app_lifespan)
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(getNewSessionToken())
 
 @app.post("/v1/chat/completions")
 async def conversationStream(message: str):
     return StreamingResponse(conversation(message), media_type="text/event-stream")
 
-async def conversation(message:str):
+async def conversation(message: str):
     global sessionID, token
     
     convHeaders = headers.copy()
@@ -109,88 +107,50 @@ async def conversation(message:str):
         "websocket_request_id": getnewUUID()
     }
     
-    try:
-        async with aiohttp.ClientSession(headers=convHeaders) as session:
-            async with session.post(apiURL, json=body) as response:
-                async for event in response.content:
-                    event_json = json.loads(event.decode("utf-8").replace("data: ", "").replace("\n", ""))
-                    if str(event_json).startswith("{"):
-                        lineDict = json.loads(event_json)
-                        data = {
-                            "id": "chatcmpl-free",
-                            "object": "chat.completion",
-                            "created": datetime.now().strftime("%d%m%Y%H%M%S"),
-                            "model": "gpt-3.5-turbo-0613",
-                            "usage": {
-                                "prompt_tokens": 0,
-                                "completion_tokens": 0,
-                                "total_tokens": 0
-                            },
-                            "choices": [
-                                {
-                                    "message": {
-                                        "role": "assistant",
-                                        "content": lineDict["message"]["content"]["parts"][0]
-                                    },
-                                    "finish_reason": "stop",
-                                    "index": 0
-                                }
-                            ]
-                        }
-                        yield json.dumps(data).encode("utf-8")
-                        yield "\n"
-                else:
-                    yield "[DONE]".encode("utf-8")
-    except Exception as e:
-        logger.error("Failed to handle conversation", exc_info=True)
-        data = json.dumps({
-            "id": "chatcmpl-free",
-            "object": "chat.completion",
-            "created": datetime.now().strftime("%d%m%Y%H%M%S"),
-            "model": "gpt-3.5-turbo-0613",
-            "usage": {
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0
-            },
-            "choices": [
-                {
-                    "message": {
-                        "role": "assistant",
-                        "content": "There's a problem when requesting to ChatGPT"
-                    },
-                    "finish_reason": "error",
-                    "index": 0
-                }
-            ]
-        }).encode("utf-8")
-        yield data
-        yield "\n"
+    async with aiohttp.ClientSession(headers=convHeaders) as session:
+        async with session.post(apiURL, json=body) as response:
+            async for event in response.content:
+                event_json = json.loads(event.decode("utf-8").replace("data: ", "").replace("\n", ""))
+                if str(event_json).startswith("{"):
+                    lineDict = json.loads(event_json)
+                    data = {
+                        "id": "chatcmpl-free",
+                        "object": "chat.completion",
+                        "created": datetime.now().strftime("%d%m%Y%H%M%S"),
+                        "model": "gpt-3.5-turbo-0613",
+                        "usage": {
+                            "prompt_tokens": 0,
+                            "completion_tokens": 0,
+                            "total_tokens": 0
+                        },
+                        "choices": [
+                            {
+                                "message": {
+                                    "role": "assistant",
+                                    "content": lineDict["message"]["content"]["parts"][0]
+                                },
+                                "finish_reason": "stop",
+                                "index": 0
+                            }
+                        ]
+                    }
+                    yield json.dumps(data).encode("utf-8")
+                    yield "\n"
+            else:
+                yield "[DONE]".encode("utf-8")
 
 class BetaAlpha(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.server_ready = False
+        self.server_task = asyncio.create_task(self.start_fastapi())
 
     async def start_fastapi(self):
-        try:
-            config = uvicorn.Config(app, host="localhost", port=8000, log_level="info")
-            server = uvicorn.Server(config)
-            await server.serve()
-            self.server_ready = True
-            logger.info("FastAPI server started successfully.")
-        except Exception as e:
-            logger.error("Failed to start FastAPI server", exc_info=True)
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        await self.start_fastapi()
+        config = uvicorn.Config(app=app, host="localhost", port=8000, log_level="info")
+        server = uvicorn.Server(config)
+        await server.serve()
 
     @commands.command()
     async def testgpt(self, ctx, *, message: str):
-        if not self.server_ready:
-            await ctx.send("Server is not ready yet. Please try again in a few seconds.")
-            return
         async with aiohttp.ClientSession() as session:
             async with session.post("http://localhost:8000/v1/chat/completions", json={'message': message}) as response:
                 if response.status == 200:
@@ -207,5 +167,4 @@ class BetaAlpha(commands.Cog):
                     await ctx.send("An error occurred while querying the ChatGPT API.")
 
 def setup(bot):
-    cog = BetaAlpha(bot)
-    bot.add_cog(cog)
+    bot.add_cog(BetaAlpha(bot))
