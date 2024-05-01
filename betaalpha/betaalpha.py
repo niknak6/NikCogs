@@ -1,27 +1,189 @@
+import asyncio
+import aiohttp
+import uuid
+import json
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from datetime import datetime
+import discord
 from redbot.core import commands
-from re_gpt import SyncChatGPT
+
+baseURL = "https://chat.openai.com"
+tokenURL = f"{baseURL}/backend-anon/sentinel/chat-requirements"
+apiURL = f"{baseURL}/backend-anon/conversation"
+sessionID = ""
+token = ""
+sessionReset = 60
+headers = {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9",
+    "cache-control": "no-cache",
+    "content-type": "application/json",
+    "oai-language": "en-US",
+    "origin": baseURL,
+    "pragma": "no-cache",
+    "referer": baseURL,
+    "sec-ch-ua": '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+}
+
+def getnewUUID():
+    newDeviceID = uuid.uuid1()
+    return str(newDeviceID)
+
+async def getNewSessionToken():
+    newID = getnewUUID()
+    global sessionID, token, sessionReset
+    async with aiohttp.ClientSession(headers=headers) as session:
+        while True:
+            try:
+                async with session.post(tokenURL, headers={"oai-device-id": newID}) as response:
+                    res = await response.json()
+                    sessionID = newID
+                    token = res["token"]
+                await asyncio.sleep(sessionReset)
+            except Exception as e:
+                await asyncio.sleep(sessionReset)
+
+async def conversation(message:str):
+    global sessionID, token
+    
+    convHeaders = headers
+    
+    convHeaders["accept"] = "text/event-stream"
+    convHeaders["oai-device-id"] = sessionID
+    convHeaders["openai-sentinel-chat-requirements-token"] = token
+    
+    body = {
+        "action": "next",
+        "messages": [
+            {
+                "id": getnewUUID(),
+                "author": {
+                    "role": "user"
+                },
+                "content": {
+                    "content_type": "text",
+                    "parts": [
+                        message
+                    ]
+                },
+                "metadata": {}
+            }
+        ],
+        "parent_message_id": getnewUUID(),
+        "model": "text-davinci-002-render-sha",
+        "timezone_offset_min": -420,
+        "suggestions": [],
+        "history_and_training_disabled": False,
+        "conversation_mode": {
+            "kind": "primary_assistant"
+        },
+        "force_paragen": False,
+        "force_paragen_model_slug": "",
+        "force_nulligen": False,
+        "force_rate_limit": False,
+        "websocket_request_id": getnewUUID()
+    }
+    
+    try:
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.post(apiURL, headers=convHeaders, data=json.dumps(body)) as response:
+                async for event in response.content:
+                    event_json = json.dumps(event.decode("utf-8").replace("data: ", "").replace("\n", ""))
+                    event_json = json.loads(event_json)
+                    if str(event_json).startswith("{"):
+                        lineDict = json.loads(event_json)
+                        data = {
+                            "id": "chatcmpl-free",
+                            "object": "chat.completion",
+                            "created": datetime.now().strftime("%d%m%Y%H%M%S"),
+                            "model": "gpt-3.5-turbo-0613",
+                            "usage": {
+                                "prompt_tokens": 0,
+                                "completion_tokens": 0,
+                                "total_tokens": 0
+                            },
+                            "choices": [
+                                {
+                                    "message": {
+                                        "role": "assistant",
+                                        "content": lineDict["message"]["content"]["parts"][0]
+                                    },
+                                    "finish_reason": "stop",
+                                    "index": 0
+                                }
+                            ]
+                        }
+                        yield json.dumps(data).encode("utf-8")
+                        yield "\n"
+                else:
+                    yield "[DONE]".encode("utf-8")
+    except Exception as e:
+        data = json.dumps({
+            "id": "chatcmpl-free",
+            "object": "chat.completion",
+            "created": datetime.now().strftime("%d%m%Y%H%M%S"),
+            "model": "gpt-3.5-turbo-0613",
+            "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0
+            },
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": "There's a problem when requesting to ChatGPT"
+                    },
+                    "finish_reason": "error",
+                    "index": 0
+                }
+            ]
+        }).encode("utf-8")
+        yield data
+        yield "\n"
+
+app = FastAPI()
+
+@app.post("/v1/chat/completions")
+async def conversationStream(message):
+    return StreamingResponse(conversation(message), media_type="text/event-stream")
+    
+@app.on_event("startup")
+async def startup():
+    asyncio.create_task(getNewSessionToken())
 
 class BetaAlpha(commands.Cog):
-    """A simple cog to interact with ChatGPT using re_gpt library."""
-
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command()
-    async def betaalpha(self, ctx, *, query: str):
-        """Query ChatGPT with a given prompt."""
-        # Hardcoded session token
-        session_token = "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..z9xMBqJBntOogxgg.MumJa5TATzJZGJaIrJ4_3V-szoMJDatWP5Obq66J6L2H0E8_coheqxGnKmprRfvbhmlnwYAX42BJqa4XQr3NY02kSXGqIoZQ0-uvLCORlj_xb0mfgx_c9ytt6X_UxW6JujUhweePcxvAdACg94OTAo3-hRpVQabYytDaYbn_2cJjUy075e1da10wsmh7eRF21WIeuGNeXATzMCgB7MZA5pN--3ri1c3Y5s6zQm5aI5PGlvIvCEtSAAlAoDzYBOXUNcx7dupShVIlI459bmSno1CSVX1PptV4e30RLSYIwZJEC-2gsZtU2W0fxN1cQHf_TsLoVhYmF4ZnCCIURPoWNiNEaTozKW6XPY05WonrcviLrovgFSPhBOYC-kNR9f4FZrMk7Dc0pRaJKzfSpmwyBIYbthYG8Mfc66Lh0eqeuttsfTGu4ucxXukYiqPF2s7wnReRKe4nPAoCYsNYjrnednDwmnQQotjea4MzvCZ6GYvWHlhrG5LvZc2tx8Fmd85mQ2xRet9bIkaDt3h9TofCxOyF4kwgBi038fXaLc1OG5N3DchohbUG4JRWCW2IObi3Zro7M_YRCy34PO10ymMIwtvWNtOW5ii-CJWjFNxOs5BmTFJZ_HzJqSMEWjka1h86ZY1gE0t0xJVNeO_j9VuaLDHNeteACuqD-6C4hJzPW7p_cICN1S5k5BXLLRpkigfoDVfcyX0JNUK1rfDxSOSRnnfEnfqom1X5A-LUC4i6MsghypC_DHv0HdWP2TVK_AQ8oKupJ1lfrOGsORz_L9RS4Bt0H59_6Tsvig3YRWWT05OHUS_QFx3ThlrorHLgd3GQJDwBab3pz2BMIMeJJaCXw5nEFFSXufksUzClECu3yQ0phYtwwXqB6yLsoKJC0s6EHzGdAWdscgn7RVDOjRAS8g4GAnJg81AnrREzB48tyfwDhsraOT5y7doxRq2MnwBSuSVhWltBo9maoslzfdxkrQHvXipitn1kQcp_UxlYGG25l67DvS8SpUDP2oa5AF8sYGbgskhh7RfyxyTAOn65cHa9hPERFZUNM-I9zAFPKkP4FeB7zWUeqnD3Znmd653XpRbUnnscTuhYYtQXb71Z_YhV-fm3tcNSjwyKPIOT5QR8p2_0kOqbkuuMOg0_0REQJp5NcfR0cMetjL2zvJ51KoLRMCNI5KMHiwbzujkvU_1h6T_NvehtntXOtmzPQR5TwbNGMVHcwwgldtHU07jmpz9MeaizoouUyrwNJ2KGvNJ5ssXgKFWOX5ApNfRV8iJW1tjrZqh--Qjf48J91iy5XglprdqSQirtqqt1iTeqx4TY19psFM079bjRmc_L-shTKykb4aEc3as3X3Iy_220tUcLd2BJzGOK2ZeT_-gLr7ZnJykwbysj6iKY5y-fku2-0vT2fUsROut5ISZ6oAsOnJYQdh5JpHQ9RHxhIftEW1ZqI8ssx-uk9gVP3TEqPgBTCWDeq_k1Zmji9P8mMpbsrMw4-mM3h8SCVWeqH1QCo9-g7ZSM1CXi35J07qT6XdIFih4lFPO2KFcPZC7UTh9-BXWQMeWX-BpLGMIyObFq7K_am6ox3r5AyOWvbrk45Pk6fjd3VAix3O0_McH5EX20nNdXN3x5Sm4sFZZLMRXwPwf6_kxH8DJqprYOvK7F5bCP_xuSIIZD-3bYh1cbINtHJZA034iyE5_Jgf4-9EP6KxZRw4H9XCjtV2O5UiPXx77B4buZTKsUwdEfQyFoYCArBgeQDIWxpYKy6MjCr3oBSOwbEO1ia9U-Oi_3CGdE1g3LtqPuKUrSx4KxuoKIxMATnKTM0F2p8mQRKwTSv7mbCfHdVZhkCHEcW8WFzR68MNu0kmNc-DHZpER0BKvjaNBgGy9bF0Op6StPwvwKzut2ZOzq3tmEdZxhcXtwwRf73R0d-rnr4qJIdVosAzMCOCKRbNpQZfvyiOgwB6ybdjtNDa72r-ENTKPHv-SsKpTTkR46dSFxkUSG7aNVXUmjQJk2UGuRFthlg0-7KU-Hctnq97JbFnbh3WShoRzkidUGtWiU1XWIScar3pN5Q2hvZjcSLpaeA9xuC0eIwBztyMcdcYweB_Wp82_w6YhEW8HzyOUcsV1Op_w19JZ7BgYDmyC8J1PDTujD3NorCnp3QTMerfGcpqLpFkPWeJNdSUSpotKtTnOJayL44jV5O--gQpJtSNb10HyIhpb1G9qZK6ZZWhQx8JkcePyJ78djW3P7KlutyCXauHx-9ECxIfRclCH_eO7rLVtE_QsKS8Qm3yOylpuOd6R8TE6Jk_ryoXLApz58i7RxEFVKIDImjmq8BbX1_G3y0MJ9VDQHGLYS5PUC9MTgPxw2NO-aYqSeUjSgFw9wU6D_yCuU2E10uclfOSfTNBKIjRi0qmbxnlC95t9aJo5koFmjvBicYN_ne7TJbOXgvZRRk4ZWvq9iBywjFXNKz1x_5Y-EBPkqbFoIX2z8rONMxBWqJKP3O1OpXZTOgFQdtRLbpp2mQw8mK4pwCUV8HYQIRk7cg5vXcVOnHU4uc2jnPkF9ch9PyA40oloUuLV-RXt0QrqvVQO4TTPr7H4dNmb-rjIwrGQ6VNRk1qutHjsc4FxpbVJknE1pI_EddlnSChE9Zk5friak29THMg49t7SWOWarjfaBYp7Eeq1Jp7-mL-WTPn7OoNAuSjZOc_7M96p2la2obA0IabioRY9TewFI4G-zpn3z7Ro-whsdgJCWBiujoa3En-SYyEAe8rfTU1aSwvpJh0K-Fk_w8O0JDRN4jehbfqXJVTZxUfIWmsim1FcWbGQuKaWn6_hvVdWgJVSi-ER64eQhL7On2VtJ8mt9tAqmPEZRhxAfOLaKMeMEsNo60WVoI0JpvrAgJpKhTqwJjUTe4bRTj7Qf_olTnBn9aXr-V0vEQMZadHiQvtEKEw8Mub6RSKD4t7_tO9B-TKpBS2mUYswYEsHDlg.hGgozsUxGFt0f0s0IpIstw"
-
-        with SyncChatGPT(session_token=session_token) as chatgpt:
-            conversation = chatgpt.create_new_conversation()
-            for message in conversation.chat(query):
-                await ctx.send(message["content"])
-
-    @commands.command()
-    async def betaalphasession(self, ctx, *, token: str):
-        """This command is now redundant but kept for potential future use."""
-        await ctx.send("This command is no longer necessary as the session token is hardcoded.")
+    async def testgpt(self, ctx, *, message: str):
+        """Query the ChatGPT API with the provided message."""
+        async with aiohttp.ClientSession() as session:
+            async with session.post("http://localhost:8000/v1/chat/completions", data=message) as response:
+                if response.status == 200:
+                    async for chunk in response.content:
+                        chunk = chunk.decode("utf-8")
+                        if chunk.strip() == "[DONE]":
+                            break
+                        if chunk.startswith("data:"):
+                            chunk = chunk[5:]
+                        chunk_data = json.loads(chunk)
+                        content = chunk_data["choices"][0]["message"]["content"]
+                        await ctx.send(content)
+                else:
+                    await ctx.send("An error occurred while querying the ChatGPT API.")
 
 def setup(bot):
     bot.add_cog(BetaAlpha(bot))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app)
