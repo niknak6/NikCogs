@@ -182,6 +182,10 @@ class BetaAlpha(commands.Cog):
         except Exception as e:
             logger.error("Failed to start FastAPI server", exc_info=True)
 
+    @commands.Cog.listener()
+    async def on_ready(self):
+        await self.start_fastapi()
+
     @commands.command()
     async def testgpt(self, ctx, *, message: str):
         if not self.server_ready:
@@ -204,5 +208,4 @@ class BetaAlpha(commands.Cog):
 
 def setup(bot):
     cog = BetaAlpha(bot)
-    asyncio.create_task(cog.start_fastapi())
     bot.add_cog(cog)
