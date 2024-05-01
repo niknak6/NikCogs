@@ -1,5 +1,5 @@
+import asyncio
 from redbot.core import commands
-import discord
 import pytgpt.gpt4free as gpt4free
 
 class BetaAlpha(commands.Cog):
@@ -7,6 +7,8 @@ class BetaAlpha(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        # Ensure the default asyncio event loop is used
+        asyncio.set_event_loop(asyncio.new_event_loop())
         self.gpt_bot = gpt4free.GPT4FREE(provider="Feedough")
 
     @commands.command()
