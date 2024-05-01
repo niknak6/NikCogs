@@ -131,7 +131,9 @@ class BetaAlpha(commands.Cog):
         try:
             config = uvicorn.Config(app=app, host="localhost", port=8000, log_level="info")
             server = uvicorn.Server(config)
+            logger.info("Starting FastAPI server...")
             await server.serve()
+            logger.info("FastAPI server started successfully.")
         except Exception as e:
             logger.error(f"Failed to start FastAPI server: {e}")
 
@@ -148,23 +150,38 @@ class BetaAlpha(commands.Cog):
 
     @commands.command()
     async def testgpt(self, ctx, *, message: str):
-        async with aiohttp.ClientSession() as session:
-            async with session.post("http://localhost:8000/v1/chat/completions", params={"message": message}, timeout=None) as response:
-                if response.status == 200:
-                    fulltext = ""
-                    async for chunk in response.content:
-                        chunk = chunk.decode("utf-8")
-                        if chunk == "[DONE]":
+        if self.server_task and not self.server_task.done():
+            await ctx.send("Server is still starting, please wait a moment and try again.")
+            return
+        retry_attempts = 5
+        for attempt in range(retry_attempts):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post("http://localhost:8000/v1/chat/completions", params={"message": message}, timeout=None) as response:
+                        if response.status == 200:
+                            fulltext = ""
+                            async for chunk in response.content:
+                                chunk = chunk.decode("utf-8")
+                                if chunk == "[DONE]":
+                                    break
+                                else:
+                                    data = json.loads(chunk)
+                                    try:
+                                        fulltext += data["choices"][0]["message"]["content"]
+                                    except Exception as e:
+                                        logger.error(f"Error processing response from server: {e}")
+                            await ctx.send(fulltext)
                             break
                         else:
-                            data = json.loads(chunk)
-                            try:
-                                fulltext += data["choices"][0]["message"]["content"]
-                            except Exception as e:
-                                logger.error(f"Error processing response from server: {e}")
-                    await ctx.send(fulltext)
+                            await ctx.send("An error occurred while querying the ChatGPT API.")
+            except aiohttp.ClientConnectorError as e:
+                if attempt < retry_attempts - 1:
+                    await asyncio.sleep(1)  # Wait a second before retrying
+                    continue
                 else:
-                    await ctx.send("An error occurred while querying the ChatGPT API.")
+                    await ctx.send("Failed to connect to the server after several attempts.")
+                    logger.error(f"Connection to server failed: {e}")
+                    break
 
 def setup(bot):
     bot.add_cog(BetaAlpha(bot))
