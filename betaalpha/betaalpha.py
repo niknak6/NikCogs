@@ -1,5 +1,6 @@
 from redbot.core import commands
 import pytgpt.gpt4free as gpt4free
+from concurrent.futures import ThreadPoolExecutor
 
 class BetaAlpha(commands.Cog):
     """A simple cog named BetaAlpha with a testgpt command."""
@@ -11,7 +12,9 @@ class BetaAlpha(commands.Cog):
     @commands.command()
     async def testgpt(self, ctx, *, prompt: str):
         """Responds with output from the GPT4FREE model."""
-        response = self.gpt_bot.chat(prompt)
+        # Use a ThreadPoolExecutor to handle the synchronous gpt_bot.chat call
+        with ThreadPoolExecutor() as executor:
+            response = await self.bot.loop.run_in_executor(executor, self.gpt_bot.chat, prompt)
         await ctx.send(response)
 
 def setup(bot):
