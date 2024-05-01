@@ -39,12 +39,18 @@ class BetaAlpha(commands.Cog):
         img = Imager()
         img_generator = img.generate(prompt, amount=7, stream=False)
         
+        # Send a message that images are being generated
+        message = await ctx.send("Generating...")
+        
+        # Collect all images into a list
+        files = []
         for image_data in img_generator:
-            # Ensure the image data is handled as a bytes-like object
             image_bytes = io.BytesIO(image_data)
             image_bytes.seek(0)  # Move to the start of the BytesIO stream
-            file = discord.File(image_bytes, filename=f"{prompt}.png")
-            await ctx.send(file=file)
+            files.append(discord.File(image_bytes, filename=f"{prompt}.png"))
+        
+        # Edit the message to send all images
+        await message.edit(content="Here are your images:", files=files)
 
 def setup(bot):
     bot.add_cog(BetaAlpha(bot))
