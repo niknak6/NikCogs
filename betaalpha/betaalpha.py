@@ -1,5 +1,9 @@
 from redbot.core import commands
+import asyncio
 import pytgpt.gpt4free as gpt4free
+
+# Ensure the standard asyncio event loop is used
+asyncio.set_event_loop(asyncio.new_event_loop())
 
 class BetaAlpha(commands.Cog):
     """A simple cog named BetaAlpha with a testgpt command."""
