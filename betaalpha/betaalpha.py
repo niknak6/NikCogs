@@ -34,9 +34,22 @@ class BetaAlpha(commands.Cog):
         await ctx.send("Conversation history has been cleared.")
 
     @commands.command()
-    async def generateimg(self, ctx, *, prompt: str, method: str = "imager"):
+    async def generateimg(self, ctx, *, input: str):
         """Generates images based on the provided prompt and sends them in the chat."""
-        if method.lower() == "prodia":
+        # Default to using Imager
+        method = "imager"
+        prompt = input
+
+        # Check if the input ends with "method=prodia" or "method=imager"
+        if input.lower().endswith("method=prodia"):
+            method = "prodia"
+            prompt = input[:-len("method=prodia")].strip()
+        elif input.lower().endswith("method=imager"):
+            method = "imager"
+            prompt = input[:-len("method=imager")].strip()
+
+        # Select the image generation method based on the method variable
+        if method == "prodia":
             img = Prodia()
         else:
             img = Imager()
@@ -44,7 +57,6 @@ class BetaAlpha(commands.Cog):
         img_generator = img.generate(prompt, amount=3, stream=True)
         
         for image_data in img_generator:
-            # Ensure the image data is handled as a bytes-like object
             image_bytes = io.BytesIO(image_data)
             image_bytes.seek(0)  # Move to the start of the BytesIO stream
             file = discord.File(image_bytes, filename=f"{prompt}.png")
