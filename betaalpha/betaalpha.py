@@ -2,8 +2,8 @@ import asyncio
 import aiohttp
 import uuid
 import json
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, StreamingResponse
+from contextlib import asynccontextmanager
 from datetime import datetime
 import discord
 from redbot.core import commands
@@ -39,8 +39,7 @@ headers = {
 }
 
 def getnewUUID():
-    newDeviceID = uuid.uuid1()
-    return str(newDeviceID)
+    return str(uuid.uuid1())
 
 async def getNewSessionToken():
     newID = getnewUUID()
@@ -56,6 +55,18 @@ async def getNewSessionToken():
             except Exception as e:
                 logger.error("Failed to refresh session token", exc_info=True)
                 await asyncio.sleep(sessionReset)
+
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    await getNewSessionToken()
+    yield
+    # Add any cleanup logic here if necessary
+
+app = FastAPI(lifespan=app_lifespan)
+
+@app.post("/v1/chat/completions")
+async def conversationStream(message: str):
+    return StreamingResponse(conversation(message), media_type="text/event-stream")
 
 async def conversation(message:str):
     global sessionID, token
@@ -155,16 +166,6 @@ async def conversation(message:str):
         yield data
         yield "\n"
 
-app = FastAPI()
-
-@app.post("/v1/chat/completions")
-async def conversationStream(message: str):
-    return StreamingResponse(conversation(message), media_type="text/event-stream")
-    
-@app.on_event("startup")
-async def startup():
-    asyncio.create_task(getNewSessionToken())
-
 class BetaAlpha(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -180,16 +181,8 @@ class BetaAlpha(commands.Cog):
         except Exception as e:
             logger.error("Failed to start FastAPI server", exc_info=True)
 
-    def cog_unload(self):
-        asyncio.create_task(self.stop_fastapi())
-
-    async def stop_fastapi(self):
-        # Implement the logic to gracefully stop the FastAPI server here
-        pass
-
     @commands.command()
     async def testgpt(self, ctx, *, message: str):
-        """Query the ChatGPT API with the provided message."""
         if not self.server_ready:
             await ctx.send("Server is not ready yet. Please try again in a few seconds.")
             return
