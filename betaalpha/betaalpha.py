@@ -1,5 +1,5 @@
 from redbot.core import commands
-import pytgpt.feedough as feedough  # Importing the Feedough module from pytgpt
+import pytgpt.gpt4free as gpt4free  # Importing the gpt4free module from pytgpt
 
 class BetaAlpha(commands.Cog):
     """
@@ -8,7 +8,7 @@ class BetaAlpha(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.bot_feedough = feedough.Feedough()  # Initialize the Feedough provider
+        self.bot_gpt = gpt4free.GPT4FREE(provider="Feedough")  # Initialize the GPT4FREE with Feedough provider
 
     @commands.command()
     async def testgpt(self, ctx, *, query: str):
@@ -17,7 +17,7 @@ class BetaAlpha(commands.Cog):
         Usage: !testgpt <your query here>
         """
         try:
-            response = self.bot_feedough.chat(query)  # Send query to Feedough provider
+            response = self.bot_gpt.chat(query)  # Send query to Feedough provider
             await ctx.send(f"Feedough Response: {response}")
         except Exception as e:
             await ctx.send(f"An error occurred: {str(e)}")  # Handle exceptions gracefully
