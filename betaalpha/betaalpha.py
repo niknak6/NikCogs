@@ -163,17 +163,18 @@ async def startup():
 class BetaAlpha(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.fastapi_task = None
 
     async def start_fastapi(self):
         config = uvicorn.Config(app, host="localhost", port=8000, log_level="info")
         server = uvicorn.Server(config)
         await server.serve()
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        if self.fastapi_task is None:
-            self.fastapi_task = asyncio.create_task(self.start_fastapi())
+    def cog_unload(self):
+        asyncio.create_task(self.stop_fastapi())
+
+    async def stop_fastapi(self):
+        # Implement the logic to gracefully stop the FastAPI server here
+        pass
 
     @commands.command()
     async def testgpt(self, ctx, *, message: str):
@@ -194,4 +195,6 @@ class BetaAlpha(commands.Cog):
                     await ctx.send("An error occurred while querying the ChatGPT API.")
 
 def setup(bot):
-    bot.add_cog(BetaAlpha(bot))
+    cog = BetaAlpha(bot)
+    asyncio.create_task(cog.start_fastapi())
+    bot.add_cog(cog)
