@@ -11,7 +11,7 @@ class BetaAlpha(commands.Cog):
     @commands.command()
     async def testgpt(self, ctx, *, prompt: str):
         """Responds with output from the GPT4FREE model."""
-        response = self.gpt_bot.chat(prompt)
+        response = self.gpt_bot.chat(prompt, stream=False)
         await ctx.send(response)
 
 def setup(bot):
