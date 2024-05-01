@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from datetime import datetime
 import discord
 from redbot.core import commands
-import uvicorn
+import subprocess
 import logging
 
 # Setup basic logging
@@ -142,12 +142,23 @@ async def conversation(message: str):
 class BetaAlpha(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.server_task = asyncio.create_task(self.start_fastapi())
+        self.server_process = None
 
     async def start_fastapi(self):
-        config = uvicorn.Config(app=app, host="localhost", port=8000, log_level="info")
-        server = uvicorn.Server(config)
-        await server.serve()
+        self.server_process = subprocess.Popen(["uvicorn", "betaalpha:app", "--host", "localhost", "--port", "8000"])
+
+    async def stop_fastapi(self):
+        if self.server_process:
+            self.server_process.terminate()
+            self.server_process = None
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        await self.start_fastapi()
+
+    @commands.Cog.listener()
+    async def on_cog_unload(self):
+        await self.stop_fastapi()
 
     @commands.command()
     async def testgpt(self, ctx, *, message: str):
