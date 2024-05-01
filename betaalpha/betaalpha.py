@@ -3,7 +3,6 @@ from redbot.core import commands
 import pytgpt.gpt4free as gpt4free
 from pytgpt.imager import Imager
 import discord
-import asyncio  # Import asyncio for explicit waiting
 
 class BetaAlpha(commands.Cog):
     """A simple cog named BetaAlpha with testgpt, gptclear, and generateimg commands."""
@@ -42,18 +41,14 @@ class BetaAlpha(commands.Cog):
         
         # Send a message that images are being generated
         message = await ctx.send("Generating...")
-        await asyncio.sleep(1)  # Ensure there's a slight delay to let the message appear
-
+        
         # Collect all images into a list
         files = []
         for image_data in img_generator:
             image_bytes = io.BytesIO(image_data)
             image_bytes.seek(0)  # Move to the start of the BytesIO stream
             files.append(discord.File(image_bytes, filename=f"{prompt}.png"))
-
-        # Ensure all files are ready before proceeding
-        await asyncio.sleep(1)  # Optional: Adjust or remove this delay based on your needs
-
+        
         # Delete the "Generating..." message
         await message.delete()
 
