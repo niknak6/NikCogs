@@ -11,18 +11,19 @@ class BetaAlpha(commands.Cog):
         self.bot = bot
         self.is_conversation = True
         self.history = []
-        self.gpt_bot = gpt4free.GPT4FREE(provider="Feedough", is_conversation=self.is_conversation)
 
     @commands.command()
     async def testgpt(self, ctx, *, prompt: str):
         """Responds with output from the GPT4FREE model, using the conversation history if enabled."""
+        gpt_bot = gpt4free.GPT4FREE(provider="Feedough", is_conversation=self.is_conversation)
         if self.is_conversation:
             self.history.append(prompt)
-            prompt = "\n".join(self.history)
+            full_prompt = "\n".join(self.history)
+            response = await self.bot.loop.run_in_executor(None, gpt_bot.chat, full_prompt)
+        else:
+            response = await self.bot.loop.run_in_executor(None, gpt_bot.chat, prompt)
         
-        response = await self.bot.loop.run_in_executor(None, self.gpt_bot.chat, prompt)
         await ctx.send(response)
-        
         if self.is_conversation:
             self.history.append(response)
 
@@ -35,11 +36,24 @@ class BetaAlpha(commands.Cog):
     @commands.command()
     async def generateimg(self, ctx, *, prompt: str):
         """Generates images based on the provided prompt and sends them in the chat."""
+        # Send a message that images are being generated
         message = await ctx.send("Generating...")
+
+        # Start generating images
         img = Imager()
         img_generator = img.generate(prompt, amount=7, stream=False)
-        files = [discord.File(io.BytesIO(image_data), filename=f"{prompt}.png") for image_data in img_generator]
+        
+        # Collect all images into a list
+        files = []
+        for image_data in img_generator:
+            image_bytes = io.BytesIO(image_data)
+            image_bytes.seek(0)  # Move to the start of the BytesIO stream
+            files.append(discord.File(image_bytes, filename=f"{prompt}.png"))
+        
+        # Delete the "Generating..." message
         await message.delete()
+
+        # Send a new message with all images
         if files:
             await ctx.send(content="Here are your images:", files=files)
         else:
