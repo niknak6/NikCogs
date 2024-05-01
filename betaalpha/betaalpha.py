@@ -8,6 +8,11 @@ from datetime import datetime
 import discord
 from redbot.core import commands
 import uvicorn
+import logging
+
+# Setup basic logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('red.betaalpha')
 
 baseURL = "https://chat.openai.com"
 tokenURL = f"{baseURL}/backend-anon/sentinel/chat-requirements"
@@ -49,13 +54,13 @@ async def getNewSessionToken():
                     token = res["token"]
                 await asyncio.sleep(sessionReset)
             except Exception as e:
+                logger.error("Failed to refresh session token", exc_info=True)
                 await asyncio.sleep(sessionReset)
 
 async def conversation(message:str):
     global sessionID, token
     
-    convHeaders = headers
-    
+    convHeaders = headers.copy()
     convHeaders["accept"] = "text/event-stream"
     convHeaders["oai-device-id"] = sessionID
     convHeaders["openai-sentinel-chat-requirements-token"] = token
@@ -93,11 +98,10 @@ async def conversation(message:str):
     }
     
     try:
-        async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.post(apiURL, headers=convHeaders, data=json.dumps(body)) as response:
+        async with aiohttp.ClientSession(headers=convHeaders) as session:
+            async with session.post(apiURL, json=body) as response:
                 async for event in response.content:
-                    event_json = json.dumps(event.decode("utf-8").replace("data: ", "").replace("\n", ""))
-                    event_json = json.loads(event_json)
+                    event_json = json.loads(event.decode("utf-8").replace("data: ", "").replace("\n", ""))
                     if str(event_json).startswith("{"):
                         lineDict = json.loads(event_json)
                         data = {
@@ -126,6 +130,7 @@ async def conversation(message:str):
                 else:
                     yield "[DONE]".encode("utf-8")
     except Exception as e:
+        logger.error("Failed to handle conversation", exc_info=True)
         data = json.dumps({
             "id": "chatcmpl-free",
             "object": "chat.completion",
@@ -153,7 +158,7 @@ async def conversation(message:str):
 app = FastAPI()
 
 @app.post("/v1/chat/completions")
-async def conversationStream(message):
+async def conversationStream(message: str):
     return StreamingResponse(conversation(message), media_type="text/event-stream")
     
 @app.on_event("startup")
@@ -163,11 +168,17 @@ async def startup():
 class BetaAlpha(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.server_ready = False
 
     async def start_fastapi(self):
-        config = uvicorn.Config(app, host="localhost", port=8000, log_level="info")
-        server = uvicorn.Server(config)
-        await server.serve()
+        try:
+            config = uvicorn.Config(app, host="localhost", port=8000, log_level="info")
+            server = uvicorn.Server(config)
+            await server.serve()
+            self.server_ready = True
+            logger.info("FastAPI server started successfully.")
+        except Exception as e:
+            logger.error("Failed to start FastAPI server", exc_info=True)
 
     def cog_unload(self):
         asyncio.create_task(self.stop_fastapi())
@@ -179,8 +190,11 @@ class BetaAlpha(commands.Cog):
     @commands.command()
     async def testgpt(self, ctx, *, message: str):
         """Query the ChatGPT API with the provided message."""
+        if not self.server_ready:
+            await ctx.send("Server is not ready yet. Please try again in a few seconds.")
+            return
         async with aiohttp.ClientSession() as session:
-            async with session.post("http://localhost:8000/v1/chat/completions", data=message) as response:
+            async with session.post("http://localhost:8000/v1/chat/completions", json={'message': message}) as response:
                 if response.status == 200:
                     async for chunk in response.content:
                         chunk = chunk.decode("utf-8")
