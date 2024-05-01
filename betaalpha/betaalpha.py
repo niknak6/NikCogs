@@ -36,11 +36,12 @@ class BetaAlpha(commands.Cog):
     @commands.command()
     async def generateimg(self, ctx, *, prompt: str):
         """Generates images based on the provided prompt and sends them in the chat."""
-        img = Imager()
-        img_generator = img.generate(prompt, amount=7, stream=False)
-        
         # Send a message that images are being generated
         message = await ctx.send("Generating...")
+
+        # Start generating images
+        img = Imager()
+        img_generator = img.generate(prompt, amount=7, stream=False)
         
         # Collect all images into a list
         files = []
