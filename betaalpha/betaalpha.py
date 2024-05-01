@@ -29,11 +29,9 @@ class BetaAlpha(commands.Cog):
 
     @commands.command()
     async def gptclear(self, ctx):
-        """Toggles the conversation mode and clears the history."""
-        self.is_conversation = not self.is_conversation
+        """Clears the conversation history without toggling the conversation mode."""
         self.history = []  # Clear the history
-        mode = "enabled" if self.is_conversation else "disabled"
-        await ctx.send(f"Conversation mode has been {mode} and history cleared.")
+        await ctx.send("Conversation history has been cleared.")
 
 def setup(bot):
     bot.add_cog(BetaAlpha(bot))
