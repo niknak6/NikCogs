@@ -1,3 +1,4 @@
+import io
 from redbot.core import commands
 import pytgpt.gpt4free as gpt4free
 from pytgpt.imager import Imager
@@ -38,9 +39,12 @@ class BetaAlpha(commands.Cog):
         img = Imager()
         img_generator = img.generate(prompt, amount=3, stream=True)
         
-        for image in img_generator:
-            with discord.File(image, filename=f"{prompt}.png") as file:
-                await ctx.send(file=file)
+        for image_data in img_generator:
+            # Ensure the image data is handled as a bytes-like object
+            image_bytes = io.BytesIO(image_data)
+            image_bytes.seek(0)  # Move to the start of the BytesIO stream
+            file = discord.File(image_bytes, filename=f"{prompt}.png")
+            await ctx.send(file=file)
 
 def setup(bot):
     bot.add_cog(BetaAlpha(bot))
