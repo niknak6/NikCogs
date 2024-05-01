@@ -1,29 +1,23 @@
 from redbot.core import commands
-import pytgpt.gpt4free as gpt4free  # Importing the gpt4free module from pytgpt
+import discord
+import pytgpt.gpt4free as gpt4free
 
-class BetaAlpha(commands.Cog):
-    """
-    BetaAlpha Cog for querying the Feedough provider using the pytgpt library.
-    """
+class GPT4FreeCog(commands.Cog):
+    """Cog to interact with GPT4Free using Feedough provider."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.bot_gpt = gpt4free.GPT4FREE(provider="Feedough")  # Initialize the GPT4FREE with Feedough provider
+        self.gpt_bot = gpt4free.GPT4FREE(provider="Feedough")
 
     @commands.command()
     async def testgpt(self, ctx, *, query: str):
-        """
-        Handles the !testgpt command with a user query.
-        Usage: !testgpt <your query here>
-        """
+        """Send a query to the GPT model and return the response."""
         try:
-            response = self.bot_gpt.chat(query)  # Send query to Feedough provider
-            await ctx.send(f"Feedough Response: {response}")
+            response = self.gpt_bot.chat(query)
+            await ctx.send(response)
         except Exception as e:
-            await ctx.send(f"An error occurred: {str(e)}")  # Handle exceptions gracefully
+            await ctx.send(f"An error occurred: {str(e)}")
 
+# Setup function to add this cog to Redbot
 def setup(bot):
-    """
-    Setup function to add this cog to Redbot.
-    """
-    bot.add_cog(BetaAlpha(bot))
+    bot.add_cog(GPT4FreeCog(bot))
