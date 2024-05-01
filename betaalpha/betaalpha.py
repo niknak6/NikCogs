@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from datetime import datetime
 import discord
 from redbot.core import commands
+import uvicorn
 
 baseURL = "https://chat.openai.com"
 tokenURL = f"{baseURL}/backend-anon/sentinel/chat-requirements"
@@ -162,6 +163,17 @@ async def startup():
 class BetaAlpha(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.fastapi_task = None
+
+    async def start_fastapi(self):
+        config = uvicorn.Config(app, host="localhost", port=8000, log_level="info")
+        server = uvicorn.Server(config)
+        await server.serve()
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        if self.fastapi_task is None:
+            self.fastapi_task = asyncio.create_task(self.start_fastapi())
 
     @commands.command()
     async def testgpt(self, ctx, *, message: str):
@@ -183,7 +195,3 @@ class BetaAlpha(commands.Cog):
 
 def setup(bot):
     bot.add_cog(BetaAlpha(bot))
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app)
