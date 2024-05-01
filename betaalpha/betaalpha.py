@@ -2,7 +2,8 @@ import asyncio
 import aiohttp
 import uuid
 import json
-from fastapi import FastAPI, StreamingResponse
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from contextlib import asynccontextmanager
 from datetime import datetime
 import discord
