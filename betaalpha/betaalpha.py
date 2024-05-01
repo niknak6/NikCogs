@@ -49,8 +49,11 @@ class BetaAlpha(commands.Cog):
             image_bytes.seek(0)  # Move to the start of the BytesIO stream
             files.append(discord.File(image_bytes, filename=f"{prompt}.png"))
         
-        # Edit the message to send all images
-        await message.edit(content="Here are your images:", files=files)
+        # Delete the "Generating..." message
+        await message.delete()
+        
+        # Send a new message with all images
+        await ctx.send(content="Here are your images:", files=files)
 
 def setup(bot):
     bot.add_cog(BetaAlpha(bot))
