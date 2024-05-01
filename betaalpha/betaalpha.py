@@ -8,7 +8,7 @@ class BetaAlpha(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.gpt_bot = gpt4free.GPT4FREE(provider="Koala")
+        self.gpt_bot = gpt4free.GPT4FREE(provider="Feedough")
 
     def run_in_thread(self, func, *args):
         """Helper function to run a function in a separate thread."""
