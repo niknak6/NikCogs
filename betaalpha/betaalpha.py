@@ -109,35 +109,17 @@ async def conversation(message: str):
     
     async with aiohttp.ClientSession(headers=convHeaders) as session:
         async with session.post(apiURL, json=body) as response:
-            async for event in response.content:
-                event_json = json.loads(event.decode("utf-8").replace("data: ", "").replace("\n", ""))
-                if str(event_json).startswith("{"):
-                    lineDict = json.loads(event_json)
-                    data = {
-                        "id": "chatcmpl-free",
-                        "object": "chat.completion",
-                        "created": datetime.now().strftime("%d%m%Y%H%M%S"),
-                        "model": "gpt-3.5-turbo-0613",
-                        "usage": {
-                            "prompt_tokens": 0,
-                            "completion_tokens": 0,
-                            "total_tokens": 0
-                        },
-                        "choices": [
-                            {
-                                "message": {
-                                    "role": "assistant",
-                                    "content": lineDict["message"]["content"]["parts"][0]
-                                },
-                                "finish_reason": "stop",
-                                "index": 0
-                            }
-                        ]
-                    }
-                    yield json.dumps(data).encode("utf-8")
-                    yield "\n"
-            else:
-                yield "[DONE]".encode("utf-8")
+            async for line in response.content:
+                line = line.decode("utf-8")
+                if line == "[DONE]":
+                    break
+                else:
+                    data = json.loads(line)
+                    try:
+                        content = data["choices"][0]["message"]["content"]
+                        yield content
+                    except Exception as e:
+                        pass
 
 class BetaAlpha(commands.Cog):
     def __init__(self, bot):
@@ -161,17 +143,20 @@ class BetaAlpha(commands.Cog):
     @commands.command()
     async def testgpt(self, ctx, *, message: str):
         async with aiohttp.ClientSession() as session:
-            async with session.post("http://localhost:8000/v1/chat/completions", json={'message': message}) as response:
+            async with session.post("http://localhost:8000/v1/chat/completions", params={"message": message}, timeout=None) as response:
                 if response.status == 200:
+                    fulltext = ""
                     async for chunk in response.content:
                         chunk = chunk.decode("utf-8")
-                        if chunk.strip() == "[DONE]":
+                        if chunk == "[DONE]":
                             break
-                        if chunk.startswith("data:"):
-                            chunk = chunk[5:]
-                        chunk_data = json.loads(chunk)
-                        content = chunk_data["choices"][0]["message"]["content"]
-                        await ctx.send(content)
+                        else:
+                            data = json.loads(chunk)
+                            try:
+                                fulltext += data["choices"][0]["message"]["content"]
+                            except Exception as e:
+                                pass
+                    await ctx.send(fulltext)
                 else:
                     await ctx.send("An error occurred while querying the ChatGPT API.")
 
