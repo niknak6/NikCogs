@@ -1,7 +1,7 @@
 import io
 from redbot.core import commands
 import pytgpt.gpt4free as gpt4free
-from pytgpt.imager import Imager, Prodia  # Import both Imager and Prodia
+from pytgpt.imager import Imager
 import discord
 
 class BetaAlpha(commands.Cog):
@@ -34,30 +34,13 @@ class BetaAlpha(commands.Cog):
         await ctx.send("Conversation history has been cleared.")
 
     @commands.command()
-    async def generateimg(self, ctx, *, input: str):
+    async def generateimg(self, ctx, *, prompt: str):
         """Generates images based on the provided prompt and sends them in the chat."""
-        # Default to using Imager
-        method = "imager"
-        prompt = input
-
-        # Check if the input ends with "method=prodia" or "method=imager"
-        if input.lower().endswith("method=prodia"):
-            method = "prodia"
-            prompt = input[:-len("method=prodia")].strip()
-        elif input.lower().endswith("method=imager"):
-            method = "imager"
-            prompt = input[:-len("method=imager")].strip()
-
-        # Select the image generation method based on the method variable
-        if method == "prodia":
-            img = Prodia()
-        else:
-            img = Imager()
-
-        # Assuming generate is an async method
-        img_generator = await img.generate(prompt, amount=3, stream=True)
+        img = Imager()
+        img_generator = img.generate(prompt, amount=7, stream=False)
         
         for image_data in img_generator:
+            # Ensure the image data is handled as a bytes-like object
             image_bytes = io.BytesIO(image_data)
             image_bytes.seek(0)  # Move to the start of the BytesIO stream
             file = discord.File(image_bytes, filename=f"{prompt}.png")
