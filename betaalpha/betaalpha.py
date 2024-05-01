@@ -1,7 +1,7 @@
 import io
 from redbot.core import commands
 import pytgpt.gpt4free as gpt4free
-from pytgpt.imager import Imager, Prodia
+from pytgpt.imager import Imager
 import discord
 
 class BetaAlpha(commands.Cog):
@@ -34,16 +34,13 @@ class BetaAlpha(commands.Cog):
         await ctx.send("Conversation history has been cleared.")
 
     @commands.command()
-    async def generateimg(self, ctx, *, prompt: str, provider: str = "Imager"):
-        """Generates images based on the provided prompt and sends them in the chat. Choose between 'Imager' and 'Prodia' providers."""
-        if provider.lower() == "prodia":
-            img = Prodia()
-        else:
-            img = Imager()
-
+    async def generateimg(self, ctx, *, prompt: str):
+        """Generates images based on the provided prompt and sends them in the chat."""
+        img = Imager()
         img_generator = img.generate(prompt, amount=3, stream=True)
         
         for image_data in img_generator:
+            # Ensure the image data is handled as a bytes-like object
             image_bytes = io.BytesIO(image_data)
             image_bytes.seek(0)  # Move to the start of the BytesIO stream
             file = discord.File(image_bytes, filename=f"{prompt}.png")
