@@ -4,7 +4,6 @@ import uuid
 import json
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from datetime import datetime
 import discord
 from redbot.core import commands
 import uvicorn
@@ -57,6 +56,7 @@ async def getNewSessionToken():
                     token = res["token"]
                 await asyncio.sleep(sessionReset)
             except Exception as e:
+                logger.error(f"Error in getNewSessionToken: {e}")
                 await asyncio.sleep(sessionReset)
 
 @app.on_event("startup")
@@ -65,6 +65,7 @@ async def startup_event():
 
 @app.post("/v1/chat/completions")
 async def conversationStream(message: str):
+    logger.info(f"Received message for completion: {message}")
     return StreamingResponse(conversation(message), media_type="text/event-stream")
 
 async def conversation(message: str):
@@ -119,7 +120,7 @@ async def conversation(message: str):
                         content = data["choices"][0]["message"]["content"]
                         yield content
                     except Exception as e:
-                        pass
+                        logger.error(f"Error processing conversation stream: {e}")
 
 class BetaAlpha(commands.Cog):
     def __init__(self, bot):
@@ -127,17 +128,22 @@ class BetaAlpha(commands.Cog):
         self.server_task = None
 
     async def start_fastapi(self):
-        config = uvicorn.Config(app=app, host="localhost", port=8000, log_level="info")
-        server = uvicorn.Server(config)
-        await server.serve()
+        try:
+            config = uvicorn.Config(app=app, host="localhost", port=8000, log_level="info")
+            server = uvicorn.Server(config)
+            await server.serve()
+        except Exception as e:
+            logger.error(f"Failed to start FastAPI server: {e}")
 
     @commands.Cog.listener()
     async def on_ready(self):
         self.server_task = asyncio.create_task(self.start_fastapi())
+        logger.info("FastAPI server task started.")
 
     @commands.Cog.listener()
     async def on_cog_unload(self):
         if self.server_task:
+            logger.info("Cancelling server task.")
             self.server_task.cancel()
 
     @commands.command()
@@ -155,7 +161,7 @@ class BetaAlpha(commands.Cog):
                             try:
                                 fulltext += data["choices"][0]["message"]["content"]
                             except Exception as e:
-                                pass
+                                logger.error(f"Error processing response from server: {e}")
                     await ctx.send(fulltext)
                 else:
                     await ctx.send("An error occurred while querying the ChatGPT API.")
