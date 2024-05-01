@@ -2,7 +2,7 @@ from redbot.core import commands
 import discord
 import pytgpt.gpt4free as gpt4free
 
-class GPT4FreeCog(commands.Cog):
+class BetaAlpha(commands.Cog):
     """Cog to interact with GPT4Free using Feedough provider."""
 
     def __init__(self, bot):
@@ -20,4 +20,4 @@ class GPT4FreeCog(commands.Cog):
 
 # Setup function to add this cog to Redbot
 def setup(bot):
-    bot.add_cog(GPT4FreeCog(bot))
+    bot.add_cog(BetaAlpha(bot))
