@@ -1,7 +1,7 @@
 import io
 from redbot.core import commands
 import pytgpt.gpt4free as gpt4free
-from pytgpt.imager import Imager
+from pytgpt.imager import Imager, Prodia  # Import both Imager and Prodia
 import discord
 
 class BetaAlpha(commands.Cog):
@@ -54,7 +54,8 @@ class BetaAlpha(commands.Cog):
         else:
             img = Imager()
 
-        img_generator = img.generate(prompt, amount=3, stream=True)
+        # Assuming generate is an async method
+        img_generator = await img.generate(prompt, amount=3, stream=True)
         
         for image_data in img_generator:
             image_bytes = io.BytesIO(image_data)
