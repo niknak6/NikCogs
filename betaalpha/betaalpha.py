@@ -1,8 +1,10 @@
 from redbot.core import commands
 import pytgpt.gpt4free as gpt4free
+from pytgpt.imager import Imager
+import discord
 
 class BetaAlpha(commands.Cog):
-    """A simple cog named BetaAlpha with a testgpt and gptclear commands."""
+    """A simple cog named BetaAlpha with testgpt, gptclear, and generateimg commands."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -14,9 +16,7 @@ class BetaAlpha(commands.Cog):
         """Responds with output from the GPT4FREE model, using the conversation history if enabled."""
         gpt_bot = gpt4free.GPT4FREE(provider="Feedough", is_conversation=self.is_conversation)
         if self.is_conversation:
-            # Append the new prompt to history
             self.history.append(prompt)
-            # Join the history into a single string to pass as context
             full_prompt = "\n".join(self.history)
             response = await self.bot.loop.run_in_executor(None, gpt_bot.chat, full_prompt)
         else:
@@ -24,14 +24,23 @@ class BetaAlpha(commands.Cog):
         
         await ctx.send(response)
         if self.is_conversation:
-            # Append the response to history
             self.history.append(response)
 
     @commands.command()
     async def gptclear(self, ctx):
         """Clears the conversation history without toggling the conversation mode."""
-        self.history = []  # Clear the history
+        self.history = []
         await ctx.send("Conversation history has been cleared.")
+
+    @commands.command()
+    async def generateimg(self, ctx, *, prompt: str):
+        """Generates images based on the provided prompt and sends them in the chat."""
+        img = Imager()
+        img_generator = img.generate(prompt, amount=3, stream=True)
+        
+        for image in img_generator:
+            with discord.File(image, filename=f"{prompt}.png") as file:
+                await ctx.send(file=file)
 
 def setup(bot):
     bot.add_cog(BetaAlpha(bot))
