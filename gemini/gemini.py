@@ -4,7 +4,6 @@ import discord
 from redbot.core import commands, Config
 import textwrap
 from pytgpt.imager import Imager
-import asyncio
 
 class Gemini(commands.Cog):
     """A Discord bot that uses gpt4free and Imager to interact with users in text and image formats."""
@@ -59,16 +58,9 @@ class Gemini(commands.Cog):
             prompt = cleaned_text[8:].strip()  # Assuming 'GENERATE ' is 8 characters long
             img = Imager()
 
-            # Create a list of tasks for generating images concurrently
-            tasks = [self.bot.loop.run_in_executor(None, img.generate, prompt, 1, False) for _ in range(5)]
-            
-            # Wait for all tasks to complete
-            results = await asyncio.gather(*tasks)
-
-            # Process each result and prepare files
             files = []
-            for result in results:
-                image_data = result[0]  # Assuming each result is a list with one image
+            for _ in range(10):  # Generate 10 images one by one
+                image_data = img.generate(prompt, amount=1, stream=False)[0]  # Generate one image at a time
                 image_bytes = io.BytesIO(image_data)
                 image_bytes.seek(0)
                 files.append(discord.File(image_bytes, filename=f"{prompt}_{len(files)+1}.png"))
