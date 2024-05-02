@@ -37,6 +37,7 @@ class Gemini(commands.Cog):
         # Check if the message is a reply to the bot's message
         if message.reference and message.reference.resolved:
             if message.reference.resolved.author == self.bot.user:
+                # Treat the reply as a direct interaction
                 original_msg_content = message.reference.resolved.content
                 if original_msg_content not in self.history:
                     self.history.append(original_msg_content)  # Add bot's message to history if not present
