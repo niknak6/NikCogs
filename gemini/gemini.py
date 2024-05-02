@@ -57,13 +57,13 @@ class Gemini(commands.Cog):
             await message.add_reaction('🎨')
             prompt = cleaned_text[8:].strip()  # Assuming 'GENERATE ' is 8 characters long
             img = Imager()
+            img_generator = img.generate(prompt, amount=6, stream=False)  # Generate 10 images
 
             files = []
-            for _ in range(6):  # Generate 10 images one by one
-                image_data = img.generate(prompt, amount=1, stream=False)[0]  # Generate one image at a time
+            for image_data in img_generator:
                 image_bytes = io.BytesIO(image_data)
                 image_bytes.seek(0)
-                files.append(discord.File(image_bytes, filename=f"{prompt}_{len(files)+1}.png"))
+                files.append(discord.File(image_bytes, filename=f"{prompt}.png"))
 
             if files:
                 await message.channel.send(content="Here are your images:", files=files)
