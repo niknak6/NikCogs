@@ -3,7 +3,6 @@ import re
 import discord
 from redbot.core import commands, Config
 import textwrap
-import pytgpt.gpt4free as gpt4free
 from pytgpt.imager import Imager
 
 class Gemini(commands.Cog):
@@ -14,6 +13,11 @@ class Gemini(commands.Cog):
         self.config = Config.get_conf(self, identifier=1234567890)
         self.is_conversation = True
         self.history = []
+
+    @commands.command()
+    @commands.is_owner()
+    async def setapikey(self, ctx, key: str):
+        await ctx.send("API key setting not required for gpt4free or Imager.")
 
     @commands.command()
     @commands.is_owner()
@@ -53,14 +57,16 @@ class Gemini(commands.Cog):
             await message.add_reaction('🎨')
             prompt = cleaned_text[8:].strip()  # Assuming 'GENERATE ' is 8 characters long
             img = Imager()
-            img_generator = img.generate(prompt, amount=1, stream=False)  # This returns a list
+            img_generator = img.generate(prompt, amount=10, stream=False)  # Generate 10 images
 
-            # Check if any images were generated
-            if img_generator:
-                image_data = img_generator[0]  # Get the first image data from the list
+            files = []
+            for image_data in img_generator:
                 image_bytes = io.BytesIO(image_data)
                 image_bytes.seek(0)
-                await message.channel.send(file=discord.File(image_bytes, filename="generated_image.png"))
+                files.append(discord.File(image_bytes, filename=f"{prompt}.png"))
+
+            if files:
+                await message.channel.send(content="Here are your images:", files=files)
             else:
                 await message.channel.send("No images were generated.")
 
