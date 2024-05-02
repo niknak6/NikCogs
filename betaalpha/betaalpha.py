@@ -39,9 +39,9 @@ class BetaAlpha(commands.Cog):
         # Send a message that images are being generated
         message = await ctx.send("Generating...")
 
-        # Start generating images
-        img = Imager()
-        img_generator = img.generate(prompt, amount=10, stream=False)
+        # Start generating images using Prodia
+        img = Prodia()  # Changed from Imager() to Prodia()
+        img_generator = img.generate(prompt, amount=7, stream=False)
         
         # Collect all images into a list
         files = []
