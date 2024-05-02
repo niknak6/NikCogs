@@ -9,7 +9,7 @@ class BetaAlpha(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.is_conversation = False
+        self.is_conversation = True
         self.history = []
 
     @commands.command()
