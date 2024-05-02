@@ -60,7 +60,7 @@ class Gemini(commands.Cog):
             img = Imager()
 
             # Create a list of tasks for generating images concurrently
-            tasks = [self.bot.loop.run_in_executor(None, img.generate, prompt, 1, False) for _ in range(10)]
+            tasks = [self.bot.loop.run_in_executor(None, img.generate, prompt, 1, False) for _ in range(5)]
             
             # Wait for all tasks to complete
             results = await asyncio.gather(*tasks)
