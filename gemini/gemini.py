@@ -59,7 +59,7 @@ class Gemini(commands.Cog):
             img = Imager()
 
             files = []
-            for _ in range(6):  # Generate 10 images one by one
+            for _ in range(6):  # Generate 6 images one by one
                 image_data = img.generate(prompt, amount=1, stream=False)[0]  # Generate one image at a time
                 image_bytes = io.BytesIO(image_data)
                 image_bytes.seek(0)
