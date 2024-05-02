@@ -15,7 +15,7 @@ class BetaAlpha(commands.Cog):
     @commands.command()
     async def testgpt(self, ctx, *, prompt: str):
         """Responds with output from the GPT4FREE model, using the conversation history if enabled."""
-        gpt_bot = gpt4free.GPT4FREE(provider="DuckDuckGo", is_conversation=self.is_conversation, model="gpt-3.5-turbo", chat_completion=True)
+        gpt_bot = gpt4free.GPT4FREE(provider="Bing", is_conversation=self.is_conversation, model="gpt-4", chat_completion=True)
         if self.is_conversation:
             self.history.append(prompt)
             full_prompt = "\n".join(self.history)
