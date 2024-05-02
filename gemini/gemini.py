@@ -17,11 +17,6 @@ class Gemini(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def setapikey(self, ctx, key: str):
-        await ctx.send("API key setting not required for gpt4free or Imager.")
-
-    @commands.command()
-    @commands.is_owner()
     async def maxhistory(self, ctx, number: int):
         if number < 0:
             await ctx.send("The number must be positive or zero.")
@@ -36,8 +31,10 @@ class Gemini(commands.Cog):
 
         # Check if the message is a reply to the bot's message
         if message.reference and message.reference.resolved:
-            if message.reference.resolved.author == self.bot.user:
-                original_msg_content = message.reference.resolved.content
+            resolved_message = message.reference.resolved
+            if resolved_message.author == self.bot.user:
+                # Ensure we are working with the correct content type (e.g., handling embeds or plain text)
+                original_msg_content = resolved_message.content if resolved_message.content else ''
                 # Check if the bot's message starts with "Shared by:"
                 if original_msg_content.startswith("Shared by:"):
                     return  # Do not respond to this message
@@ -48,6 +45,7 @@ class Gemini(commands.Cog):
                 cleaned_text = self.clean_discord_message(message.content)
                 await self.generate_response(message, cleaned_text)
                 return
+
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
             if not await self.handle_commands(message, cleaned_text):
