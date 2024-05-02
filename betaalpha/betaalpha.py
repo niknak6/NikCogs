@@ -1,7 +1,7 @@
 import io
 from redbot.core import commands
 import pytgpt.gpt4free as gpt4free
-from pytgpt.imager import Imager, Prodia
+from pytgpt.imager import Imager
 import discord
 
 class BetaAlpha(commands.Cog):
@@ -39,9 +39,9 @@ class BetaAlpha(commands.Cog):
         # Send a message that images are being generated
         message = await ctx.send("Generating...")
 
-        # Start generating images using Prodia
-        img = Prodia()  # Changed from Imager() to Prodia()
-        img_generator = img.generate(prompt, amount=7, stream=False)
+        # Start generating images
+        img = Imager()
+        img_generator = img.generate(prompt, amount=10, stream=False)
         
         # Collect all images into a list
         files = []
