@@ -9,13 +9,13 @@ class BetaAlpha(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.is_conversation = False
+        self.is_conversation = True
         self.history = []
 
     @commands.command()
     async def testgpt(self, ctx, *, prompt: str):
         """Responds with output from the GPT4FREE model, using the conversation history if enabled."""
-        gpt_bot = gpt4free.GPT4FREE(provider="Feedough", is_conversation=self.is_conversation, model="gpt-3.5-turbo")
+        gpt_bot = gpt4free.GPT4FREE(provider="Bing", is_conversation=self.is_conversation, model="gpt-3.5-turbo", chat_completion=True)
         if self.is_conversation:
             self.history.append(prompt)
             full_prompt = "\n".join(self.history)
