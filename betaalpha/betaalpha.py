@@ -41,7 +41,7 @@ class BetaAlpha(commands.Cog):
 
         # Start generating images
         img = Imager()
-        img_generator = img.generate(prompt, amount=7, stream=False)
+        img_generator = img.generate(prompt, amount=10, stream=False)
         
         # Collect all images into a list
         files = []
