@@ -1,7 +1,7 @@
 import io
 from redbot.core import commands
 import pytgpt.gpt4free as gpt4free
-from pytgpt.imager import Imager
+from pytgpt.imager import Imager, Prodia
 import discord
 
 class BetaAlpha(commands.Cog):
