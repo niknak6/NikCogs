@@ -3,6 +3,7 @@ import re
 import discord
 from redbot.core import commands, Config
 import textwrap
+import pytgpt.gpt4free as gpt4free
 from pytgpt.imager import Imager
 
 class Gemini(commands.Cog):
