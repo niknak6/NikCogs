@@ -31,8 +31,18 @@ class Gemini(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author == self.bot.user or (message.reference and await self.is_bot_shared_message(message)):
+        if message.author == self.bot.user:
             return
+
+        # Check if the message is a reply to the bot's message
+        if message.reference and message.reference.resolved:
+            if message.reference.resolved.author == self.bot.user:
+                # Treat the reply as a direct interaction
+                if message.content not in self.history:
+                    self.history.append(message.content)
+                cleaned_text = self.clean_discord_message(message.content)
+                await self.generate_response(message, cleaned_text)
+                return
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
             if not await self.handle_commands(message, cleaned_text):
