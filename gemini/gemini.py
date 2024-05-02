@@ -51,13 +51,18 @@ class Gemini(commands.Cog):
     async def generate_image(self, message, cleaned_text):
         async with message.channel.typing():
             await message.add_reaction('🎨')
-            prompt = cleaned_text[8:].strip()
+            prompt = cleaned_text[8:].strip()  # Assuming 'GENERATE ' is 8 characters long
             img = Imager()
-            img_generator = img.generate(prompt, amount=1, stream=False)
-            image_data = next(img_generator)
-            image_bytes = io.BytesIO(image_data)
-            image_bytes.seek(0)
-            await message.channel.send(file=discord.File(image_bytes, filename="generated_image.png"))
+            img_generator = img.generate(prompt, amount=1, stream=False)  # This returns a list
+
+            # Check if any images were generated
+            if img_generator:
+                image_data = img_generator[0]  # Get the first image data from the list
+                image_bytes = io.BytesIO(image_data)
+                image_bytes.seek(0)
+                await message.channel.send(file=discord.File(image_bytes, filename="generated_image.png"))
+            else:
+                await message.channel.send("No images were generated.")
 
     async def generate_response(self, message, cleaned_text):
         async with message.channel.typing():
