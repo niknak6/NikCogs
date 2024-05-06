@@ -212,42 +212,52 @@ class TreacheryPokemon(commands.Cog):
     async def on_message_without_command(self, message):
         if message.author.bot or not message.guild:
             return
+
         spawn_channel = discord.utils.get(message.guild.channels, id=await self.config.guild(message.guild).spawn_channel())
         spawn_rate = await self.config.guild(message.guild).spawn_rate()
-        if message.channel == spawn_channel and random.random() < spawn_rate:
-            ctx = await self.bot.get_context(message)
-            # Ensure there is a valid prefix, use a default if none is set
-            command_prefix = ctx.prefix if ctx.prefix else "!"
-            ctx.message.content = command_prefix + "spawn"  # Set content to just the command
-            await self.bot.get_command("spawn").invoke(ctx)
-        elif message.channel == spawn_channel:
-            self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
-            user_party = self.cur.fetchone()
-            if user_party is not None:
-                leveled_up = []
-                for position in user_party:
-                    if position != '-':
-                        poketag = position.lower()
-                        self.cur.execute('SELECT level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
-                        level, experience = self.cur.fetchone()
-                        messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
-                        if experience >= messages_required:
-                            level += 1
-                            experience = 0
-                            self.cur.execute('UPDATE pokedex SET level = ?, experience = ? WHERE member_id = ? AND poketag = ?', (level, experience, message.author.id, poketag))
-                            self.conn.commit()
-                            self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
-                            pokemon_name = self.cur.fetchone()[0]
-                            if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 99]:
-                                leveled_up.append((pokemon_name, level))
-                        else:
-                            experience += 1
-                            self.cur.execute('UPDATE pokedex SET experience = ? WHERE member_id = ? AND poketag = ?', (experience, message.author.id, poketag))
-                            self.conn.commit()
-                if leveled_up:
-                    output = [f"{pokemon_name.capitalize()} has leveled up to level {level}!" for pokemon_name, level in leveled_up]
-                    output = "\n".join(output)
-                    await message.channel.send(f"{message.author.mention}, your Pokémon have leveled up!\n\n{output}")
+        cooldown_minutes = await self.config.guild(message.guild).spawn_cooldown()  # Retrieve the cooldown in minutes
+
+        current_time = datetime.datetime.now()
+        last_spawn_time = self.last_spawn_times.get(spawn_channel.id, datetime.datetime.min)
+
+        # Convert cooldown from minutes to seconds for comparison
+        cooldown_seconds = cooldown_minutes * 60
+
+        if message.channel == spawn_channel and (current_time - last_spawn_time).total_seconds() >= cooldown_seconds:
+            if random.random() < spawn_rate:
+                ctx = await self.bot.get_context(message)
+                command_prefix = ctx.prefix if ctx.prefix else "!"
+                ctx.message.content = command_prefix + "spawn"
+                await self.bot.invoke(ctx)
+                self.last_spawn_times[spawn_channel.id] = current_time  # Update the last spawn time
+            elif message.channel == spawn_channel:
+                self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
+                user_party = self.cur.fetchone()
+                if user_party is not None:
+                    leveled_up = []
+                    for position in user_party:
+                        if position != '-':
+                            poketag = position.lower()
+                            self.cur.execute('SELECT level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
+                            level, experience = self.cur.fetchone()
+                            messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
+                            if experience >= messages_required:
+                                level += 1
+                                experience = 0
+                                self.cur.execute('UPDATE pokedex SET level = ?, experience = ? WHERE member_id = ? AND poketag = ?', (level, experience, message.author.id, poketag))
+                                self.conn.commit()
+                                self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
+                                pokemon_name = self.cur.fetchone()[0]
+                                if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 99]:
+                                    leveled_up.append((pokemon_name, level))
+                            else:
+                                experience += 1
+                                self.cur.execute('UPDATE pokedex SET experience = ? WHERE member_id = ? AND poketag = ?', (experience, message.author.id, poketag))
+                                self.conn.commit()
+                    if leveled_up:
+                        output = [f"{pokemon_name.capitalize()} has leveled up to level {level}!" for pokemon_name, level in leveled_up]
+                        output = "\n".join(output)
+                        await message.channel.send(f"{message.author.mention}, your Pokémon have leveled up!\n\n{output}")
 
     @commands.guild_only()
     @commands.command(name="catch")
