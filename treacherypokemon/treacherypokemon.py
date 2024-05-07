@@ -432,113 +432,69 @@ class TreacheryPokemon(commands.Cog):
         if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
             return await ctx.send("Cannot start battle due to one of the conditions not being met.")
 
-        # Helper function to format move names
-        def format_move_name(move_name):
-            return ' '.join(word.capitalize() for word in move_name.replace('-', ' ').split())
-
-        # Fetch and validate parties
         def fetch_party(member_id):
-            return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0]
-                    for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
-                    if tag != '-']
+            return [row[0] for row in self.cur.execute('''
+                SELECT p.pokemon_name
+                FROM party pa
+                JOIN pokedex p ON pa.member_id = p.member_id AND pa.position1 = p.poketag
+                WHERE pa.member_id = ?
+            ''', (member_id,)) if row[0] != '-']
 
         player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
         if not player1_party or not player2_party:
             raise commands.CommandError("Both players must have a party.")
 
-        # Initialize health
         player1_hp = {pokemon: self.get_pokemon_health(ctx.author.id, pokemon) for pokemon in player1_party}
         player2_hp = {pokemon: self.get_pokemon_health(opponent.id, pokemon) for pokemon in player2_party}
 
-        # Get the initial Pokémon names for sprite generation
-        player1_pokemon_name = player1_party[0]
-        player2_pokemon_name = player2_party[0]
-
-        # Generate the combined sprite image
-        combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
-
-        # Create an embed with the combined image
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description="")
         battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_party[0]} HP", value="Loading...", inline=True)
         battle_embed.add_field(name=f"{opponent.display_name}'s {player2_party[0]} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
         battle_embed.set_image(url="attachment://combined_sprite.png")
 
-        # Send the initial battle message with the combined image
-        battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
-
-        # Add reactions to the battle message for interactive battling
+        battle_message = await ctx.send(file=self.combatsprite(ctx, player1_party[0], player2_party[0]), embed=battle_embed)
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
-        # Helper function to fetch the Pokémon's type
         async def fetch_pokemon_type(pokemon_name):
-            pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
             async with aiohttp.ClientSession() as session:
-                async with session.get(pokemon_url) as resp:
+                async with session.get(f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}") as resp:
                     pokemon_data = await resp.json()
-                    types = [t['type']['name'] for t in pokemon_data['types']]
-                    return types
+                    return [t['type']['name'] for t in pokemon_data['types']]
 
-        # Battle loop
         while player1_party and player2_party:
             moves_display = ""
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 pokemon = player_party[0]
                 move, type_, move_power = self.get_random_move(ctx, pokemon)
-                move_power = move_power or 0  # Ensure move_power is not None
-                
-                # Simplified fetching and handling of type data
+                move_power = move_power or 0
+
                 async with aiohttp.ClientSession() as session:
                     async with session.get(f"{self.type_url}{type_}") as response:
-                        if response.status == 200:
-                            type_data = await response.json()
-                            damage_relations = type_data.get('damage_relations', {})
-                        else:
-                            damage_relations = {}
+                        damage_relations = (await response.json()).get('damage_relations', {}) if response.status == 200 else {}
 
                 opposing_pokemon_name = player2_party[0] if player_display == ctx.author.display_name else player1_party[0]
                 opposing_types = await fetch_pokemon_type(opposing_pokemon_name)
 
-                # Simplified multiplier calculation with default fallback
-                multipliers = {
-                    'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
-                }
-                multiplier = 1.0  # Default multiplier
-                for opposing_type in opposing_types:
-                    for key, value in multipliers.items():
-                        if opposing_type in [relation['name'] for relation in damage_relations.get(key, [])]:
-                            multiplier = max(multiplier, value)
-                            break  # Stop checking if a match is found
+                multipliers = {'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0}
+                multiplier = max([multipliers.get(key, 1.0) for key in multipliers if any(t in damage_relations.get(key, []) for t in opposing_types)], default=1.0)
 
-                # Calculate damage with simplified lambda function
-                calculate_damage = lambda move_power, multiplier: 10 if move_power == 0 else move_power * multiplier
-                damage = calculate_damage(move_power, multiplier)
-                # Determine if the current player is player1 or player2
-                if player_party == player1_party:
-                    # If player1 is attacking, apply damage to player2's Pokémon
-                    player2_hp[player2_party[0]] = max(player2_hp[player2_party[0]] - damage, 0)
-                else:
-                    # If player2 is attacking, apply damage to player1's Pokémon
-                    player1_hp[player1_party[0]] = max(player1_hp[player1_party[0]] - damage, 0)
+                damage = 10 if move_power == 0 else move_power * multiplier
+                player_hp[opposing_pokemon_name] = max(player_hp[opposing_pokemon_name] - damage, 0)
 
-                # Update battle embed
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
                 battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
                 formatted_move_name = "No move available" if move == "NULL" else ' '.join(word.capitalize() for word in move.replace('-', ' ').split())
 
-                # Include the damage in the moves display
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
                 if player_hp[pokemon] <= 0:
                     player_party.pop(0)
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
                     if player_party:
                         new_pokemon = player_party[0]
-                        player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if player_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
-                        combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
-                        battle_embed.set_image(url="attachment://combined_sprite.png")
                         battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{player_hp[new_pokemon]}", inline=True)
-                        await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
+                        await battle_message.edit(embed=battle_embed, attachments=[self.combatsprite(ctx, player1_party[0], player2_party[0])])
                         await asyncio.sleep(3)
                     else:
                         winner = ctx.author.display_name if player_display != ctx.author.display_name else opponent.display_name
@@ -547,25 +503,16 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.set_image(url=None)
                         await battle_message.edit(content="", embed=battle_embed, attachments=[])
 
-                        # Get the winner's party
-                        if winner == ctx.author.display_name:
-                            winner_id = ctx.author.id
-                            loser_id = opponent.id
-                        else:
-                            winner_id = opponent.id
-                            loser_id = ctx.author.id
-
-                        self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (winner_id,))
-                        winner_party = self.cur.fetchone()
-
-                        # Update the levels of the winner's Pokémon
-                        for poketag in winner_party:
-                            if poketag != '-':
-                                self.cur.execute('UPDATE pokedex SET level = level + 0 WHERE member_id = ? AND poketag = ?', (winner_id, poketag.lower()))
-
+                        winner_id = ctx.author.id if winner == ctx.author.display_name else opponent.id
+                        self.cur.execute('''
+                            UPDATE pokedex 
+                            SET level = level + 0
+                            WHERE member_id = ? AND poketag IN (
+                                SELECT position1 FROM party WHERE member_id = ?
+                            )
+                        ''', (winner_id, winner_id))
                         self.conn.commit()
 
-                        # Inform the winner that their Pokémon have leveled up
                         winner_member = ctx.guild.get_member(winner_id)
                         await ctx.send(f"{winner_member.mention}, your Pokémon have leveled up after winning the battle!")
 
@@ -576,11 +523,10 @@ class TreacheryPokemon(commands.Cog):
             await battle_message.edit(embed=battle_embed)
             await asyncio.sleep(.5)
 
-        # If the loop exits naturally, check for any remaining Pokémon and declare the winner
         winner = ctx.author.display_name if player2_party else opponent.display_name
         battle_embed.clear_fields()
         battle_embed.description += f"\n**{winner} wins the battle!**"
-        battle_embed.set_image(url=None)  # Remove the image from the embed
+        battle_embed.set_image(url=None)
         await battle_message.edit(content="", embed=battle_embed, attachments=[])
         del self.battles[ctx.author.id], self.battles[opponent.id]
 
