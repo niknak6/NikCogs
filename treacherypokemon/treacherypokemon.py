@@ -463,7 +463,6 @@ class TreacheryPokemon(commands.Cog):
                     pokemon_data = await resp.json()
                     return [t['type']['name'] for t in pokemon_data['types']]
 
-        # Battle loop
         while player1_party and player2_party:
             moves_display = ""
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
@@ -482,22 +481,18 @@ class TreacheryPokemon(commands.Cog):
                 multiplier = max([multipliers.get(key, 1.0) for key in multipliers if any(t in damage_relations.get(key, []) for t in opposing_types)], default=1.0)
 
                 damage = 10 if move_power == 0 else move_power * multiplier
-                
-                # Update the opposing player's HP
-                opposing_player_hp = player2_hp if player_display == ctx.author.display_name else player1_hp
-                opposing_player_hp[opposing_pokemon_name] = max(opposing_player_hp.get(opposing_pokemon_name, 0) - damage, 0)
+                player_hp[opposing_pokemon_name] = max(player_hp[opposing_pokemon_name] - damage, 0)
 
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
                 battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
                 formatted_move_name = "No move available" if move == "NULL" else ' '.join(word.capitalize() for word in move.replace('-', ' ').split())
 
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
-                if opposing_player_hp[opposing_pokemon_name] <= 0:
+                if player_hp[pokemon] <= 0:
                     player_party.pop(0)
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
                     if player_party:
                         new_pokemon = player_party[0]
-                        player_hp[new_pokemon] = self.get_pokemon_health(ctx.author.id if player_display == ctx.author.display_name else opponent.id, new_pokemon)
                         battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{player_hp[new_pokemon]}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[self.combatsprite(ctx, player1_party[0], player2_party[0])])
                         await asyncio.sleep(3)
