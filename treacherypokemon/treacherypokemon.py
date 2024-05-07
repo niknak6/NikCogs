@@ -433,12 +433,12 @@ class TreacheryPokemon(commands.Cog):
             return await ctx.send("Cannot start battle due to one of the conditions not being met.")
 
         def fetch_party(member_id):
-            party_positions = self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
-            if party_positions:
-                return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, position.lower())).fetchone()[0]
-                        for position in party_positions if position != '-']
-            else:
-                return []
+            return [row[0] for row in self.cur.execute('''
+                SELECT p.pokemon_name
+                FROM party pa
+                JOIN pokedex p ON pa.member_id = p.member_id AND pa.position1 = p.poketag
+                WHERE pa.member_id = ?
+            ''', (member_id,)) if row[0] != '-']
 
         player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
         if not player1_party or not player2_party:
