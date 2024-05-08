@@ -29,23 +29,21 @@ class Gemini(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        # Check if the message is a reply to the bot's message
+        # Check if the message is a reply
         if message.reference and message.reference.resolved:
             resolved_message = message.reference.resolved
-            if resolved_message.author == self.bot.user:
-                # Ensure we are working with the correct content type (e.g., handling embeds or plain text)
-                original_msg_content = resolved_message.content if resolved_message.content else ''
-                # Check if the bot's message starts with "Shared by:"
-                if original_msg_content.startswith("Shared by:"):
-                    return  # Do not respond to this message
+            if resolved_message.author != self.bot.user:
+                # Add the content of the replied-to message to history if not present
+                if resolved_message.content and resolved_message.content not in self.history:
+                    self.history.append(resolved_message.content)
 
-                if original_msg_content not in self.history:
-                    self.history.append(original_msg_content)  # Add bot's message to history if not present
-
+            # If the bot is mentioned in the reply, handle it
+            if self.bot.user in message.mentions:
                 cleaned_text = self.clean_discord_message(message.content)
                 await self.generate_response(message, cleaned_text)
                 return
 
+        # Existing check for direct mentions or DMs
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
             if not await self.handle_commands(message, cleaned_text):
