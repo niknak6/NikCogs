@@ -214,11 +214,12 @@ class TreacheryPokemon(commands.Cog):
             return
         spawn_channel = discord.utils.get(message.guild.channels, id=await self.config.guild(message.guild).spawn_channel())
         spawn_rate = await self.config.guild(message.guild).spawn_rate()
-        if message.channel == spawn_channel and random.random() < spawn_rate:
+        spawn_cooldown = await self.config.guild(message.guild).spawn_cooldown()
+        now = datetime.datetime.now()
+        if message.channel == spawn_channel and random.random() < spawn_rate and (self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60):
             ctx = await self.bot.get_context(message)
-            # Ensure there is a valid prefix, use a default if none is set
             command_prefix = ctx.prefix if ctx.prefix else "!"
-            ctx.message.content = command_prefix + "spawn"  # Set content to just the command
+            ctx.message.content = command_prefix + "spawn"
             await self.bot.get_command("spawn").invoke(ctx)
         elif message.channel == spawn_channel:
             self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
