@@ -91,48 +91,42 @@ class TreacheryPokemon(commands.Cog):
         await ctx.send("Update successful.")
 
     def get_random_move(self, ctx, pokemon_name):
-        # Fetch the member's ID from the context
         member_id = ctx.author.id
-
-        # Fetch the Pokémon's level from the database
         self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
-        result = self.cur.fetchone()
-        pokemon_level = result[0] if result else 1  # Default to level 1 if not found
+        pokemon_level = self.cur.fetchone()[0] if self.cur.fetchone() else 1
 
-        # Proceed with fetching the Pokémon's moves from the API
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
         pokemon_data = requests.get(pokemon_url).json()
-        
-        # Filter moves by level_learned_at and move_learn_method
-        moves = [move for move in pokemon_data['moves']
-                if any(version_group['level_learned_at'] <= pokemon_level and 
-                        version_group['move_learn_method']['name'] == 'level-up'
-                        for version_group in move['version_group_details'])]
-        
-        # Define a set of moves to blacklist
+
         blacklisted_moves = {
             'after-you', 'quash', 'helping-hand', 'ally-switch', 
             'follow-me', 'rage-powder', 'aromatic-mist', 
             'hold-hands', 'spotlight'
         }
 
-        # Filter out blacklisted moves
-        moves = [move for move in moves if move['move']['name'] not in blacklisted_moves]
+        valid_moves = [
+            move for move in pokemon_data['moves']
+            if move['move']['name'] not in blacklisted_moves and
+            any(
+                vg['level_learned_at'] <= pokemon_level and
+                vg['move_learn_method']['name'] == 'level-up'
+                for vg in move['version_group_details']
+            )
+        ]
 
-        # Filter moves to only include those with a power value
-        moves_with_power = [move for move in moves if requests.get(move['move']['url']).json().get('power')]
+        moves_with_power = [
+            move for move in valid_moves
+            if requests.get(move['move']['url']).json().get('power')
+        ]
 
-        # If no moves with power are available, default to "NULL"
         if not moves_with_power:
-            return "NULL", "NULL", 0  # Return "NULL" as the move and type, and 0 as the default move power
+            return "NULL", "NULL", 0
 
-        # Select a random move from the list of moves with power
-        move = random.choice(moves_with_power)
-        move_data = requests.get(move['move']['url']).json()
-        move_power = move_data.get('power', 0)  # Use get() to return 0 if 'power' key is not present, though this should not happen now
+        selected_move = random.choice(moves_with_power)
+        move_data = requests.get(selected_move['move']['url']).json()
+        move_power = move_data.get('power', 0)
 
-        return move['move']['name'], move_data['type']['name'], move_power
-
+        return selected_move['move']['name'], move_data['type']['name'], move_power
 
     def get_pokemon_health(self, member_id, pokemon_name):
         # Fetch the Pokémon's poketag and level from the database using the member_id and pokemon_name
