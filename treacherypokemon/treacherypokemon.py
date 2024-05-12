@@ -437,7 +437,7 @@ class TreacheryPokemon(commands.Cog):
 
         battle_embed = await self.create_battle_embed(ctx, opponent, player1_party, player2_party)
         combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
-        battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
+    battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
@@ -488,12 +488,12 @@ class TreacheryPokemon(commands.Cog):
             pokemon = player_party[0]
             move, type_, move_power = self.get_random_move(ctx, pokemon)
             move_power = move_power or 0
-            damage, multiplier = await self.calculate_damage(ctx, player_display, player1_party, player2_party, type_, move_power)
+            damage, multiplier = await self.calculate_damage(ctx, player_display, player1_party, player2_party, type_)
             await self.apply_damage(player_party, player_hp, player_display, damage)
             moves_display += await self.format_move_display(player_display, pokemon, move, damage, multiplier)
         return moves_display
 
-    async def calculate_damage(self, ctx, player_display, player1_party, player2_party, type_, move_power):
+    async def calculate_damage(self, ctx, player_display, player1_party, player2_party, type_):
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{self.type_url}{type_}") as response:
                 if response.status == 200:
