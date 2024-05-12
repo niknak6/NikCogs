@@ -436,7 +436,8 @@ class TreacheryPokemon(commands.Cog):
         player1_pokemon_name, player2_pokemon_name = player1_party[0], player2_party[0]
 
         battle_embed = await self.create_battle_embed(ctx, opponent, player1_party, player2_party)
-        battle_message = await ctx.send(file=await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name), embed=battle_embed)
+        combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
+        battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
