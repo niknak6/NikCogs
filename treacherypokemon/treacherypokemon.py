@@ -239,7 +239,7 @@ class TreacheryPokemon(commands.Cog):
                             self.conn.commit()
                             self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
                             pokemon_name = self.cur.fetchone()[0]
-                            if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 99]:
+                            if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
                                 leveled_up.append((pokemon_name, level))
                         else:
                             experience += 1
