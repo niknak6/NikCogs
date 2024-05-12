@@ -93,7 +93,8 @@ class TreacheryPokemon(commands.Cog):
     def get_random_move(self, ctx, pokemon_name):
         member_id = ctx.author.id
         self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
-        pokemon_level = self.cur.fetchone()[0] if self.cur.fetchone() else 1
+        result = self.cur.fetchone()
+        pokemon_level = result[0] if result else 1
 
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
         pokemon_data = requests.get(pokemon_url).json()
