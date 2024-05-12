@@ -29,10 +29,12 @@ class Gemini(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        # Check if the message is a reply
+        # Check if the message is a reply to the bot's message starting with "Shared by:"
         if message.reference and message.reference.resolved:
             resolved_message = message.reference.resolved
-            if resolved_message.author != self.bot.user:
+            if resolved_message.author == self.bot.user:
+                if resolved_message.content.startswith("Shared by:"):
+                    return  # Do not respond to these messages
                 # Add the content of the replied-to message to history if not present
                 if resolved_message.content and resolved_message.content not in self.history:
                     self.history.append(resolved_message.content)
