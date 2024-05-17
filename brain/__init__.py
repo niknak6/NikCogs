@@ -1,7 +1,7 @@
 # Import the cog class
-from .gemini import Gemini
+from .brain import Brain
 
 # Define the setup function
 async def setup(bot):
     # Add the cog to the bot
-    await bot.add_cog(Gemini(bot))
+    await bot.add_cog(Brain(bot))
