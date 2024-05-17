@@ -93,56 +93,36 @@ class RequestEmoji(commands.Cog):
         if reaction.emoji == "\u274c":
             await ctx.send(f"The emoji request for {name} was denied by {user.mention} for {ctx.author.mention}.")
 
-# Define a function that resizes an image file using the appropriate function based on the format
 def resize_image_file(image_data, size):
-    # Detect the image format using imghdr
     image_format = imghdr.what(None, image_data)
-    # If the image format is gif, use the resize_gif function
     if image_format == "gif":
         return resize_gif(image_data, size)
-    # If the image format is png or jpeg, use the resize_image function
     elif image_format in ["png", "jpeg"]:
         return resize_image(image_data, size)
-    # If the image format is something else or unknown, raise an error and return None
     else:
         raise ValueError(f"Unsupported image format: {image_format}")
         return None
 
-# Define a function that resizes a gif file using ImageMagick and preserves the animation
 def resize_gif(image_data, size):
-   # Save the image data to a temporary file as a gif file
-   temp_file = "temp.gif"
-   with open(temp_file, "wb") as f:
-       f.write(image_data)
-   # Use ImageMagick to resize the gif file and save it to another temporary file
-   resized_file = "resized.gif"
-   params = ['convert', '-resize', f'{size[0]}x{size[1]}', temp_file, resized_file]
-   subprocess.check_call(params)
-   # Read the resized file as bytes
-   with open(resized_file, "rb") as f:
-       resized_image_data = f.read()
-   # Delete the temporary files
-   os.remove(temp_file)
-   os.remove(resized_file)
-   # Return the resized image data
-   return resized_image_data
+    temp_file = "temp.gif"
+    with open(temp_file, "wb") as f:
+        f.write(image_data)
+    resized_file = "resized.gif"
+    params = ['convert', '-resize', f'{size[0]}x{size[1]}', temp_file, resized_file]
+    subprocess.check_call(params)
+    with open(resized_file, "rb") as f:
+        resized_image_data = f.read()
+    os.remove(temp_file)
+    os.remove(resized_file)
+    return resized_image_data
 
-# Define a function that resizes an image using thumbnail algorithm and preserves the aspect ratio
 def resize_image(image_data, size):
-    # Open the image data with PIL
     image = Image.open(io.BytesIO(image_data))
-    # Resize the image using thumbnail algorithm
     image.thumbnail(size, Image.LANCZOS)
-    # Convert the image to RGBA mode
     image = image.convert("RGBA")
-    # Save the image to a BytesIO object as a PNG file
     output = io.BytesIO()
     image.save(output, format="PNG")
-    # Seek to the beginning of the output
     output.seek(0)
-    # Read the output as bytes
-    resized_image_data = output.read()a
-    # Close the output
+    resized_image_data = output.read()
     output.close()
-    # Return the resized image data
     return resized_image_data
