@@ -29,23 +29,19 @@ class Brain(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        # Check if the message is a reply to the bot's message starting with "Shared by:"
         if message.reference and message.reference.resolved:
             resolved_message = message.reference.resolved
             if resolved_message.author == self.bot.user:
                 if resolved_message.content.startswith("Shared by:"):
                     return  # Do not respond to these messages
-                # Add the content of the replied-to message to history if not present
                 if resolved_message.content and resolved_message.content not in self.history:
                     self.history.append(resolved_message.content)
 
-            # If the bot is mentioned in the reply, handle it
             if self.bot.user in message.mentions:
                 cleaned_text = self.clean_discord_message(message.content)
                 await self.generate_response(message, cleaned_text)
                 return
 
-        # Existing check for direct mentions or DMs
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
             if not await self.handle_commands(message, cleaned_text):
@@ -105,3 +101,4 @@ class Brain(commands.Cog):
         bot_mention_pattern = re.compile(f'<@!?{self.bot.user.id}>')
         cleaned_content = bot_mention_pattern.sub('', input_string).strip()
         non_mention_pattern = re.compile(r'<(?!@)[^>]+>')
+        return non_mention_pattern.sub('', cleaned_content)
