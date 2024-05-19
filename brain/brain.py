@@ -29,21 +29,27 @@ class Brain(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        # Check if the bot is mentioned or if it's a DM channel
+        # Check if the message is a reply to the bot's message starting with "Shared by:"
+        if message.reference and message.reference.resolved:
+            resolved_message = message.reference.resolved
+            if resolved_message.author == self.bot.user:
+                if resolved_message.content.startswith("Shared by:"):
+                    return  # Do not respond to these messages
+                # Add the content of the replied-to message to history if not present
+                if resolved_message.content and resolved_message.content not in self.history:
+                    self.history.append(resolved_message.content)
+
+            # If the bot is mentioned in the reply, handle it
+            if self.bot.user in message.mentions:
+                cleaned_text = self.clean_discord_message(message.content)
+                await self.generate_response(message, cleaned_text)
+                return
+
+        # Existing check for direct mentions or DMs
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
-            additional_context = None
-
-            # If the message is a reply, get the additional context
-            if message.reference and message.reference.resolved:
-                resolved_message = message.reference.resolved
-                if resolved_message.author == self.bot.user and resolved_message.content.startswith("Shared by:"):
-                    return  # Do not respond to these messages
-                additional_context = resolved_message.content if resolved_message.content else ""
-
-            # Handle commands or generate a response
             if not await self.handle_commands(message, cleaned_text):
-                await self.generate_response(message, cleaned_text, additional_context=additional_context)
+                await self.generate_response(message, cleaned_text)
 
     async def handle_commands(self, message, cleaned_text):
         command_map = {
@@ -67,8 +73,8 @@ class Brain(commands.Cog):
             img = Imager()
 
             files = []
-            for _ in range(6):
-                image_data = img.generate(prompt, amount=1, stream=False)[0]
+            for _ in range(6):  # Generate 6 images one by one
+                image_data = img.generate(prompt, amount=1, stream=False)[0]  # Generate one image at a time
                 image_bytes = io.BytesIO(image_data)
                 image_bytes.seek(0)
                 files.append(discord.File(image_bytes, filename=f"{prompt}_{len(files)+1}.png"))
@@ -78,16 +84,12 @@ class Brain(commands.Cog):
             else:
                 await message.channel.send("No images were generated.")
 
-    async def generate_response(self, message, cleaned_text, additional_context=None):
+    async def generate_response(self, message, cleaned_text):
         async with message.channel.typing():
             await message.add_reaction('💬')
             gpt_bot = gpt4free.GPT4FREE(provider="DuckDuckGo", is_conversation=self.is_conversation, model="gpt-3.5-turbo", chat_completion=True)
             if self.is_conversation:
-                if additional_context:
-                    self.history.append(additional_context)
                 self.history.append(cleaned_text)
-                # Ensure all items in history are strings
-                self.history = [item for item in self.history if isinstance(item, str) and item]
                 full_prompt = "\n".join(self.history)
                 response_text = await self.bot.loop.run_in_executor(None, gpt_bot.chat, full_prompt)
             else:
@@ -102,3 +104,5 @@ class Brain(commands.Cog):
     def clean_discord_message(self, input_string):
         bot_mention_pattern = re.compile(f'<@!?{self.bot.user.id}>')
         cleaned_content = bot_mention_pattern.sub('', input_string).strip()
+        non_mention_pattern = re.compile(r'<(?!@)[^>]+>')
+        return non_mention_pattern.sub('', cleaned_content)
