@@ -6,7 +6,7 @@ import textwrap
 import pytgpt.gpt4free as gpt4free
 from pytgpt.imager import Imager
 
-class Gemini(commands.Cog):
+class Brain(commands.Cog):
     """A Discord bot that uses gpt4free and Imager to interact with users in text and image formats."""
 
     def __init__(self, bot):
