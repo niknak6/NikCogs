@@ -29,21 +29,24 @@ class Brain(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        # Check if the message is a reply to the bot's message starting with "Shared by:"
+        # Initialize a variable to hold the combined text of the replied-to message and the new message
+        combined_text = message.content
+
+        # Check if the message is a reply and fetch the replied-to message if necessary
         if message.reference and message.reference.resolved:
             resolved_message = message.reference.resolved
-            if resolved_message.author == self.bot.user:
-                if resolved_message.content.startswith("Shared by:"):
-                    return  # Do not respond to these messages
-                # Add the content of the replied-to message to history if not present
-                if resolved_message.content and resolved_message.content not in self.history:
-                    self.history.append(resolved_message.content)
+            if resolved_message.author == self.bot.user and resolved_message.content.startswith("Shared by:"):
+                return  # Do not respond to these messages
+            # Concatenate the replied-to message content with the new message content
+            combined_text = f"{resolved_message.content} {combined_text}"
 
-            # If the bot is mentioned in the reply, handle it
-            if self.bot.user in message.mentions:
-                cleaned_text = self.clean_discord_message(message.content)
+        # Clean the combined text
+        cleaned_text = self.clean_discord_message(combined_text)
+
+        # Check if the bot is mentioned in the new message or it's a DM
+        if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
+            if not await self.handle_commands(message, cleaned_text):
                 await self.generate_response(message, cleaned_text)
-                return
 
         # Existing check for direct mentions or DMs
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
