@@ -29,20 +29,20 @@ class Gemini(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        # Check if the message is a reply to the bot's message starting with "Shared by:"
+        # Check if the message is a reply and if the bot is mentioned
         if message.reference and message.reference.resolved:
             resolved_message = message.reference.resolved
-            if resolved_message.author == self.bot.user:
-                if resolved_message.content.startswith("Shared by:"):
-                    return  # Do not respond to these messages
-                # Add the content of the replied-to message to history if not present
-                if resolved_message.content and resolved_message.content not in self.history:
-                    self.history.append(resolved_message.content)
+            if resolved_message.author == self.bot.user and resolved_message.content.startswith("Shared by:"):
+                return  # Do not respond to these messages
+
+            # Add the content of the replied-to message to history if not present
+            if resolved_message.content and resolved_message.content not in self.history:
+                self.history.append(resolved_message.content)
 
             # If the bot is mentioned in the reply, handle it
             if self.bot.user in message.mentions:
                 cleaned_text = self.clean_discord_message(message.content)
-                await self.generate_response(message, cleaned_text)
+                await self.generate_response(message, cleaned_text, additional_context=resolved_message.content)
                 return
 
         # Existing check for direct mentions or DMs
@@ -84,11 +84,13 @@ class Gemini(commands.Cog):
             else:
                 await message.channel.send("No images were generated.")
 
-    async def generate_response(self, message, cleaned_text):
+    async def generate_response(self, message, cleaned_text, additional_context=None):
         async with message.channel.typing():
             await message.add_reaction('💬')
             gpt_bot = gpt4free.GPT4FREE(provider="DuckDuckGo", is_conversation=self.is_conversation, model="gpt-3.5-turbo", chat_completion=True)
             if self.is_conversation:
+                if additional_context:
+                    self.history.append(additional_context)
                 self.history.append(cleaned_text)
                 full_prompt = "\n".join(self.history)
                 response_text = await self.bot.loop.run_in_executor(None, gpt_bot.chat, full_prompt)
@@ -105,4 +107,3 @@ class Gemini(commands.Cog):
         bot_mention_pattern = re.compile(f'<@!?{self.bot.user.id}>')
         cleaned_content = bot_mention_pattern.sub('', input_string).strip()
         non_mention_pattern = re.compile(r'<(?!@)[^>]+>')
-        return non_mention_pattern.sub('', cleaned_content)
