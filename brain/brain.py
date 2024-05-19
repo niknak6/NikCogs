@@ -48,8 +48,11 @@ class Brain(commands.Cog):
         # Existing check for direct mentions or DMs
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
+            additional_context = None
+            if message.reference and message.reference.resolved:
+                additional_context = message.reference.resolved.content
             if not await self.handle_commands(message, cleaned_text):
-                await self.generate_response(message, cleaned_text)
+                await self.generate_response(message, cleaned_text, additional_context=additional_context)
 
     async def handle_commands(self, message, cleaned_text):
         command_map = {
@@ -106,4 +109,3 @@ class Brain(commands.Cog):
     def clean_discord_message(self, input_string):
         bot_mention_pattern = re.compile(f'<@!?{self.bot.user.id}>')
         cleaned_content = bot_mention_pattern.sub('', input_string).strip()
-        non_mention_pattern = re.compile(r'<(?!@)[^>]+>')
