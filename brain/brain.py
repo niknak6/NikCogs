@@ -29,28 +29,24 @@ class Brain(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        # Check if the message is a reply and if the bot is mentioned
         if message.reference and message.reference.resolved:
             resolved_message = message.reference.resolved
             if resolved_message.author == self.bot.user and resolved_message.content.startswith("Shared by:"):
                 return  # Do not respond to these messages
 
-            # Add the content of the replied-to message to history if not present
             if resolved_message.content and resolved_message.content not in self.history:
                 self.history.append(resolved_message.content)
 
-            # If the bot is mentioned in the reply, handle it
             if self.bot.user in message.mentions:
                 cleaned_text = self.clean_discord_message(message.content)
                 await self.generate_response(message, cleaned_text, additional_context=resolved_message.content)
                 return
 
-        # Existing check for direct mentions or DMs
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
             additional_context = None
             if message.reference and message.reference.resolved:
-                additional_context = message.reference.resolved.content
+                additional_context = message.reference.resolved.content if message.reference.resolved.content else ""
             if not await self.handle_commands(message, cleaned_text):
                 await self.generate_response(message, cleaned_text, additional_context=additional_context)
 
@@ -76,8 +72,8 @@ class Brain(commands.Cog):
             img = Imager()
 
             files = []
-            for _ in range(6):  # Generate 6 images one by one
-                image_data = img.generate(prompt, amount=1, stream=False)[0]  # Generate one image at a time
+            for _ in range(6):
+                image_data = img.generate(prompt, amount=1, stream=False)[0]
                 image_bytes = io.BytesIO(image_data)
                 image_bytes.seek(0)
                 files.append(discord.File(image_bytes, filename=f"{prompt}_{len(files)+1}.png"))
@@ -95,6 +91,8 @@ class Brain(commands.Cog):
                 if additional_context:
                     self.history.append(additional_context)
                 self.history.append(cleaned_text)
+                # Ensure all items in history are strings
+                self.history = [item for item in self.history if isinstance(item, str) and item]
                 full_prompt = "\n".join(self.history)
                 response_text = await self.bot.loop.run_in_executor(None, gpt_bot.chat, full_prompt)
             else:
