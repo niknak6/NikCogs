@@ -29,24 +29,19 @@ class Brain(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        if message.reference and message.reference.resolved:
-            resolved_message = message.reference.resolved
-            if resolved_message.author == self.bot.user and resolved_message.content.startswith("Shared by:"):
-                return  # Do not respond to these messages
-
-            if resolved_message.content and resolved_message.content not in self.history:
-                self.history.append(resolved_message.content)
-
-            if self.bot.user in message.mentions:
-                cleaned_text = self.clean_discord_message(message.content)
-                await self.generate_response(message, cleaned_text, additional_context=resolved_message.content)
-                return
-
+        # Check if the bot is mentioned or if it's a DM channel
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             cleaned_text = self.clean_discord_message(message.content)
             additional_context = None
+
+            # If the message is a reply, get the additional context
             if message.reference and message.reference.resolved:
-                additional_context = message.reference.resolved.content if message.reference.resolved.content else ""
+                resolved_message = message.reference.resolved
+                if resolved_message.author == self.bot.user and resolved_message.content.startswith("Shared by:"):
+                    return  # Do not respond to these messages
+                additional_context = resolved_message.content if resolved_message.content else ""
+
+            # Handle commands or generate a response
             if not await self.handle_commands(message, cleaned_text):
                 await self.generate_response(message, cleaned_text, additional_context=additional_context)
 
