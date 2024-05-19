@@ -48,12 +48,6 @@ class Brain(commands.Cog):
             if not await self.handle_commands(message, cleaned_text):
                 await self.generate_response(message, cleaned_text)
 
-        # Existing check for direct mentions or DMs
-        if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
-            cleaned_text = self.clean_discord_message(message.content)
-            if not await self.handle_commands(message, cleaned_text):
-                await self.generate_response(message, cleaned_text)
-
     async def handle_commands(self, message, cleaned_text):
         command_map = {
             "RESET": (self.reset_history, [message]),
