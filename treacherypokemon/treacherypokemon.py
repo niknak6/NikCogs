@@ -140,16 +140,26 @@ class TreacheryPokemon(commands.Cog):
             # If no poketag is found at all, default to level 1
             pokemon_level = 1
 
-
         # Proceed with fetching the Pokémon's base stats from the API
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
-        pokemon_data = requests.get(pokemon_url).json()
-        base_hp = pokemon_data['stats'][0]['base_stat']
+        try:
+            response = requests.get(pokemon_url)
+            response.raise_for_status()  # Raises HTTPError for bad responses
+            pokemon_data = response.json()
+            base_hp = pokemon_data['stats'][0]['base_stat']
+        except requests.exceptions.HTTPError as e:
+            print(f"HTTP error occurred: {e}")  # or handle it in another way
+            base_hp = 10  # Default base HP if API fails
+        except requests.exceptions.JSONDecodeError:
+            print("Failed to decode JSON from response")
+            base_hp = 10  # Default base HP if JSON decoding fails
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            base_hp = 10  # Default base HP for any other errors
 
         # Calculate the Pokémon's HP using the formula
         hp = ((base_hp * 2) * pokemon_level / 100) + pokemon_level + 10
-
-        return int(hp)
+        return hp
 
     async def on_command_error(self, ctx: commands.Context, error):
         # Handle your errors here
