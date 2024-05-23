@@ -157,8 +157,8 @@ class TreacheryPokemon(commands.Cog):
             print(f"An error occurred: {e}")
             base_hp = 10  # Default base HP for any other errors
 
-        # Calculate the Pokémon's HP using the formula
-        hp = ((base_hp * 2) * pokemon_level / 100) + pokemon_level + 10
+        # Calculate the Pokémon's HP using the formula and round it
+        hp = round(((base_hp * 2) * pokemon_level / 100) + pokemon_level + 10)
         return hp
 
     async def on_command_error(self, ctx: commands.Context, error):
