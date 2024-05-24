@@ -6,7 +6,6 @@ import random, requests, secrets, discord
 from discord.utils import get
 from redbot.core.commands.converter import Optional
 from discord import Embed, Reaction
-from discord.ui import Button, View, Modal, TextInput
 import datetime
 import asyncio
 import aiohttp
@@ -374,22 +373,6 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.guild_only()
     @commands.command()
-    async def party2(self, ctx):
-        member_id = ctx.author.id
-        async with self.bot.db.acquire() as conn:
-            current_party = await conn.fetchrow('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = $1', member_id)
-            if current_party:
-                party_description = "\n".join(f"{idx+1}: {tag.upper()}" for idx, tag in enumerate(current_party))
-                embed = discord.Embed(title=f"{ctx.author.display_name}'s Party", description=party_description, color=discord.Color.blue())
-                view = PartyView(member_id, self.bot)
-                await ctx.send(embed=embed, view=view)
-            else:
-                await ctx.send("You don't have a party yet.")
-                
-                
-                
-    @commands.guild_only()
-    @commands.command()
     async def trade(self, ctx, user: commands.MemberConverter, poketag: str):
         """Initiate a trade with another user."""
         self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower()))
@@ -649,49 +632,3 @@ class PokedexView(discord.ui.View):
     @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
     async def next(self, interaction, button):
         await self.handle_button(interaction, button, 1)
-        
-class PartyUpdateModal(Modal):
-    def __init__(self, position, member_id, bot, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.position = position
-        self.member_id = member_id
-        self.bot = bot
-        self.add_item(TextInput(label='Enter new Pokétag', placeholder='Pokétag', min_length=2, max_length=5))
-
-    async def on_submit(self, interaction: discord.Interaction):
-        new_poketag = self.children[0].value.lower()
-        # Validate new Pokétag
-        valid = await self.validate_poketag(new_poketag)
-        if valid:
-            await self.update_party_slot(new_poketag)
-            await interaction.response.send_message(f'Position {self.position} updated to {new_poketag.upper()}', ephemeral=True)
-        else:
-            await interaction.response.send_message("Invalid Pokétag. Please try again.", ephemeral=True)
-
-    async def validate_poketag(self, poketag):
-        async with self.bot.db.acquire() as conn:
-            result = await conn.fetch('SELECT 1 FROM pokedex WHERE member_id = $1 AND poketag = $2', self.member_id, poketag)
-            return bool(result)
-
-    async def update_party_slot(self, poketag):
-        async with self.bot.db.acquire() as conn:
-            await conn.execute(f'UPDATE party SET position{self.position} = $1 WHERE member_id = $2', poketag, self.member_id)
-            await conn.commit()
-            
-class MyCog(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-
-    @commands.guild_only()
-    @commands.command()
-    async def party(self, ctx):
-        member_id = ctx.author.id
-        async with self.bot.db.acquire() as conn:
-            current_party = await conn.fetchrow('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = $1', member_id)
-            if current_party:
-                party_description = "\n".join(f"{idx+1}: {tag.upper()}" for idx, tag in enumerate(current_party))
-                embed = discord.Embed(title=f"{ctx.author.display_name}'s Party", description=party_description, color=discord.Color.blue())
-                view = PartyView(member_id, self.bot)
-                await ctx.send(embed=embed, view=view)
-            else:
-                await ctx.send("You don't have a party yet.")
