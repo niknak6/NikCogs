@@ -221,39 +221,44 @@ class TreacheryPokemon(commands.Cog):
         spawn_rate = await self.config.guild(message.guild).spawn_rate()
         spawn_cooldown = await self.config.guild(message.guild).spawn_cooldown()
         now = datetime.datetime.now()
-        if message.channel == spawn_channel and random.random() < spawn_rate and (self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60):
-            ctx = await self.bot.get_context(message)
-            command_prefix = ctx.prefix if ctx.prefix else "!"
-            ctx.message.content = command_prefix + "spawn"
-            await self.bot.get_command("spawn").invoke(ctx)
-        elif message.channel == spawn_channel:
-            self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
-            user_party = self.cur.fetchone()
-            if user_party is not None:
-                leveled_up = []
-                for position in user_party:
-                    if position != '-':
-                        poketag = position.lower()
-                        self.cur.execute('SELECT level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
-                        level, experience = self.cur.fetchone()
-                        messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
-                        if experience >= messages_required:
-                            level += 1
-                            experience = 0
-                            self.cur.execute('UPDATE pokedex SET level = ?, experience = ? WHERE member_id = ? AND poketag = ?', (level, experience, message.author.id, poketag))
-                            self.conn.commit()
-                            self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
-                            pokemon_name = self.cur.fetchone()[0]
-                            if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
-                                leveled_up.append((pokemon_name, level))
-                        else:
-                            experience += 1
-                            self.cur.execute('UPDATE pokedex SET experience = ? WHERE member_id = ? AND poketag = ?', (experience, message.author.id, poketag))
-                            self.conn.commit()
-                if leveled_up:
-                    output = [f"{pokemon_name.capitalize()} has leveled up to level {level}!" for pokemon_name, level in leveled_up]
-                    output = "\n".join(output)
-                    await message.channel.send(f"{message.author.mention}, your Pokémon have leveled up!\n\n{output}")
+        if message.channel == spawn_channel:
+            if random.random() < spawn_rate and (self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60):
+                ctx = await self.bot.get_context(message)
+                ctx.message.content = (ctx.prefix or "!") + "spawn"
+                await self.bot.get_command("spawn").invoke(ctx)
+            else:
+                await self.update_experience_and_level(message)
+
+    async def update_experience_and_level(self, message):
+        self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (message.author.id,))
+        user_party = self.cur.fetchone()
+        leveled_up = []
+        if user_party:
+            for position in user_party:
+                if position != '-':
+                    poketag = position.lower()
+                    self.cur.execute('SELECT level, experience FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
+                    level, experience = self.cur.fetchone()
+                    messages_required = round(0.02 * level ** 2 + 0.2 * level + 1)
+                    if experience >= messages_required:
+                        level += 1
+                        experience = 0
+                        self.cur.execute('UPDATE pokedex SET level = ?, experience = ? WHERE member_id = ? AND poketag = ?', (level, experience, message.author.id, poketag))
+                        self.conn.commit()
+                        pokemon_name = self.get_pokemon_name(message.author.id, poketag)
+                        if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
+                            leveled_up.append((pokemon_name, level))
+                    else:
+                        experience += 1
+                        self.cur.execute('UPDATE pokedex SET experience = ? WHERE member_id = ? AND poketag = ?', (experience, message.author.id, poketag))
+                        self.conn.commit()
+            if leveled_up:
+                output = "\n".join([f"{pokemon_name.capitalize()} has leveled up to level {level}!" for pokemon_name, level in leveled_up])
+                await message.channel.send(f"{message.author.mention}, your Pokémon have leveled up!\n\n{output}")
+
+    def get_pokemon_name(self, member_id, poketag):
+        self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+        return self.cur.fetchone()[0]
 
     @commands.guild_only()
     @commands.command(name="catch")
