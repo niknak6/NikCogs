@@ -587,26 +587,25 @@ class TreacheryPokemon(commands.Cog):
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
         super().__init__(timeout=None)
-        self.ctx, self.embeds, self.current, self.pokedex = ctx, embeds, 0, pokedex
-        self.total = len(self.embeds)
+        self.ctx, self.embeds, self.current, self.pokedex, self.total = ctx, embeds, 0, pokedex, len(embeds)
 
     def update_footer(self):
-        self.embeds[self.current].set_footer(text=f"Showing Pokémon {self.current * 10 + 1} - {min((self.current + 1) * 10, len(self.pokedex))} of {len(self.pokedex)}")
+        start, end = self.current * 10 + 1, min((self.current + 1) * 10, len(self.pokedex))
+        self.embeds[self.current].set_footer(text=f"Showing Pokémon {start} - {end} of {len(self.pokedex)}")
 
-    async def handle_button(self, interaction, button, direction):
-        if interaction.user == self.ctx.author:
-            await interaction.response.defer()
-            self.current += direction
-            self.current %= self.total
-            self.update_footer()
-            await interaction.message.edit(embed=self.embeds[self.current])
-        else:
-            await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
+    async def handle_button(self, interaction, direction):
+        if interaction.user != self.ctx.author:
+            return await interaction.response.send_message("Only the author of the command can use this button.", ephemeral=True)
+        
+        await interaction.response.defer()
+        self.current = (self.current + direction) % self.total
+        self.update_footer()
+        await interaction.message.edit(embed=self.embeds[self.current])
 
     @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
     async def previous(self, interaction, button):
-        await self.handle_button(interaction, button, -1)
+        await self.handle_button(interaction, -1)
 
     @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
     async def next(self, interaction, button):
-        await self.handle_button(interaction, button, 1)
+        await self.handle_button(interaction, 1)
