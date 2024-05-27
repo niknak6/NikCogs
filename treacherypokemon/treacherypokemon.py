@@ -524,7 +524,20 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.clear_fields()
                         battle_embed.description += f"\n**{winner} wins the battle!**"
                         battle_embed.set_image(url=None)
-                        await battle_message.edit(content="", embed=battle)
+                        await battle_message.edit(content="", embed=battle_embed, attachments=[])
+
+            # Update the moves display in the embed after each round
+            battle_embed.set_field_at(2, name="Moves", value=moves_display.strip(), inline=False)
+            await battle_message.edit(embed=battle_embed)
+            await asyncio.sleep(.5)
+
+        # If the loop exits naturally, check for any remaining Pokémon and declare the winner
+        winner = ctx.author.display_name if player2_party else opponent.display_name
+        battle_embed.clear_fields()
+        battle_embed.description += f"\n**{winner} wins the battle!**"
+        battle_embed.set_image(url=None)  # Remove the image from the embed
+        await battle_message.edit(content="", embed=battle_embed, attachments=[])
+        del self.battles[ctx.author.id], self.battles[opponent.id]
 
     @commands.Cog.listener()
     async def on_message(self, message):
