@@ -534,14 +534,17 @@ class TreacheryPokemon(commands.Cog):
                     if player_party:
                         new_pokemon = player_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if player_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
+                        combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
                         battle_embed.set_image(url="attachment://combined_sprite.png")
                         battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{player_hp[new_pokemon]}", inline=True)
-                        await battle_message.edit(embed=battle_embed, attachments=[self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)])
+                        await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
                         await asyncio.sleep(3)
                     else:
+                        winner = ctx.author.display_name if player_display != ctx.author.display_name else opponent.display_name
                         battle_embed.clear_fields()
-                        battle_embed.description += f"\n**{ctx.author.display_name if player_display != ctx.author.display_name else opponent.display_name} wins the battle!**"
+                        battle_embed.description += f"\n**{winner} wins the battle!**"
                         battle_embed.set_image(url=None)
+                        await battle_message.edit(content="", embed=battle_embed, attachments=[])
 
                         # Get the winner's party
                         if winner == ctx.author.display_name:
