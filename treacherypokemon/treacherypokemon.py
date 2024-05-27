@@ -524,44 +524,8 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.clear_fields()
                         battle_embed.description += f"\n**{winner} wins the battle!**"
                         battle_embed.set_image(url=None)
-                        await battle_message.edit(content="", embed=battle_embed, attachments=[])
+                        await battle_message.edit(content="", embed=battle
 
-                        # Get the winner's party
-                        if winner == ctx.author.display_name:
-                            winner_id = ctx.author.id
-                            loser_id = opponent.id
-                        else:
-                            winner_id = opponent.id
-                            loser_id = ctx.author.id
-
-                        self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (winner_id,))
-                        winner_party = self.cur.fetchone()
-
-                        # Update the levels of the winner's Pokémon
-                        for poketag in winner_party:
-                            if poketag != '-':
-                                self.cur.execute('UPDATE pokedex SET level = level + 0 WHERE member_id = ? AND poketag = ?', (winner_id, poketag.lower()))
-
-                        self.conn.commit()
-
-                        # Inform the winner that their Pokémon have leveled up
-                        winner_member = ctx.guild.get_member(winner_id)
-                        await ctx.send(f"{winner_member.mention}, your Pokémon have leveled up after winning the battle!")
-
-                        del self.battles[ctx.author.id], self.battles[opponent.id]
-                        return
-
-            battle_embed.set_field_at(2, name="Moves", value=moves_display.strip(), inline=False)
-            await battle_message.edit(embed=battle_embed)
-            await asyncio.sleep(.5)
-
-        # If the loop exits naturally, check for any remaining Pokémon and declare the winner
-        winner = ctx.author.display_name if player2_party else opponent.display_name
-        battle_embed.clear_fields()
-        battle_embed.description += f"\n**{winner} wins the battle!**"
-        battle_embed.set_image(url=None)  # Remove the image from the embed
-        await battle_message.edit(content="", embed=battle_embed, attachments=[])
-        del self.battles[ctx.author.id], self.battles[opponent.id]
 
     @commands.Cog.listener()
     async def on_message(self, message):
