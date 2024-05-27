@@ -449,28 +449,20 @@ class TreacheryPokemon(commands.Cog):
                     if tag != '-']
 
         player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
-        if not player1_party or not player2_party:
+        if not all([player1_party, player2_party]):
             raise commands.CommandError("Both players must have a party.")
 
-        # Initialize health
         player1_hp = {pokemon: self.get_pokemon_health(ctx.author.id, pokemon) for pokemon in player1_party}
         player2_hp = {pokemon: self.get_pokemon_health(opponent.id, pokemon) for pokemon in player2_party}
 
-        # Get the initial Pokémon names for sprite generation
-        player1_pokemon_name = player1_party[0]
-        player2_pokemon_name = player2_party[0]
+        combined_image_file = self.combatsprite(ctx, player1_party[0], player2_party[0])
 
-        # Generate the combined sprite image
-        combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
-
-        # Create an embed with the combined image
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description="")
         battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_party[0]} HP", value="Loading...", inline=True)
         battle_embed.add_field(name=f"{opponent.display_name}'s {player2_party[0]} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
         battle_embed.set_image(url="attachment://combined_sprite.png")
 
-        # Send the initial battle message with the combined image
         battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
 
         # Add reactions to the battle message for interactive battling
