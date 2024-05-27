@@ -472,28 +472,23 @@ class TreacheryPokemon(commands.Cog):
                 move, type_, move_power = self.get_random_move(ctx, pokemon)
                 move_power = move_power or 0  # Ensure move_power is not None
                 
-                # Simplified fetching and handling of type data
+                # Fetch type data
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(f"{self.type_url}{type_}") as response:
-                        if response.status == 200:
-                            type_data = await response.json()
-                            damage_relations = type_data.get('damage_relations', {})
-                        else:
-                            damage_relations = {}
+                    response = await session.get(f"{self.type_url}{type_}")
+                    type_data = await response.json() if response.status == 200 else {}
+                    damage_relations = type_data.get('damage_relations', {})
 
                 opposing_pokemon_name = player2_party[0] if player_display == ctx.author.display_name else player1_party[0]
                 opposing_types = await fetch_pokemon_type(opposing_pokemon_name)
 
-                # Simplified multiplier calculation with default fallback
-                multipliers = {
-                    'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0
-                }
-                multiplier = 1.0  # Default multiplier
+                # Calculate damage multiplier
+                multipliers = {'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0}
+                multiplier = 1.0
                 for opposing_type in opposing_types:
                     for key, value in multipliers.items():
                         if opposing_type in [relation['name'] for relation in damage_relations.get(key, [])]:
                             multiplier = max(multiplier, value)
-                            break  # Stop checking if a match is found
+                            break
 
                 # Calculate damage with simplified lambda function
                 calculate_damage = lambda move_power, multiplier: 10 if move_power == 0 else move_power * multiplier
