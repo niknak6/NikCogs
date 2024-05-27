@@ -130,34 +130,19 @@ class TreacheryPokemon(commands.Cog):
         return selected_move['move']['name'], move_data['type']['name'], move_power
 
     def get_pokemon_health(self, member_id, pokemon_name):
-        # Fetch the Pokémon's poketag and level from the database using the member_id and pokemon_name
         self.cur.execute('SELECT poketag, level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
         result = self.cur.fetchone()
+        pokemon_level = result[1] if result else 1
 
-        if result:
-            poketag, pokemon_level = result
-        else:
-            # If no poketag is found at all, default to level 1
-            pokemon_level = 1
-
-        # Proceed with fetching the Pokémon's base stats from the API
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
         try:
             response = requests.get(pokemon_url)
-            response.raise_for_status()  # Raises HTTPError for bad responses
-            pokemon_data = response.json()
-            base_hp = pokemon_data['stats'][0]['base_stat']
-        except requests.exceptions.HTTPError as e:
-            print(f"HTTP error occurred: {e}")  # or handle it in another way
-            base_hp = 10  # Default base HP if API fails
-        except requests.exceptions.JSONDecodeError:
-            print("Failed to decode JSON from response")
-            base_hp = 10  # Default base HP if JSON decoding fails
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            base_hp = 10  # Default base HP for any other errors
+            response.raise_for_status()
+            base_hp = response.json()['stats'][0]['base_stat']
+        except (requests.exceptions.HTTPError, requests.exceptions.JSONDecodeError, Exception) as e:
+            print(f"Error occurred: {e}")
+            base_hp = 10
 
-        # Calculate the Pokémon's HP using the formula and round it
         hp = round(((base_hp * 2) * pokemon_level / 100) + pokemon_level + 10)
         return hp
 
