@@ -17,7 +17,7 @@ class TikTokCog(commands.Cog):
             'instagram': re.compile(r"(https?://)?((\w+\.)?(\w+)\.)?instagram.com/reel/(\S*)") # UPDATED
         }
         self.new_domains = {
-            'tiktok': 'vxtiktok.com/',
+            'tiktok': 'tnktok.com/',
             'twitter': 'vxtwitter.com/',
             'x': 'fixvx.com/',
             'instagram': 'ddinstagram.com/reel/'
