@@ -84,7 +84,7 @@ class Brain(commands.Cog):
     async def generate_response(self, message, cleaned_text):
         async with message.channel.typing():
             await message.add_reaction('💬')
-            gpt_bot = gpt4free.GPT4FREE(provider="DeepInfra", is_conversation=self.is_conversation, model="llama-3-70b", chat_completion=True)
+            gpt_bot = gpt4free.GPT4FREE(provider="DeepInfra", is_conversation=self.is_conversation, model="meta-llama-3-70b-instruct", chat_completion=True)
             if self.is_conversation:
                 self.history.append(cleaned_text)
                 full_prompt = "\n".join(self.history)
