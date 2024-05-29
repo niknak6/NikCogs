@@ -3,17 +3,23 @@ import re
 import discord
 from redbot.core import commands, Config
 import textwrap
-import pytgpt.gpt4free as gpt4free
-from pytgpt.imager import Imager
+from g4f.client import Client
+from g4f.Provider import RetryProvider, ProviderA, ProviderB, ProviderC
 
 class Brain(commands.Cog):
-    """A Discord bot that uses gpt4free and Imager to interact with users in text and image formats."""
+    """A Discord bot that uses g4f for interacting with users in text and image formats."""
 
     def __init__(self, bot):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=1234567890)
         self.is_conversation = True
         self.history = []
+        self.g4f_client = Client(
+            api_key='your_api_key',
+            provider=RetryProvider([ProviderA, ProviderB, ProviderC]),
+            max_tokens=150,
+            response_format={"type": "json_object"}
+        )
 
     @commands.command()
     @commands.is_owner()
@@ -29,21 +35,14 @@ class Brain(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        # Initialize a variable to hold the combined text of the replied-to message and the new message
         combined_text = message.content
-
-        # Check if the message is a reply and fetch the replied-to message if necessary
         if message.reference and message.reference.resolved:
             resolved_message = message.reference.resolved
             if resolved_message.author == self.bot.user and resolved_message.content.startswith("Shared by:"):
-                return  # Do not respond to these messages
-            # Concatenate the replied-to message content with the new message content
+                return
             combined_text = f"{resolved_message.content} {combined_text}"
 
-        # Clean the combined text
         cleaned_text = self.clean_discord_message(combined_text)
-
-        # Check if the bot is mentioned in the new message or it's a DM
         if self.bot.user in message.mentions or isinstance(message.channel, discord.DMChannel):
             if not await self.handle_commands(message, cleaned_text):
                 await self.generate_response(message, cleaned_text)
@@ -67,30 +66,27 @@ class Brain(commands.Cog):
         async with message.channel.typing():
             await message.add_reaction('🎨')
             prompt = cleaned_text[8:].strip()  # Assuming 'GENERATE ' is 8 characters long
-            img = Imager()
 
-            files = []
-            for _ in range(6):  # Generate 6 images one by one
-                image_data = img.generate(prompt, amount=1, stream=False)[0]  # Generate one image at a time
-                image_bytes = io.BytesIO(image_data)
-                image_bytes.seek(0)
-                files.append(discord.File(image_bytes, filename=f"{prompt}_{len(files)+1}.png"))
+            response = self.g4f_client.images.generate(
+                model="dall-e-3",
+                prompt=prompt
+            )
 
-            if files:
-                await message.channel.send(content="Here are your images:", files=files)
-            else:
-                await message.channel.send("No images were generated.")
+            image_url = response.data[0].url
+            await message.channel.send(content="Here is your image:", file=discord.File(io.BytesIO(image_url), filename="image.png"))
 
     async def generate_response(self, message, cleaned_text):
         async with message.channel.typing():
             await message.add_reaction('💬')
-            gpt_bot = gpt4free.GPT4FREE(provider="DeepInfra", is_conversation=self.is_conversation, model="meta-llama-3-70b-instruct", chat_completion=True)
-            if self.is_conversation:
-                self.history.append(cleaned_text)
-                full_prompt = "\n".join(self.history)
-                response_text = await self.bot.loop.run_in_executor(None, gpt_bot.chat, full_prompt)
-            else:
-                response_text = await self.bot.loop.run_in_executor(None, gpt_bot.chat, cleaned_text)
+            messages = [{"role": "user", "content": msg} for msg in self.history] + [{"role": "user", "content": cleaned_text}]
+            
+            chat_completion = self.g4f_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                response_format={"type": "json_object"}  # Ensure the response is in JSON format
+            )
+
+            response_text = chat_completion.choices[0].message.content or ""
             self.history.append(response_text)
             await self.send_response(message, response_text)
 
