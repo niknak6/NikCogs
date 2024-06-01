@@ -1,0 +1,14 @@
+{
+    "author": ["nik"],
+    "name": "treacheryaffixes",
+    "install_msg": "Thanks for installing Treachery's Mythic+ Affix Cog",
+    "short": "treacheryaffixes",
+    "description": "Cog for storing and posting M+ schedule",
+    "tags": [
+        "",
+        "",
+        ""
+    ],
+    "min_bot_version": "3.5.0",
+    "end_user_data_statement": "This cog does not persistently store data or metadata about users."
+}
