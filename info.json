@@ -1,0 +1,8 @@
+{
+    "author" : ["nik"],
+    "install_msg" : "nik's stuff",
+    "name" : "NikCogs",
+    "short" : "Cogs",
+    "description" : "Cogs",
+    "tags" : ["utility", "functionalities"]
+}

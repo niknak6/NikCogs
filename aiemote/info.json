@@ -1,0 +1,25 @@
+{
+    "author": [
+        "zhaobenny"
+    ],
+    "description": "Human-like Discord reacts to messages powered by OpenAI",
+    "install_msg": "\n Quick startup guide: \n 1) Set (preferably paid account) OpenAI key using [p]set api openai api_key,INSERT_API_KEY \n 2) Use [p]aiemoteowner to see owner cmds, add a whitelisted channel as server admin using [p]aiemote allow <#channel> \n 3) Have users optin using [p]aiemote optin",
+    "short": "OpenAI-powered reacts",
+    "permissions": [
+        "read_messages",
+        "add_reactions"
+    ],
+    "requirements": [
+        "openai>=1.3.8",
+        "tenacity",
+        "tiktoken",
+        "emoji"
+    ],
+    "end_user_data_statement": "This cog does not persistently store data or metadata about users, but chat messages be sent to OpenAI to generate an emoji selection. Please refer to: <https://openai.com/policies/privacy-policy>. ",
+    "tags": [
+        "openai",
+        "chatgpt",
+        "react"
+    ],
+    "min_bot_version": "3.5.0"
+}
