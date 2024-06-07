@@ -524,7 +524,7 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.clear_fields()
                         battle_embed.description += f"\n**{winner} wins the battle!**"
                         battle_embed.set_image(url=None)
-                        await battle_message.edit(content="", embed=battle)
+                        await battle_message.edit(content="", embed=battle_embed)
 
     @commands.Cog.listener()
     async def on_message(self, message):
