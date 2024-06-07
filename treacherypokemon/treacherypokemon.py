@@ -493,13 +493,13 @@ class TreacheryPokemon(commands.Cog):
                 # Calculate damage with simplified lambda function
                 calculate_damage = lambda move_power, multiplier: 10 if move_power == 0 else move_power * multiplier
                 damage = calculate_damage(move_power, multiplier)
-
-                # Determine the attacking and defending players
-                attacking_player, defending_player = (player1_hp, player2_hp) if player_party == player1_party else (player2_hp, player1_hp)
-                defending_pokemon = next(iter(defending_player))
-
-                # Apply damage to the defending Pokémon
-                defending_player[defending_pokemon] = max(defending_player[defending_pokemon] - damage, 0)
+                # Determine if the current player is player1 or player2
+                if player_party == player1_party:
+                    # If player1 is attacking, apply damage to player2's Pokémon
+                    player2_hp[player2_party[0]] = max(player2_hp[player2_party[0]] - damage, 0)
+                else:
+                    # If player2 is attacking, apply damage to player1's Pokémon
+                    player1_hp[player1_party[0]] = max(player1_hp[player1_party[0]] - damage, 0)
 
                 # Update battle embed
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
