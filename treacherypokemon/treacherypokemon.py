@@ -496,7 +496,7 @@ class TreacheryPokemon(commands.Cog):
 
                 # Determine the attacking and defending players
                 attacking_player, defending_player = (player1_hp, player2_hp) if player_party == player1_party else (player2_hp, player1_hp)
-                defending_pokemon = defending_player[defending_player.keys()[0]]
+                defending_pokemon = next(iter(defending_player))
 
                 # Apply damage to the defending Pokémon
                 defending_player[defending_pokemon] = max(defending_player[defending_pokemon] - damage, 0)
