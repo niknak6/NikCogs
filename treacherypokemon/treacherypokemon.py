@@ -468,7 +468,7 @@ class TreacheryPokemon(commands.Cog):
                 opposing_pokemon_name = player2_party[0] if player_display == ctx.author.display_name else player1_party[0]
                 opposing_types = await fetch_pokemon_type(opposing_pokemon_name)
 
-                multiplier = max(multipliers.get(key, 1.0) for key in multipliers if any(opposing_type in [relation['name'] for relation in damage_relations.get(key, [])] for opposing_type in opposing_types))
+                multiplier = max((multipliers.get(key, 1.0) for key in multipliers if any(opposing_type in [relation['name'] for relation in damage_relations.get(key, [])] for opposing_type in opposing_types)), default=1.0)
                 damage = 10 if move_power == 0 else move_power * multiplier
 
                 if player_party == player1_party:
