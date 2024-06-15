@@ -470,6 +470,9 @@ class TreacheryPokemon(commands.Cog):
         while player1_party and player2_party:
             moves_display = ""
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
+                if not player_party:
+                    continue
+
                 pokemon, move, type_, move_power = player_party[0], *self.get_random_move(ctx, player_party[0])
                 move_power = move_power or 0
 
@@ -512,6 +515,7 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.description += f"\n**{winner} wins the battle!**"
                         battle_embed.set_image(url=None)
                         await battle_message.edit(content="", embed=battle_embed)
+                        break
 
     @commands.Cog.listener()
     async def on_message(self, message):
