@@ -376,7 +376,8 @@ class TreacheryPokemon(commands.Cog):
     @commands.guild_only()
     @commands.command()
     async def trade(self, ctx, user: commands.MemberConverter, poketag: str):
-        """Initiate a trade with another user."""
+        """Initiate and complete a trade with another user."""
+        # Initiate the trade
         self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower()))
         pokemon_name = self.cur.fetchone()
         if pokemon_name is None:
@@ -389,6 +390,32 @@ class TreacheryPokemon(commands.Cog):
         if not hasattr(self, "trades"):
             self.trades = {}
         self.trades[trade_message.id] = {"sender": ctx.author, "receiver": user, "sender_poketag": poketag.lower(), "receiver_poketag": None}
+
+        # Wait for the receiver's response
+        def check(m):
+            return m.author == user and m.reference and m.reference.message_id == trade_message.id
+
+        try:
+            response = await self.bot.wait_for('message', check=check, timeout=300)  # Wait for 5 minutes
+        except asyncio.TimeoutError:
+            await ctx.send("Trade request timed out.")
+            del self.trades[trade_message.id]
+            return
+
+        # Complete the trade
+        poketag = response.content.lower()
+        self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (user.id, poketag))
+        pokemon_name = self.cur.fetchone()
+        if pokemon_name is None:
+            await ctx.send("You do not have that Pokémon in your Pokédex.")
+            return
+        self.trades[trade_message.id]["receiver_poketag"] = poketag
+        trade = self.trades[trade_message.id]
+        self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (trade["receiver"].id, trade["sender"].id, trade["sender_poketag"]))
+        self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (trade["sender"].id, trade["receiver"].id, trade["receiver_poketag"]))
+        self.conn.commit()
+        await ctx.send(f"The trade between {trade['sender'].name} and {trade['receiver'].name} was completed successfully.")
+        del self.trades[trade_message.id]
     
     # Define the on_command_error event handler
     @commands.Cog.listener()
@@ -516,27 +543,6 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.set_image(url=None)
                         await battle_message.edit(content="", embed=battle_embed)
                         break
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Handle the completion of the trade."""
-        if message.reference and message.reference.message_id in self.trades:
-            trade = self.trades[message.reference.message_id]
-            if message.author == trade["receiver"]:
-                poketag = message.content.lower()
-                self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (message.author.id, poketag))
-                pokemon_name = self.cur.fetchone()
-                if pokemon_name is None:
-                    await message.channel.send("You do not have that Pokémon in your Pokédex.")
-                    return
-                trade["receiver_poketag"] = poketag
-                self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (trade["receiver"].id, trade["sender"].id, trade["sender_poketag"]))
-                self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (trade["sender"].id, trade["receiver"].id, trade["receiver_poketag"]))
-                self.conn.commit()
-                await message.channel.send(f"The trade between {trade['sender'].name} and {trade['receiver'].name} was completed successfully.")
-                del self.trades[message.reference.message_id]
-            else:
-                await message.channel.send("Only the receiver of the trade can reply to this message.")
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
