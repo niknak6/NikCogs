@@ -535,7 +535,7 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.set_image(url="attachment://combined_sprite.png")
                         battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {new_pokemon} HP", value=f"{player_hp[new_pokemon]}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
-                        await asyncio.sleep(0.5)
+                        await asyncio.sleep(0.25)
                     else:
                         winner = ctx.author.display_name if player_display != ctx.author.display_name else opponent.display_name
                         battle_embed.clear_fields()
