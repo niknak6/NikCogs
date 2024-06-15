@@ -97,7 +97,11 @@ class TreacheryPokemon(commands.Cog):
         pokemon_level = result[0] if result else 1
 
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
-        pokemon_data = requests.get(pokemon_url).json()
+        try:
+            pokemon_data = requests.get(pokemon_url).json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching Pokémon data: {e}")
+            return "NULL", "NULL", 0
 
         blacklisted_moves = {
             'after-you', 'quash', 'helping-hand', 'ally-switch', 
@@ -115,17 +119,25 @@ class TreacheryPokemon(commands.Cog):
             )
         ]
 
-        moves_with_power = [
-            move for move in valid_moves
-            if requests.get(move['move']['url']).json().get('power')
-        ]
+        moves_with_power = []
+        for move in valid_moves:
+            try:
+                move_data = requests.get(move['move']['url']).json()
+                if move_data.get('power'):
+                    moves_with_power.append(move)
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching move data: {e}")
 
         if not moves_with_power:
             return "NULL", "NULL", 0
 
         selected_move = random.choice(moves_with_power)
-        move_data = requests.get(selected_move['move']['url']).json()
-        move_power = move_data.get('power', 0)
+        try:
+            move_data = requests.get(selected_move['move']['url']).json()
+            move_power = move_data.get('power', 0)
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching selected move data: {e}")
+            return "NULL", "NULL", 0
 
         return selected_move['move']['name'], move_data['type']['name'], move_power
 
@@ -480,6 +492,8 @@ class TreacheryPokemon(commands.Cog):
                 battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
                 formatted_move_name = "No move available" if move == "NULL" else ' '.join(word.capitalize() for word in move.replace('-', ' ').split())
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
+
+                battle_embed.set_field_at(2, name="Moves", value=moves_display, inline=False)
 
                 if player_hp[pokemon] <= 0:
                     player_party.pop(0)
