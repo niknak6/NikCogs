@@ -480,7 +480,7 @@ class TreacheryPokemon(commands.Cog):
         combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
 
         turn_number = 1
-        battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description=f"Turn {turn_number}")
+        battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
         battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name=f"{opponent.display_name}'s {player2_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
@@ -537,7 +537,8 @@ class TreacheryPokemon(commands.Cog):
                 if player_hp[pokemon] <= 0:
                     defeated_pokemon.append(f"{pokemon} ({player_display})")
                     player_party.pop(0)
-                    battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
+                    moves_display += f"{player_display}'s {pokemon} has been defeated!\n"
+                    battle_embed.set_field_at(2, name="Moves", value=moves_display, inline=False)
                     battle_embed.set_field_at(3, name="Defeated Pokémon", value='\n'.join(defeated_pokemon), inline=False)
                     if player_party:
                         new_pokemon = player_party[0]
@@ -551,7 +552,6 @@ class TreacheryPokemon(commands.Cog):
                         break
 
             turn_number += 1
-            battle_embed.description = f"Turn {turn_number}"
 
         winner = ctx.author.display_name if player2_party else opponent.display_name
         battle_embed.clear_fields()
