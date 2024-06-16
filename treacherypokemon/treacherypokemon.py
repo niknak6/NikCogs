@@ -454,8 +454,19 @@ class TreacheryPokemon(commands.Cog):
             fetch_sprite(player2_pokemon_name, 'front_default')
         )
 
-        player1_frames = [frame.copy().convert("RGBA").resize((200, 200), Image.Resampling.LANCZOS) for frame in ImageSequence.Iterator(player1_sprite_image)]
-        player2_frames = [frame.copy().convert("RGBA").resize((200, 200), Image.Resampling.LANCZOS) for frame in ImageSequence.Iterator(player2_sprite_image)]
+        def resize_sprite(sprite_image, max_size):
+            width, height = sprite_image.size
+            aspect_ratio = width / height
+            if width > height:
+                new_width = max_size
+                new_height = int(new_width / aspect_ratio)
+            else:
+                new_height = max_size
+                new_width = int(new_height * aspect_ratio)
+            return sprite_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+        player1_frames = [resize_sprite(frame.copy().convert("RGBA"), 200) for frame in ImageSequence.Iterator(player1_sprite_image)]
+        player2_frames = [resize_sprite(frame.copy().convert("RGBA"), 200) for frame in ImageSequence.Iterator(player2_sprite_image)]
         num_frames = max(len(player1_frames), len(player2_frames))
         player1_frames = player1_frames * (num_frames // len(player1_frames) + 1)
         player2_frames = player2_frames * (num_frames // len(player2_frames) + 1)
@@ -465,7 +476,6 @@ class TreacheryPokemon(commands.Cog):
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
         arena_image = Image.open(arena_image_path).convert("RGBA")
-        arena_image = arena_image.resize((800, 600), Image.Resampling.LANCZOS)
         arena_width, arena_height = arena_image.size
 
         combined_frames = []
@@ -483,7 +493,8 @@ class TreacheryPokemon(commands.Cog):
                 append_images=combined_frames[1:],
                 loop=0,
                 duration=player1_sprite_image.info.get('duration', 100),
-                disposal=2
+                disposal=2,
+                optimize=False
             )
             await temp_file.flush()
             return discord.File(temp_file.name, filename='combined_sprite.gif')
