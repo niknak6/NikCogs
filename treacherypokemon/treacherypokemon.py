@@ -457,8 +457,12 @@ class TreacheryPokemon(commands.Cog):
         player2_frames *= (num_frames // len(player2_frames) + 1)
         player1_frames, player2_frames = player1_frames[:num_frames], player2_frames[:num_frames]
 
+        # Construct the path to the arena image
+        script_dir = os.path.dirname(__file__)
+        arena_path = os.path.join(script_dir, 'arena.png')
+
         # Load the arena image
-        arena_image = Image.open('arena.png')
+        arena_image = Image.open(arena_path)
         arena_width, arena_height = arena_image.size
 
         combined_frames = []
