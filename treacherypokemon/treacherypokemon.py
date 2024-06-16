@@ -509,7 +509,7 @@ class TreacheryPokemon(commands.Cog):
         defeated_pokemon = []
 
         while player1_party and player2_party:
-            moves_display = f"**Turn {turn_number}**\n"
+            moves_display = ""
 
             for player_party, player_hp, player_display, opponent_party, opponent_hp, opponent_display in [
                 (player1_party, player1_hp, ctx.author.display_name, player2_party, player2_hp, opponent.display_name),
@@ -566,6 +566,7 @@ class TreacheryPokemon(commands.Cog):
 
             async with self.rate_limit_lock:
                 turn_number += 1
+                battle_embed.set_field_at(0, name="Turn", value=turn_number, inline=False)
                 await battle_message.edit(embed=battle_embed)
                 await asyncio.sleep(1.5)  # Ensure there's a delay between turns to respect rate limits
 
