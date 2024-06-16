@@ -540,14 +540,14 @@ class TreacheryPokemon(commands.Cog):
                     else:
                         winner = ctx.author.display_name if player_display != ctx.author.display_name else opponent.display_name
                         battle_embed.clear_fields()
-                        battle_embed.description += f"\n**{winner} wins the battle!**"
+                        battle_embed.description = f"**{winner} wins the battle!**"
                         battle_embed.set_image(url=None)
                         await battle_message.edit(content="", embed=battle_embed)
                         break
 
-        turn_number += 1
-        battle_embed.description = f"Turn {turn_number}"
-        await battle_message.edit(embed=battle_embed)
+            turn_number += 1
+            battle_embed.description = f"Turn {turn_number}"
+            await battle_message.edit(embed=battle_embed)
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
