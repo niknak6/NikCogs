@@ -29,6 +29,7 @@ class TreacheryPokemon(commands.Cog):
         self.last_spawn = None
         self.trades = {}
         self.battles = {}
+        self.rate_limit_lock = asyncio.Lock()
         
         # Database setup
         self.cur = self.conn.cursor()
