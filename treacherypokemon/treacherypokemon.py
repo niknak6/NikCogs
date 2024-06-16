@@ -430,7 +430,6 @@ class TreacheryPokemon(commands.Cog):
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
     async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
-        # Helper function to fetch and process sprites
         async def fetch_sprite(pokemon_name, sprite_type):
             sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
             async with aiohttp.ClientSession() as session:
@@ -438,72 +437,35 @@ class TreacheryPokemon(commands.Cog):
                     if response.status != 200:
                         raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
                     data = await response.json()
-                    
-                    # Try to get the sprite from 'showdown' first
-                    sprite = data['sprites']['other']['showdown'].get(sprite_type)
-                    
-                    # Fallback to 'sprites' if 'showdown' sprite is not available
-                    if not sprite:
-                        sprite = data['sprites'].get(sprite_type)
-                    
-                    # Fallback to 'official-artwork' if neither 'showdown' nor 'sprites' are available
-                    if not sprite:
-                        sprite = data['sprites']['other']['official-artwork'].get('front_default')
-                    
+                    sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
+                            data['sprites'].get(sprite_type) or
+                            data['sprites']['other']['official-artwork'].get('front_default'))
                     if not sprite:
                         raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
-                    
                     async with session.get(sprite) as sprite_response:
                         if sprite_response.status != 200:
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         return Image.open(BytesIO(await sprite_response.read()))
 
-        # Fetch and process sprites
         player1_sprite_image = await fetch_sprite(player1_pokemon_name, 'back_default')
         player2_sprite_image = await fetch_sprite(player2_pokemon_name, 'front_default')
 
-        # Create a list to hold all frames of the combined GIF
-        combined_frames = []
-
-        # Extract frames from both GIFs
         player1_frames = [frame.copy() for frame in ImageSequence.Iterator(player1_sprite_image)]
         player2_frames = [frame.copy() for frame in ImageSequence.Iterator(player2_sprite_image)]
-
-        # Ensure both GIFs have the same number of frames by repeating frames
         num_frames = max(len(player1_frames), len(player2_frames))
-        player1_frames = (player1_frames * (num_frames // len(player1_frames) + 1))[:num_frames]
-        player2_frames = (player2_frames * (num_frames // len(player2_frames) + 1))[:num_frames]
+        player1_frames *= (num_frames // len(player1_frames) + 1)
+        player2_frames *= (num_frames // len(player2_frames) + 1)
+        player1_frames, player2_frames = player1_frames[:num_frames], player2_frames[:num_frames]
 
-        for player1_frame, player2_frame in zip(player1_frames, player2_frames):
-            # Create a new image with a width and height that accommodates both sprites
-            total_width = max(player1_frame.width, player2_frame.width) * 2
-            total_height = max(player1_frame.height, player2_frame.height) * 2
-            combined_frame = Image.new('RGBA', (total_width, total_height))
-
-            # Clear the background to avoid artifacts
-            combined_frame.paste((0, 0, 0, 0), (0, 0, total_width, total_height))
-
-            # Paste player1's sprite in the bottom left quadrant
-            combined_frame.paste(player1_frame.convert('RGBA'), (0, total_height // 2), player1_frame.convert('RGBA'))
-
-            # Paste player2's sprite in the top right quadrant
-            combined_frame.paste(player2_frame.convert('RGBA'), (total_width // 2, 0), player2_frame.convert('RGBA'))
-
-            # Apply slight anti-aliasing
-            # combined_frame = combined_frame.resize((int(total_width * 0.75), int(total_height * 0.75)), Image.Resampling.LANCZOS)
-            # combined_frame = combined_frame.resize((total_width, total_height), Image.Resampling.LANCZOS)
-
-            # Enhance colors
-            enhancer = ImageEnhance.Color(combined_frame)
-            combined_frame = enhancer.enhance(1.2)  # Increase color saturation by 20%
-
-            # Apply slight sharpening
-            # combined_frame = combined_frame.filter(ImageFilter.SHARPEN)
-
-            # Append the combined frame to the list
+        combined_frames = []
+        for p1_frame, p2_frame in zip(player1_frames, player2_frames):
+            total_width, total_height = max(p1_frame.width, p2_frame.width) * 2, max(p1_frame.height, p2_frame.height) * 2
+            combined_frame = Image.new('RGBA', (total_width, total_height), (0, 0, 0, 0))
+            combined_frame.paste(p1_frame.convert('RGBA'), (0, total_height // 2), p1_frame.convert('RGBA'))
+            combined_frame.paste(p2_frame.convert('RGBA'), (total_width // 2, 0), p2_frame.convert('RGBA'))
+            combined_frame = ImageEnhance.Color(combined_frame).enhance(1.2)
             combined_frames.append(combined_frame)
 
-        # Save the combined frames as a GIF to a BytesIO object
         combined_image_io = BytesIO()
         combined_frames[0].save(
             combined_image_io, 
@@ -512,12 +474,10 @@ class TreacheryPokemon(commands.Cog):
             append_images=combined_frames[1:], 
             loop=0, 
             duration=player1_sprite_image.info.get('duration', 100),
-            disposal=2  # Ensure that the previous frame is cleared before drawing the next frame
+            disposal=2
         )
         combined_image_io.seek(0)
-        combined_image_file = discord.File(combined_image_io, filename='combined_sprite.gif')
-
-        return combined_image_file
+        return discord.File(combined_image_io, filename='combined_sprite.gif')
     
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
