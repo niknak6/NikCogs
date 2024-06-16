@@ -436,7 +436,8 @@ class TreacheryPokemon(commands.Cog):
             async with aiohttp.ClientSession() as session:
                 async with session.get(sprite_url) as response:
                     sprite = (await response.json())['sprites']['other']['official-artwork']['front_default']
-                    return Image.open(BytesIO(requests.get(sprite).content))
+                    async with session.get(sprite) as sprite_response:
+                        return Image.open(BytesIO(await sprite_response.read()))
 
         # Fetch and process sprites
         player1_sprite_image = await fetch_sprite(player1_pokemon_name)
