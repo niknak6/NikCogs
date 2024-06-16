@@ -539,9 +539,8 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.add_field(name=f"{player2_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Defeated Pokémon", value="None", inline=False)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
-        battle_embed.set_image(url="attachment://combined_sprite.gif")
 
-        battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
+        battle_message = await ctx.send(embed=battle_embed, file=combined_image_file)
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
@@ -604,7 +603,7 @@ class TreacheryPokemon(commands.Cog):
                         if not combined_image_file:
                             return await ctx.send("Failed to generate battle image for new Pokémon. Please try again later.")
 
-                        battle_embed.set_image(url="attachment://combined_sprite.png")
+                        battle_embed.set_image(url="attachment://combined_sprite.gif")
                         battle_embed.set_field_at(hp_field_index, name=f"{new_pokemon} HP", value=f"{round(opponent_hp[new_pokemon])}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
                     else:
@@ -629,7 +628,7 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.add_field(name="Defeated Pokémon", value='\n'.join(defeated_pokemon) or "None", inline=False)
         # Do not add the "Moves" field in the final embed update
         battle_embed.set_image(url=None)
-        await battle_message.edit(content="", embed=battle_embed)
+        await battle_message.edit(content="", embed=battle_embed, attachments=[])
 
         # Remove player IDs from self.battles after the battle concludes
         del self.battles[ctx.author.id]
