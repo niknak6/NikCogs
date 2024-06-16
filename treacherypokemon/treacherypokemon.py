@@ -490,8 +490,8 @@ class TreacheryPokemon(commands.Cog):
             combined_frame.paste(player2_frame.convert('RGBA'), (total_width // 2, 0), player2_frame.convert('RGBA'))
 
             # Apply slight anti-aliasing
-            combined_frame = combined_frame.resize((int(total_width * 0.75), int(total_height * 0.75)), Image.Resampling.LANCZOS)
-            combined_frame = combined_frame.resize((total_width, total_height), Image.Resampling.LANCZOS)
+            # combined_frame = combined_frame.resize((int(total_width * 0.75), int(total_height * 0.75)), Image.Resampling.LANCZOS)
+            # combined_frame = combined_frame.resize((total_width, total_height), Image.Resampling.LANCZOS)
 
             # Enhance colors
             enhancer = ImageEnhance.Color(combined_frame)
