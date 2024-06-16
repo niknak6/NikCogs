@@ -526,10 +526,10 @@ class TreacheryPokemon(commands.Cog):
         player2_hp = {pokemon: self.get_pokemon_health(opponent.id, pokemon) for pokemon in player2_party}
 
         player1_pokemon_name, player2_pokemon_name = player1_party[0], player2_party[0]
-        combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
+        combined_image_path = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
 
         # Check if combined image file is ready
-        if not combined_image_file:
+        if not combined_image_path:
             return await ctx.send("Failed to generate battle image. Please try again later.")
 
         turn_number = 1
@@ -544,7 +544,7 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.set_image(url="attachment://combined_sprite.gif")
 
         # Send the initial message with the embed and the image file
-        battle_message = await ctx.send(embed=battle_embed, file=discord.File(combined_image_file, filename="combined_sprite.gif"))
+        battle_message = await ctx.send(embed=battle_embed, file=discord.File(combined_image_path, filename="combined_sprite.gif"))
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
@@ -601,15 +601,15 @@ class TreacheryPokemon(commands.Cog):
                     if opponent_party:
                         new_pokemon = opponent_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if opponent_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
-                        combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
+                        combined_image_path = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
 
                         # Check if combined image file is ready
-                        if not combined_image_file:
+                        if not combined_image_path:
                             return await ctx.send("Failed to generate battle image for new Pokémon. Please try again later.")
 
                         battle_embed.set_image(url="attachment://combined_sprite.gif")
                         battle_embed.set_field_at(hp_field_index, name=f"{new_pokemon} HP", value=f"{round(opponent_hp[new_pokemon])}", inline=True)
-                        await battle_message.edit(embed=battle_embed, attachments=[discord.File(combined_image_file, filename="combined_sprite.gif")])
+                        await battle_message.edit(embed=battle_embed, attachments=[discord.File(combined_image_path, filename="combined_sprite.gif")])
                     else:
                         break
 
