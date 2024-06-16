@@ -488,8 +488,8 @@ class TreacheryPokemon(commands.Cog):
 
         turn_number = 1
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
-        battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_pokemon_name} HP", value="Loading...", inline=True)
-        battle_embed.add_field(name=f"{opponent.display_name}'s {player2_pokemon_name} HP", value="Loading...", inline=True)
+        battle_embed.add_field(name=f"{player1_pokemon_name} HP", value="Loading...", inline=True)
+        battle_embed.add_field(name=f"{player2_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Defeated Pokémon", value="None", inline=False)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
         battle_embed.set_image(url="attachment://combined_sprite.png")
@@ -533,7 +533,7 @@ class TreacheryPokemon(commands.Cog):
                 opponent_hp[opponent_party[0]] = max(opponent_hp[opponent_party[0]] - damage, 0)
 
                 hp_field_index = 0 if player_display == ctx.author.display_name else 1
-                battle_embed.set_field_at(hp_field_index, name=f"{player_display}'s {pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
+                battle_embed.set_field_at(hp_field_index, name=f"{pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
                 formatted_move_name = "No move available" if move == "NULL" else ' '.join(word.capitalize() for word in move.replace('-', ' ').split())
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
 
@@ -558,7 +558,7 @@ class TreacheryPokemon(commands.Cog):
                             return await ctx.send("Failed to generate battle image for new Pokémon. Please try again later.")
 
                         battle_embed.set_image(url="attachment://combined_sprite.png")
-                        battle_embed.set_field_at(hp_field_index, name=f"{opponent_display}'s {new_pokemon} HP", value=f"{opponent_hp[new_pokemon]}", inline=True)
+                        battle_embed.set_field_at(hp_field_index, name=f"{new_pokemon} HP", value=f"{opponent_hp[new_pokemon]}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
                     else:
                         break
