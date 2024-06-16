@@ -477,7 +477,8 @@ class TreacheryPokemon(commands.Cog):
         player1_pokemon_name, player2_pokemon_name = player1_party[0], player2_party[0]
         combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
 
-        battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description="")
+        turn_number = 1
+        battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description=f"Turn {turn_number}")
         battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name=f"{opponent.display_name}'s {player2_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
@@ -495,7 +496,7 @@ class TreacheryPokemon(commands.Cog):
         multipliers = {'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0}
 
         while player1_party and player2_party:
-            moves_display = ""
+            moves_display = f"**Turn {turn_number}**\n"
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 if not player_party:
                     continue
@@ -543,6 +544,10 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.set_image(url=None)
                         await battle_message.edit(content="", embed=battle_embed)
                         break
+
+        turn_number += 1
+        battle_embed.description = f"Turn {turn_number}"
+        await battle_message.edit(embed=battle_embed)
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
