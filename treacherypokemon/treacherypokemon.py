@@ -10,7 +10,7 @@ import datetime
 import asyncio
 import aiohttp
 import traceback
-from PIL import Image, ImageFilter, ImageEnhance, ImageSequence, ImageResampling
+from PIL import Image, ImageFilter, ImageEnhance, ImageSequence
 from io import BytesIO
 
 class TreacheryPokemon(commands.Cog):
