@@ -482,8 +482,11 @@ class TreacheryPokemon(commands.Cog):
         player1_pokemon_name, player2_pokemon_name = player1_party[0], player2_party[0]
         combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
 
+        # Check if combined image file is ready
         if not combined_image_file:
-            return await ctx.send("Failed to generate combined sprite.")
+            await ctx.send("Failed to generate battle image. Please try again later.")
+            return
+        await ctx.send("Combined sprite image generated successfully.")
 
         turn_number = 1
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
@@ -508,6 +511,7 @@ class TreacheryPokemon(commands.Cog):
 
         while player1_party and player2_party:
             moves_display = f"**Turn {turn_number}**\n"
+            await ctx.send(f"Turn {turn_number} started.")
 
             for player_party, player_hp, player_display, opponent_party, opponent_hp, opponent_display in [
                 (player1_party, player1_hp, ctx.author.display_name, player2_party, player2_hp, opponent.display_name),
@@ -538,6 +542,12 @@ class TreacheryPokemon(commands.Cog):
 
                 battle_embed.set_field_at(2, name="Moves", value=moves_display, inline=False)
 
+                # Check if move was made
+                if move == "NULL":
+                    await ctx.send(f"{player_display}'s {pokemon} could not make a move.")
+                else:
+                    await ctx.send(f"{player_display}'s {pokemon} made a move: {formatted_move_name} - Damage: {damage} ({multiplier}x)")
+
                 if opponent_hp[opponent_party[0]] <= 0:
                     defeated_pokemon.append(f"{opponent_party[0]} ({opponent_display})")
                     opponent_party.pop(0)
@@ -548,8 +558,13 @@ class TreacheryPokemon(commands.Cog):
                         new_pokemon = opponent_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if opponent_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
                         combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
+
+                        # Check if combined image file is ready
                         if not combined_image_file:
-                            return await ctx.send("Failed to generate combined sprite.")
+                            await ctx.send("Failed to generate battle image for new Pokémon. Please try again later.")
+                            return
+                        await ctx.send("Combined sprite image for new Pokémon generated successfully.")
+
                         battle_embed.set_image(url="attachment://combined_sprite.png")
                         battle_embed.set_field_at(hp_field_index, name=f"{opponent_display}'s {new_pokemon} HP", value=f"{opponent_hp[new_pokemon]}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
@@ -570,6 +585,7 @@ class TreacheryPokemon(commands.Cog):
         # Remove player IDs from self.battles after the battle concludes
         del self.battles[ctx.author.id]
         del self.battles[opponent.id]
+        await ctx.send(f"Battle concluded. Winner: {winner}")
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
