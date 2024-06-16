@@ -581,7 +581,7 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.clear_fields()
         battle_embed.description = f"**{winner} wins the battle!**" if winner != "It's a tie!" else "**It's a tie!**"
         battle_embed.add_field(name="Defeated Pokémon", value='\n'.join(defeated_pokemon) or "None", inline=False)
-        battle_embed.add_field(name="Moves", value="None", inline=False)
+        # Do not add the "Moves" field in the final embed update
         battle_embed.set_image(url=None)
         await battle_message.edit(content="", embed=battle_embed)
 
