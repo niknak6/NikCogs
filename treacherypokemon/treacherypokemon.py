@@ -467,9 +467,12 @@ class TreacheryPokemon(commands.Cog):
         arena_image = Image.open(os.path.join(cog_directory, 'arena.png')).convert("RGBA")
         arena_width, arena_height = arena_image.size
 
-        combined_frames = [arena_image.copy().paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
-                                            .paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
-                        for p1_frame, p2_frame in zip(player1_frames, player2_frames)]
+        combined_frames = []
+        for p1_frame, p2_frame in zip(player1_frames, player2_frames):
+            combined_frame = arena_image.copy()
+            combined_frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
+            combined_frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
+            combined_frames.append(combined_frame)
 
         async with aiofiles.tempfile.NamedTemporaryFile(delete=False) as temp_file:
             combined_frames[0].save(
