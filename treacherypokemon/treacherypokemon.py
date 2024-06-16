@@ -431,16 +431,16 @@ class TreacheryPokemon(commands.Cog):
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
     async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
-        async with aiohttp.ClientSession() as session:
-            async def fetch_sprite(pokemon_name, sprite_type):
-                sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+        async def fetch_sprite(pokemon_name, sprite_type):
+            sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+            async with aiohttp.ClientSession() as session:
                 async with session.get(sprite_url) as response:
                     if response.status != 200:
                         raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
                     data = await response.json()
                     sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                              data['sprites'].get(sprite_type) or
-                              data['sprites']['other']['official-artwork'].get('front_default'))
+                            data['sprites'].get(sprite_type) or
+                            data['sprites']['other']['official-artwork'].get('front_default'))
                     if not sprite:
                         raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
                     async with session.get(sprite) as sprite_response:
@@ -448,17 +448,18 @@ class TreacheryPokemon(commands.Cog):
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         return Image.open(BytesIO(await sprite_response.read()))
 
-            player1_sprite_image, player2_sprite_image = await asyncio.gather(
-                fetch_sprite(player1_pokemon_name, 'back_default'),
-                fetch_sprite(player2_pokemon_name, 'front_default')
-            )
+        player1_sprite_image, player2_sprite_image = await asyncio.gather(
+            fetch_sprite(player1_pokemon_name, 'back_default'),
+            fetch_sprite(player2_pokemon_name, 'front_default')
+        )
 
-        # Optimize frame handling by directly using the frames
-        player1_frames = list(ImageSequence.Iterator(player1_sprite_image))
-        player2_frames = list(ImageSequence.Iterator(player2_sprite_image))
+        player1_frames = [frame.copy() for frame in ImageSequence.Iterator(player1_sprite_image)]
+        player2_frames = [frame.copy() for frame in ImageSequence.Iterator(player2_sprite_image)]
         num_frames = max(len(player1_frames), len(player2_frames))
+        player1_frames *= (num_frames // len(player1_frames) + 1)
+        player2_frames *= (num_frames // len(player2_frames) + 1)
+        player1_frames, player2_frames = player1_frames[:num_frames], player2_frames[:num_frames]
 
-        # Load the arena image once
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
         arena_image = Image.open(arena_image_path)
@@ -466,23 +467,22 @@ class TreacheryPokemon(commands.Cog):
 
         async def process_frame(p1_frame, p2_frame):
             combined_frame = arena_image.copy()
-            combined_frame.paste(p1_frame, (arena_width // 4 - p1_frame.width // 2, arena_height // 2), p1_frame)
-            combined_frame.paste(p2_frame, (3 * arena_width // 4 - p2_frame.width // 2, arena_height // 2), p2_frame)
+            combined_frame.paste(p1_frame.convert('RGBA'), (arena_width // 4 - p1_frame.width // 2, arena_height // 2), p1_frame.convert('RGBA'))
+            combined_frame.paste(p2_frame.convert('RGBA'), (3 * arena_width // 4 - p2_frame.width // 2, arena_height // 2), p2_frame.convert('RGBA'))
             combined_frame = ImageEnhance.Color(combined_frame).enhance(1.2)
             return combined_frame
 
-        combined_frames = await asyncio.gather(*[process_frame(p1, p2) for p1, p2 in zip(player1_frames * (num_frames // len(player1_frames) + 1), player2_frames * (num_frames // len(player2_frames) + 1))])
+        combined_frames = await asyncio.gather(*[process_frame(p1, p2) for p1, p2 in zip(player1_frames, player2_frames)])
 
         combined_image_io = BytesIO()
         combined_frames[0].save(
-            combined_image_io,
-            format='GIF',
-            save_all=True,
-            append_images=combined_frames[1:],
-            loop=0,
-            duration=100,  # Reduced duration for more dynamic movement
-            disposal=2,  # Ensure that each frame is cleared before the next one is drawn
-            optimize=True
+            combined_image_io, 
+            format='GIF', 
+            save_all=True, 
+            append_images=combined_frames[1:], 
+            loop=0, 
+            duration=player1_sprite_image.info.get('duration', 100),
+            disposal=2
         )
         combined_image_io.seek(0)
         return discord.File(combined_image_io, filename='combined_sprite.gif')
