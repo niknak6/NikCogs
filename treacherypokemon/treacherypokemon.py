@@ -472,7 +472,14 @@ class TreacheryPokemon(commands.Cog):
 
         # Save the combined frames as a GIF to a BytesIO object
         combined_image_io = BytesIO()
-        combined_frames[0].save(combined_image_io, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=player1_sprite_image.info.get('duration', 100))
+        combined_frames[0].save(
+            combined_image_io, 
+            format='GIF', 
+            save_all=True, 
+            append_images=combined_frames[1:], 
+            loop=0, 
+            duration=player1_sprite_image.info.get('duration', 100)
+        )
         combined_image_io.seek(0)
         combined_image_file = discord.File(combined_image_io, filename='combined_sprite.gif')
 
