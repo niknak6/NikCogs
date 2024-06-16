@@ -473,7 +473,7 @@ class TreacheryPokemon(commands.Cog):
             
             # Resize the combined frame to a smaller size
             max_size = (400, 400)
-            combined_frame.thumbnail(max_size, Image.ANTIALIAS)
+            combined_frame.thumbnail(max_size, Image.Resampling.LANCZOS)
             
             # Convert the combined frame to palette mode with a limited number of colors
             combined_frame = combined_frame.convert('P', palette=Image.ADAPTIVE, colors=128)
