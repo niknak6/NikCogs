@@ -465,8 +465,8 @@ class TreacheryPokemon(commands.Cog):
                 new_width = int(new_height * aspect_ratio)
             return sprite_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
-        player1_frames = [resize_sprite(frame.copy().convert("RGBA"), 200) for frame in ImageSequence.Iterator(player1_sprite_image)]
-        player2_frames = [resize_sprite(frame.copy().convert("RGBA"), 200) for frame in ImageSequence.Iterator(player2_sprite_image)]
+        player1_frames = [resize_sprite(frame.copy().convert("RGBA"), 150) for frame in ImageSequence.Iterator(player1_sprite_image)]
+        player2_frames = [resize_sprite(frame.copy().convert("RGBA"), 150) for frame in ImageSequence.Iterator(player2_sprite_image)]
         num_frames = max(len(player1_frames), len(player2_frames))
         player1_frames = player1_frames * (num_frames // len(player1_frames) + 1)
         player2_frames = player2_frames * (num_frames // len(player2_frames) + 1)
