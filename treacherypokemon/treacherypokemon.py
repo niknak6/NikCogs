@@ -488,6 +488,7 @@ class TreacheryPokemon(commands.Cog):
 
         turn_number = 1
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
+        battle_embed.add_field(name="Turn", value=turn_number, inline=False)
         battle_embed.add_field(name=f"{player1_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name=f"{player2_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Defeated Pokémon", value="None", inline=False)
@@ -532,12 +533,12 @@ class TreacheryPokemon(commands.Cog):
 
                 opponent_hp[opponent_party[0]] = max(opponent_hp[opponent_party[0]] - damage, 0)
 
-                hp_field_index = 0 if player_display == ctx.author.display_name else 1
+                hp_field_index = 1 if player_display == ctx.author.display_name else 2
                 battle_embed.set_field_at(hp_field_index, name=f"{pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
                 formatted_move_name = "No move available" if move == "NULL" else ' '.join(word.capitalize() for word in move.replace('-', ' ').split())
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
 
-                battle_embed.set_field_at(3, name="Moves", value=moves_display, inline=False)
+                battle_embed.set_field_at(4, name="Moves", value=moves_display, inline=False)
 
                 # Update the battle embed after each move
                 await battle_message.edit(embed=battle_embed)
@@ -546,8 +547,8 @@ class TreacheryPokemon(commands.Cog):
                     defeated_pokemon.append(f"{opponent_party[0]} ({opponent_display})")
                     opponent_party.pop(0)
                     moves_display += f"{opponent_display}'s {opposing_pokemon_name} has been defeated!\n"
-                    battle_embed.set_field_at(3, name="Moves", value=moves_display, inline=False)
-                    battle_embed.set_field_at(2, name="Defeated Pokémon", value='\n'.join(defeated_pokemon), inline=False)
+                    battle_embed.set_field_at(4, name="Moves", value=moves_display, inline=False)
+                    battle_embed.set_field_at(3, name="Defeated Pokémon", value='\n'.join(defeated_pokemon), inline=False)
                     if opponent_party:
                         new_pokemon = opponent_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if opponent_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
@@ -565,6 +566,8 @@ class TreacheryPokemon(commands.Cog):
 
             async with self.rate_limit_lock:
                 turn_number += 1
+                battle_embed.set_field_at(0, name="Turn", value=turn_number, inline=False)
+                await battle_message.edit(embed=battle_embed)
                 await asyncio.sleep(1.5)  # Ensure there's a delay between turns to respect rate limits
 
         winner = ctx.author.display_name if player2_party else opponent.display_name
