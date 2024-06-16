@@ -470,6 +470,14 @@ class TreacheryPokemon(commands.Cog):
             combined_frame.paste(p1_frame.convert('RGBA'), (arena_width // 4 - p1_frame.width // 2, arena_height // 2), p1_frame.convert('RGBA'))
             combined_frame.paste(p2_frame.convert('RGBA'), (3 * arena_width // 4 - p2_frame.width // 2, arena_height // 2), p2_frame.convert('RGBA'))
             combined_frame = ImageEnhance.Color(combined_frame).enhance(1.2)
+            
+            # Resize the combined frame to a smaller size
+            max_size = (400, 400)
+            combined_frame.thumbnail(max_size, Image.ANTIALIAS)
+            
+            # Convert the combined frame to palette mode with a limited number of colors
+            combined_frame = combined_frame.convert('P', palette=Image.ADAPTIVE, colors=128)
+            
             return combined_frame
 
         combined_frames = await asyncio.gather(*[process_frame(p1, p2) for p1, p2 in zip(player1_frames, player2_frames)])
@@ -482,7 +490,9 @@ class TreacheryPokemon(commands.Cog):
             append_images=combined_frames[1:], 
             loop=0, 
             duration=player1_sprite_image.info.get('duration', 100),
-            disposal=2
+            disposal=2,
+            optimize=True,  # Enable GIF optimization
+            colors=128  # Reduce the number of colors in the palette
         )
         combined_image_io.seek(0)
         return discord.File(combined_image_io, filename='combined_sprite.gif')
