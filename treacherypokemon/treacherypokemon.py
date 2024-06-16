@@ -9,7 +9,6 @@ from discord import Embed, Reaction
 import datetime
 import asyncio
 import aiohttp
-import os
 import traceback
 from PIL import Image, ImageFilter, ImageEnhance, ImageSequence
 from io import BytesIO
@@ -430,67 +429,63 @@ class TreacheryPokemon(commands.Cog):
             print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
-    async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
-        async def fetch_sprite(pokemon_name, sprite_type):
-            sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(sprite_url) as response:
-                    if response.status != 200:
-                        raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
-                    data = await response.json()
-                    sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                            data['sprites'].get(sprite_type) or
-                            data['sprites']['other']['official-artwork'].get('front_default'))
-                    if not sprite:
-                        raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
-                    async with session.get(sprite) as sprite_response:
-                        if sprite_response.status != 200:
-                            raise ValueError(f"Failed to fetch sprite image: {sprite}")
-                        return Image.open(BytesIO(await sprite_response.read()))
+async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
+    async def fetch_sprite(pokemon_name, sprite_type):
+        sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(sprite_url) as response:
+                if response.status != 200:
+                    raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
+                data = await response.json()
+                sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
+                        data['sprites'].get(sprite_type) or
+                        data['sprites']['other']['official-artwork'].get('front_default'))
+                if not sprite:
+                    raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
+                async with session.get(sprite) as sprite_response:
+                    if sprite_response.status != 200:
+                        raise ValueError(f"Failed to fetch sprite image: {sprite}")
+                    return Image.open(BytesIO(await sprite_response.read()))
 
-        player1_sprite_image = await fetch_sprite(player1_pokemon_name, 'back_default')
-        player2_sprite_image = await fetch_sprite(player2_pokemon_name, 'front_default')
+    player1_sprite_image = await fetch_sprite(player1_pokemon_name, 'back_default')
+    player2_sprite_image = await fetch_sprite(player2_pokemon_name, 'front_default')
 
-        player1_frames = [frame.copy() for frame in ImageSequence.Iterator(player1_sprite_image)]
-        player2_frames = [frame.copy() for frame in ImageSequence.Iterator(player2_sprite_image)]
-        num_frames = max(len(player1_frames), len(player2_frames))
-        player1_frames *= (num_frames // len(player1_frames) + 1)
-        player2_frames *= (num_frames // len(player2_frames) + 1)
-        player1_frames, player2_frames = player1_frames[:num_frames], player2_frames[:num_frames]
+    player1_frames = [frame.copy() for frame in ImageSequence.Iterator(player1_sprite_image)]
+    player2_frames = [frame.copy() for frame in ImageSequence.Iterator(player2_sprite_image)]
+    num_frames = max(len(player1_frames), len(player2_frames))
+    player1_frames *= (num_frames // len(player1_frames) + 1)
+    player2_frames *= (num_frames // len(player2_frames) + 1)
+    player1_frames, player2_frames = player1_frames[:num_frames], player2_frames[:num_frames]
 
-        # Construct the path to the arena image
-        script_dir = os.path.dirname(__file__)
-        arena_path = os.path.join(script_dir, 'arena.png')
+    # Load the arena image
+    arena_image = Image.open('arena.png')
+    arena_width, arena_height = arena_image.size
 
-        # Load the arena image
-        arena_image = Image.open(arena_path)
-        arena_width, arena_height = arena_image.size
+    combined_frames = []
+    for p1_frame, p2_frame in zip(player1_frames, player2_frames):
+        total_width, total_height = max(p1_frame.width, p2_frame.width) * 2, max(p1_frame.height, p2_frame.height) * 2
+        combined_frame = Image.new('RGBA', (total_width, total_height), (0, 0, 0, 0))
+        combined_frame.paste(p1_frame.convert('RGBA'), (0, total_height // 2), p1_frame.convert('RGBA'))
+        combined_frame.paste(p2_frame.convert('RGBA'), (total_width // 2, 0), p2_frame.convert('RGBA'))
+        combined_frame = ImageEnhance.Color(combined_frame).enhance(1.2)
 
-        combined_frames = []
-        for p1_frame, p2_frame in zip(player1_frames, player2_frames):
-            total_width, total_height = max(p1_frame.width, p2_frame.width) * 2, max(p1_frame.height, p2_frame.height) * 2
-            combined_frame = Image.new('RGBA', (total_width, total_height), (0, 0, 0, 0))
-            combined_frame.paste(p1_frame.convert('RGBA'), (0, total_height // 2), p1_frame.convert('RGBA'))
-            combined_frame.paste(p2_frame.convert('RGBA'), (total_width // 2, 0), p2_frame.convert('RGBA'))
-            combined_frame = ImageEnhance.Color(combined_frame).enhance(1.2)
+        # Resize the arena image to match the combined frame size
+        resized_arena = arena_image.resize((total_width, total_height))
+        final_frame = Image.alpha_composite(resized_arena.convert('RGBA'), combined_frame)
+        combined_frames.append(final_frame)
 
-            # Resize the arena image to match the combined frame size
-            resized_arena = arena_image.resize((total_width, total_height))
-            final_frame = Image.alpha_composite(resized_arena.convert('RGBA'), combined_frame)
-            combined_frames.append(final_frame)
-
-        combined_image_io = BytesIO()
-        combined_frames[0].save(
-            combined_image_io, 
-            format='GIF', 
-            save_all=True, 
-            append_images=combined_frames[1:], 
-            loop=0, 
-            duration=player1_sprite_image.info.get('duration', 100),
-            disposal=2
-        )
-        combined_image_io.seek(0)
-        return discord.File(combined_image_io, filename='combined_sprite.gif')
+    combined_image_io = BytesIO()
+    combined_frames[0].save(
+        combined_image_io, 
+        format='GIF', 
+        save_all=True, 
+        append_images=combined_frames[1:], 
+        loop=0, 
+        duration=player1_sprite_image.info.get('duration', 100),
+        disposal=2
+    )
+    combined_image_io.seek(0)
+    return discord.File(combined_image_io, filename='combined_sprite.gif')
     
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
