@@ -454,39 +454,34 @@ class TreacheryPokemon(commands.Cog):
             fetch_sprite(player2_pokemon_name, 'front_default')
         )
 
-        # Resize player sprites to a fixed size
-        player1_sprite_image = player1_sprite_image.resize((200, 200), Image.Resampling.LANCZOS)
-        player2_sprite_image = player2_sprite_image.resize((200, 200), Image.Resampling.LANCZOS)
-
-        player1_frames = [frame.copy() for frame in ImageSequence.Iterator(player1_sprite_image)]
-        player2_frames = [frame.copy() for frame in ImageSequence.Iterator(player2_sprite_image)]
-        num_frames = min(len(player1_frames), len(player2_frames), 50)  # Limit the number of frames to 50
+        player1_frames = [frame.copy().convert("RGBA").resize((200, 200), Image.Resampling.LANCZOS) for frame in ImageSequence.Iterator(player1_sprite_image)]
+        player2_frames = [frame.copy().convert("RGBA").resize((200, 200), Image.Resampling.LANCZOS) for frame in ImageSequence.Iterator(player2_sprite_image)]
+        num_frames = max(len(player1_frames), len(player2_frames))
+        player1_frames = player1_frames * (num_frames // len(player1_frames) + 1)
+        player2_frames = player2_frames * (num_frames // len(player2_frames) + 1)
         player1_frames = player1_frames[:num_frames]
         player2_frames = player2_frames[:num_frames]
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
-        arena_image = Image.open(arena_image_path)
-        arena_image = arena_image.resize((800, 600), Image.Resampling.LANCZOS)  # Resize arena image to a smaller size
+        arena_image = Image.open(arena_image_path).convert("RGBA")
+        arena_image = arena_image.resize((800, 600), Image.Resampling.LANCZOS)
         arena_width, arena_height = arena_image.size
 
-        async def process_frame(p1_frame, p2_frame):
+        combined_frames = []
+        for p1_frame, p2_frame in zip(player1_frames, player2_frames):
             combined_frame = arena_image.copy()
-            p1_frame = p1_frame.convert("RGBA")
-            p2_frame = p2_frame.convert("RGBA")
             combined_frame.paste(p1_frame, (arena_width // 4 - p1_frame.width // 2, arena_height // 2 - p1_frame.height // 2), p1_frame)
             combined_frame.paste(p2_frame, (3 * arena_width // 4 - p2_frame.width // 2, arena_height // 2 - p2_frame.height // 2), p2_frame)
-            return combined_frame
-        
-        combined_frames = await asyncio.gather(*[process_frame(p1, p2) for p1, p2 in zip(player1_frames, player2_frames)])
+            combined_frames.append(combined_frame)
 
         async with aiofiles.tempfile.NamedTemporaryFile(delete=False) as temp_file:
             combined_frames[0].save(
-                temp_file.name, 
-                format='GIF', 
-                save_all=True, 
-                append_images=combined_frames[1:], 
-                loop=0, 
+                temp_file.name,
+                format='GIF',
+                save_all=True,
+                append_images=combined_frames[1:],
+                loop=0,
                 duration=player1_sprite_image.info.get('duration', 100),
                 disposal=2
             )
