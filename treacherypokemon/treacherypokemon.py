@@ -489,12 +489,16 @@ class TreacheryPokemon(commands.Cog):
             # Paste player2's sprite in the top right quadrant
             combined_frame.paste(player2_frame.convert('RGBA'), (total_width // 2, 0), player2_frame.convert('RGBA'))
 
-            # Apply anti-aliasing
-            combined_frame = combined_frame.resize((total_width // 2, total_height // 2), Image.Resampling.LANCZOS)
+            # Apply slight anti-aliasing
+            combined_frame = combined_frame.resize((int(total_width * 0.75), int(total_height * 0.75)), Image.Resampling.LANCZOS)
             combined_frame = combined_frame.resize((total_width, total_height), Image.Resampling.LANCZOS)
 
-            # Enhance edges
-            # combined_frame = combined_frame.filter(ImageFilter.EDGE_ENHANCE_MORE)
+            # Enhance colors
+            enhancer = ImageEnhance.Color(combined_frame)
+            combined_frame = enhancer.enhance(1.2)  # Increase color saturation by 20%
+
+            # Apply slight sharpening
+            combined_frame = combined_frame.filter(ImageFilter.SHARPEN)
 
             # Append the combined frame to the list
             combined_frames.append(combined_frame)
