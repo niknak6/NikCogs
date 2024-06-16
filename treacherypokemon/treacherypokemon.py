@@ -554,7 +554,7 @@ class TreacheryPokemon(commands.Cog):
             async with self.rate_limit_lock:
                 turn_number += 1
                 print(f"Turn {turn_number} completed")  # Debugging statement to track turns
-                await asyncio.sleep(1.5)  # Ensure there's a delay between turns to respect rate limits
+                await asyncio.sleep(3)  # Ensure there's a delay between turns to respect rate limits
 
         winner = ctx.author.display_name if player2_party else opponent.display_name
         battle_embed.clear_fields()
