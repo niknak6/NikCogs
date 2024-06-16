@@ -540,6 +540,7 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.add_field(name="Defeated Pokémon", value="None", inline=False)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
 
+        # Send the initial message with the embed and the image file
         battle_message = await ctx.send(embed=battle_embed, file=combined_image_file)
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
