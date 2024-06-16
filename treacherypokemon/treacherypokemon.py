@@ -489,33 +489,16 @@ class TreacheryPokemon(commands.Cog):
             # Paste player2's sprite in the top right quadrant
             combined_frame.paste(player2_frame.convert('RGBA'), (total_width // 2, 0), player2_frame.convert('RGBA'))
 
-            # Pre-multiply alpha
-            combined_frame = combined_frame.convert('RGBA')
-            r, g, b, a = combined_frame.split()
-            r = r.point(lambda i: i * (a.point(lambda j: j / 255.0)))
-            g = g.point(lambda i: i * (a.point(lambda j: j / 255.0)))
-            b = b.point(lambda i: i * (a.point(lambda j: j / 255.0)))
-            combined_frame = Image.merge('RGBA', (r, g, b, a))
-
             # Apply slight anti-aliasing
             combined_frame = combined_frame.resize((int(total_width * 0.75), int(total_height * 0.75)), Image.Resampling.LANCZOS)
             combined_frame = combined_frame.resize((total_width, total_height), Image.Resampling.LANCZOS)
 
-            # Post-multiply alpha
-            r, g, b, a = combined_frame.split()
-            r = r.point(lambda i: i / (a.point(lambda j: j / 255.0) if a.point(lambda j: j / 255.0) != 0 else 1))
-            g = g.point(lambda i: i / (a.point(lambda j: j / 255.0) if a.point(lambda j: j / 255.0) != 0 else 1))
-            b = b.point(lambda i: i / (a.point(lambda j: j / 255.0) if a.point(lambda j: j / 255.0) != 0 else 1))
-            combined_frame = Image.merge('RGBA', (r, g, b, a))
-
-            # Apply slight Gaussian blur to the alpha channel
-            alpha = combined_frame.split()[3]
-            alpha = alpha.filter(ImageFilter.GaussianBlur(1))
-            combined_frame.putalpha(alpha)
-
             # Enhance colors
             enhancer = ImageEnhance.Color(combined_frame)
             combined_frame = enhancer.enhance(1.2)  # Increase color saturation by 20%
+
+            # Apply slight sharpening
+            combined_frame = combined_frame.filter(ImageFilter.SHARPEN)
 
             # Append the combined frame to the list
             combined_frames.append(combined_frame)
