@@ -443,20 +443,31 @@ class TreacheryPokemon(commands.Cog):
         player1_sprite_image = await fetch_sprite(player1_pokemon_name, 'back_default')
         player2_sprite_image = await fetch_sprite(player2_pokemon_name, 'front_default')
 
-        # Create a new image with a width and height that accommodates both sprites
-        total_width = max(player1_sprite_image.width, player2_sprite_image.width) * 2
-        total_height = max(player1_sprite_image.height, player2_sprite_image.height) * 2
-        combined_sprite = Image.new('RGBA', (total_width, total_height))
+        # Create a list to hold all frames of the combined GIF
+        combined_frames = []
 
-        # Paste player1's sprite in the bottom left quadrant
-        combined_sprite.paste(player1_sprite_image, (0, total_height // 2))
+        # Iterate through the frames of the player1's sprite
+        for player1_frame in ImageSequence.Iterator(player1_sprite_image):
+            # Ensure player2's sprite has the same number of frames
+            player2_frame = next(ImageSequence.Iterator(player2_sprite_image))
 
-        # Paste player2's sprite in the top right quadrant
-        combined_sprite.paste(player2_sprite_image, (total_width // 2, 0))
+            # Create a new image with a width and height that accommodates both sprites
+            total_width = max(player1_frame.width, player2_frame.width) * 2
+            total_height = max(player1_frame.height, player2_frame.height) * 2
+            combined_frame = Image.new('RGBA', (total_width, total_height))
 
-        # Save the combined image to a BytesIO object and create a discord.File from it
+            # Paste player1's sprite in the bottom left quadrant
+            combined_frame.paste(player1_frame, (0, total_height // 2))
+
+            # Paste player2's sprite in the top right quadrant
+            combined_frame.paste(player2_frame, (total_width // 2, 0))
+
+            # Append the combined frame to the list
+            combined_frames.append(combined_frame)
+
+        # Save the combined frames as a GIF to a BytesIO object
         combined_image_io = BytesIO()
-        combined_sprite.save(combined_image_io, format='GIF')
+        combined_frames[0].save(combined_image_io, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0)
         combined_image_io.seek(0)
         combined_image_file = discord.File(combined_image_io, filename='combined_sprite.gif')
 
