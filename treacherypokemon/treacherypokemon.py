@@ -540,6 +540,9 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.add_field(name="Defeated Pokémon", value="None", inline=False)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
 
+        # Set the image URL in the embed
+        battle_embed.set_image(url=f"attachment://{combined_image_file.filename}")
+
         # Send the initial message with the embed and the image file
         battle_message = await ctx.send(embed=battle_embed, file=combined_image_file)
 
@@ -606,6 +609,7 @@ class TreacheryPokemon(commands.Cog):
                             return await ctx.send("Failed to generate battle image for new Pokémon. Please try again later.")
 
                         battle_embed.set_field_at(hp_field_index, name=f"{new_pokemon} HP", value=f"{round(opponent_hp[new_pokemon])}", inline=True)
+                        battle_embed.set_image(url=f"attachment://{combined_image_file.filename}")
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
                     else:
                         break
@@ -627,7 +631,8 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.clear_fields()
         battle_embed.description = f"**{winner} wins the battle!**" if winner != "It's a tie!" else "**It's a tie!**"
         battle_embed.add_field(name="Defeated Pokémon", value='\n'.join(defeated_pokemon) or "None", inline=False)
-        await battle_message.edit(content="", embed=battle_embed, attachments=[])
+        battle_embed.set_image(url=None)
+        await battle_message.edit(embed=battle_embed)
 
         # Remove player IDs from self.battles after the battle concludes
         del self.battles[ctx.author.id]
