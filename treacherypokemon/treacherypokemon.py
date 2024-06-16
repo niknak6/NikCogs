@@ -549,6 +549,10 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.set_image(url=None)
         await battle_message.edit(content="", embed=battle_embed)
 
+        # Remove player IDs from self.battles after the battle concludes
+        del self.battles[ctx.author.id]
+        del self.battles[opponent.id]
+
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
         super().__init__(timeout=None)
