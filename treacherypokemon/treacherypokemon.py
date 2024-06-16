@@ -436,15 +436,17 @@ class TreacheryPokemon(commands.Cog):
             sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
             async with aiohttp.ClientSession() as session:
                 async with session.get(sprite_url) as response:
-                    response.raise_for_status()
+                    if response.status != 200:
+                        raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
                     data = await response.json()
-                    sprite = next((data['sprites']['other']['showdown'].get(sprite_type),
-                                data['sprites'].get(sprite_type),
-                                data['sprites']['other']['official-artwork'].get('front_default')), None)
+                    sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
+                            data['sprites'].get(sprite_type) or
+                            data['sprites']['other']['official-artwork'].get('front_default'))
                     if not sprite:
                         raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
                     async with session.get(sprite) as sprite_response:
-                        sprite_response.raise_for_status()
+                        if sprite_response.status != 200:
+                            raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         return Image.open(BytesIO(await sprite_response.read()))
 
         player1_sprite_image, player2_sprite_image = await asyncio.gather(
@@ -453,23 +455,35 @@ class TreacheryPokemon(commands.Cog):
         )
 
         def resize_sprite(sprite_image, max_size):
-            aspect_ratio = sprite_image.width / sprite_image.height
-            new_size = (max_size, int(max_size / aspect_ratio)) if sprite_image.width > sprite_image.height else (int(max_size * aspect_ratio), max_size)
-            return sprite_image.resize(new_size, Image.Resampling.LANCZOS)
+            width, height = sprite_image.size
+            aspect_ratio = width / height
+            if width > height:
+                new_width = max_size
+                new_height = int(new_width / aspect_ratio)
+            else:
+                new_height = max_size
+                new_width = int(new_height * aspect_ratio)
+            return sprite_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
         player1_frames = [resize_sprite(frame.copy().convert("RGBA"), 150) for frame in ImageSequence.Iterator(player1_sprite_image)]
         player2_frames = [resize_sprite(frame.copy().convert("RGBA"), 150) for frame in ImageSequence.Iterator(player2_sprite_image)]
         num_frames = max(len(player1_frames), len(player2_frames))
-        player1_frames = (player1_frames * (num_frames // len(player1_frames) + 1))[:num_frames]
-        player2_frames = (player2_frames * (num_frames // len(player2_frames) + 1))[:num_frames]
+        player1_frames = player1_frames * (num_frames // len(player1_frames) + 1)
+        player2_frames = player2_frames * (num_frames // len(player2_frames) + 1)
+        player1_frames = player1_frames[:num_frames]
+        player2_frames = player2_frames[:num_frames]
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
-        arena_image = Image.open(os.path.join(cog_directory, 'arena.png')).convert("RGBA")
+        arena_image_path = os.path.join(cog_directory, 'arena.png')
+        arena_image = Image.open(arena_image_path).convert("RGBA")
         arena_width, arena_height = arena_image.size
 
-        combined_frames = [arena_image.copy().paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
-                                            .paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
-                        for p1_frame, p2_frame in zip(player1_frames, player2_frames)]
+        combined_frames = []
+        for p1_frame, p2_frame in zip(player1_frames, player2_frames):
+            combined_frame = arena_image.copy()
+            combined_frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
+            combined_frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
+            combined_frames.append(combined_frame)
 
         async with aiofiles.tempfile.NamedTemporaryFile(delete=False) as temp_file:
             combined_frames[0].save(
