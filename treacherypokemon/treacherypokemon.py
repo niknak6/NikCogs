@@ -438,9 +438,9 @@ class TreacheryPokemon(commands.Cog):
                 async with session.get(sprite_url) as response:
                     response.raise_for_status()
                     data = await response.json()
-                    sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                            data['sprites'].get(sprite_type) or
-                            data['sprites']['other']['official-artwork'].get('front_default'))
+                    sprite = next((data['sprites']['other']['showdown'].get(sprite_type),
+                                data['sprites'].get(sprite_type),
+                                data['sprites']['other']['official-artwork'].get('front_default')), None)
                     if not sprite:
                         raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
                     async with session.get(sprite) as sprite_response:
@@ -467,12 +467,9 @@ class TreacheryPokemon(commands.Cog):
         arena_image = Image.open(os.path.join(cog_directory, 'arena.png')).convert("RGBA")
         arena_width, arena_height = arena_image.size
 
-        combined_frames = []
-        for p1_frame, p2_frame in zip(player1_frames, player2_frames):
-            combined_frame = arena_image.copy()
-            combined_frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
-            combined_frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
-            combined_frames.append(combined_frame)
+        combined_frames = [arena_image.copy().paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
+                                            .paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
+                        for p1_frame, p2_frame in zip(player1_frames, player2_frames)]
 
         async with aiofiles.tempfile.NamedTemporaryFile(delete=False) as temp_file:
             combined_frames[0].save(
