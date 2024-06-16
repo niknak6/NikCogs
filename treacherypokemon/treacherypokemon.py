@@ -534,7 +534,7 @@ class TreacheryPokemon(commands.Cog):
                 opponent_hp[opponent_party[0]] = max(opponent_hp[opponent_party[0]] - damage, 0)
 
                 hp_field_index = 1 if player_display == ctx.author.display_name else 2
-                battle_embed.set_field_at(hp_field_index, name=f"{pokemon} HP", value=f"{player_hp[pokemon]}", inline=True)
+                battle_embed.set_field_at(hp_field_index, name=f"{pokemon} HP", value=f"{round(player_hp[pokemon])}", inline=True)
                 formatted_move_name = "No move available" if move == "NULL" else ' '.join(word.capitalize() for word in move.replace('-', ' ').split())
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
 
@@ -559,7 +559,7 @@ class TreacheryPokemon(commands.Cog):
                             return await ctx.send("Failed to generate battle image for new Pokémon. Please try again later.")
 
                         battle_embed.set_image(url="attachment://combined_sprite.png")
-                        battle_embed.set_field_at(hp_field_index, name=f"{new_pokemon} HP", value=f"{opponent_hp[new_pokemon]}", inline=True)
+                        battle_embed.set_field_at(hp_field_index, name=f"{new_pokemon} HP", value=f"{round(opponent_hp[new_pokemon])}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
                     else:
                         break
