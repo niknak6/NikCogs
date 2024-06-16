@@ -470,7 +470,7 @@ class TreacheryPokemon(commands.Cog):
             # Append the combined frame to the list
             combined_frames.append(combined_frame)
 
-        # Save the combined frames as a GIF to a BytesIO object
+        # Save the combined frames as a GIF to a BytesIO objects
         combined_image_io = BytesIO()
         combined_frames[0].save(
             combined_image_io, 
