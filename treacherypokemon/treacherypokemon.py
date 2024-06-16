@@ -431,7 +431,7 @@ class TreacheryPokemon(commands.Cog):
             print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
-    async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name, player1_coords=(190, 220), player2_coords=(370, 150)):
+    async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
         async def fetch_sprite(pokemon_name, sprite_type):
             sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
             async with aiohttp.ClientSession() as session:
@@ -481,10 +481,8 @@ class TreacheryPokemon(commands.Cog):
         combined_frames = []
         for p1_frame, p2_frame in zip(player1_frames, player2_frames):
             combined_frame = arena_image.copy()
-            p1_x, p1_y = player1_coords
-            p2_x, p2_y = player2_coords
-            combined_frame.paste(p1_frame, (p1_x - p1_frame.width // 2, p1_y - p1_frame.height // 2), p1_frame)
-            combined_frame.paste(p2_frame, (p2_x - p2_frame.width // 2, p2_y - p2_frame.height // 2), p2_frame)
+            combined_frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
+            combined_frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
             combined_frames.append(combined_frame)
 
         async with aiofiles.tempfile.NamedTemporaryFile(delete=False) as temp_file:
