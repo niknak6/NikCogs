@@ -494,7 +494,7 @@ class TreacheryPokemon(commands.Cog):
             combined_frame = combined_frame.resize((total_width, total_height), Image.Resampling.LANCZOS)
 
             # Enhance edges
-            combined_frame = combined_frame.filter(ImageFilter.EDGE_ENHANCE_MORE)
+            # combined_frame = combined_frame.filter(ImageFilter.EDGE_ENHANCE_MORE)
 
             # Append the combined frame to the list
             combined_frames.append(combined_frame)
