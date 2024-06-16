@@ -566,7 +566,6 @@ class TreacheryPokemon(commands.Cog):
 
             async with self.rate_limit_lock:
                 turn_number += 1
-                battle_embed.set_field_at(0, name="Turn", value=turn_number, inline=False)
                 await battle_message.edit(embed=battle_embed)
                 await asyncio.sleep(1.5)  # Ensure there's a delay between turns to respect rate limits
 
