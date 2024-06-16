@@ -478,7 +478,7 @@ class TreacheryPokemon(commands.Cog):
         combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
 
         turn_number = 1
-        battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description=f"Turn {turn_number}")
+        battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
         battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name=f"{opponent.display_name}'s {player2_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
