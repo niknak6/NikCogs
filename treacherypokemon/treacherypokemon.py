@@ -446,11 +446,16 @@ class TreacheryPokemon(commands.Cog):
         # Create a list to hold all frames of the combined GIF
         combined_frames = []
 
-        # Iterate through the frames of the player1's sprite
-        for player1_frame in ImageSequence.Iterator(player1_sprite_image):
-            # Ensure player2's sprite has the same number of frames
-            player2_frame = next(ImageSequence.Iterator(player2_sprite_image))
+        # Extract frames from both GIFs
+        player1_frames = list(ImageSequence.Iterator(player1_sprite_image))
+        player2_frames = list(ImageSequence.Iterator(player2_sprite_image))
 
+        # Ensure both GIFs have the same number of frames by repeating frames
+        num_frames = max(len(player1_frames), len(player2_frames))
+        player1_frames = (player1_frames * (num_frames // len(player1_frames) + 1))[:num_frames]
+        player2_frames = (player2_frames * (num_frames // len(player2_frames) + 1))[:num_frames]
+
+        for player1_frame, player2_frame in zip(player1_frames, player2_frames):
             # Create a new image with a width and height that accommodates both sprites
             total_width = max(player1_frame.width, player2_frame.width) * 2
             total_height = max(player1_frame.height, player2_frame.height) * 2
