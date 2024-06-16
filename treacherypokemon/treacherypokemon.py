@@ -548,6 +548,9 @@ class TreacheryPokemon(commands.Cog):
                 else:
                     await ctx.send(f"{player_display}'s {pokemon} made a move: {formatted_move_name} - Damage: {damage} ({multiplier}x)")
 
+                # Update the battle embed after each move
+                await battle_message.edit(embed=battle_embed)
+
                 if opponent_hp[opponent_party[0]] <= 0:
                     defeated_pokemon.append(f"{opponent_party[0]} ({opponent_display})")
                     opponent_party.pop(0)
