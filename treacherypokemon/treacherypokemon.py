@@ -570,9 +570,16 @@ class TreacheryPokemon(commands.Cog):
                 await battle_message.edit(embed=battle_embed)
                 await asyncio.sleep(1.5)  # Ensure there's a delay between turns to respect rate limits
 
-        winner = ctx.author.display_name if player2_party else opponent.display_name
+        # Determine the winner based on the state of both parties
+        if not player1_party and not player2_party:
+            winner = "It's a tie!"
+        elif not player2_party:
+            winner = ctx.author.display_name
+        else:
+            winner = opponent.display_name
+
         battle_embed.clear_fields()
-        battle_embed.description = f"**{winner} wins the battle!**"
+        battle_embed.description = f"**{winner} wins the battle!**" if winner != "It's a tie!" else "**It's a tie!**"
         battle_embed.add_field(name="Defeated Pokémon", value='\n'.join(defeated_pokemon) or "None", inline=False)
         battle_embed.add_field(name="Moves", value="None", inline=False)
         battle_embed.set_image(url=None)
