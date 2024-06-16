@@ -457,12 +457,14 @@ class TreacheryPokemon(commands.Cog):
         player2_frames *= (num_frames // len(player2_frames) + 1)
         player1_frames, player2_frames = player1_frames[:num_frames], player2_frames[:num_frames]
 
+        arena_image = Image.open('arena.png')
+        arena_width, arena_height = arena_image.size
+
         combined_frames = []
         for p1_frame, p2_frame in zip(player1_frames, player2_frames):
-            total_width, total_height = max(p1_frame.width, p2_frame.width) * 2, max(p1_frame.height, p2_frame.height) * 2
-            combined_frame = Image.new('RGBA', (total_width, total_height), (0, 0, 0, 0))
-            combined_frame.paste(p1_frame.convert('RGBA'), (0, total_height // 2), p1_frame.convert('RGBA'))
-            combined_frame.paste(p2_frame.convert('RGBA'), (total_width // 2, 0), p2_frame.convert('RGBA'))
+            combined_frame = arena_image.copy()
+            combined_frame.paste(p1_frame.convert('RGBA'), (arena_width // 4 - p1_frame.width // 2, arena_height // 2), p1_frame.convert('RGBA'))
+            combined_frame.paste(p2_frame.convert('RGBA'), (3 * arena_width // 4 - p2_frame.width // 2, arena_height // 2), p2_frame.convert('RGBA'))
             combined_frame = ImageEnhance.Color(combined_frame).enhance(1.2)
             combined_frames.append(combined_frame)
 
