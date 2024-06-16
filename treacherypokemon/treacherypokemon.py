@@ -478,7 +478,7 @@ class TreacheryPokemon(commands.Cog):
         combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
 
         turn_number = 1
-        battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
+        battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}", description=f"Turn {turn_number}")
         battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name=f"{opponent.display_name}'s {player2_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
@@ -488,14 +488,8 @@ class TreacheryPokemon(commands.Cog):
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
-        async def fetch_pokemon_type(pokemon_name):
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}") as resp:
-                    return [t['type']['name'] for t in (await resp.json())['types']]
-
-        multipliers = {'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0}
-
         while player1_party and player2_party:
+            battle_embed.description = f"Turn {turn_number}"
             moves_display = f"**Turn {turn_number}**\n"
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 if not player_party:
@@ -546,8 +540,11 @@ class TreacheryPokemon(commands.Cog):
                         break
 
             turn_number += 1
-            battle_embed.description = f"Turn {turn_number}"
             await battle_message.edit(embed=battle_embed)
+
+        # Clean up after battle
+        del self.battles[ctx.author.id]
+        del self.battles[opponent.id]
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
