@@ -480,11 +480,14 @@ class TreacheryPokemon(commands.Cog):
             total_height = max(player1_frame.height, player2_frame.height) * 2
             combined_frame = Image.new('RGBA', (total_width, total_height))
 
+            # Clear the background to avoid artifacts
+            combined_frame.paste((0, 0, 0, 0), (0, 0, total_width, total_height))
+
             # Paste player1's sprite in the bottom left quadrant
-            combined_frame.paste(player1_frame.convert('RGBA'), (0, total_height // 2))
+            combined_frame.paste(player1_frame.convert('RGBA'), (0, total_height // 2), player1_frame.convert('RGBA'))
 
             # Paste player2's sprite in the top right quadrant
-            combined_frame.paste(player2_frame.convert('RGBA'), (total_width // 2, 0))
+            combined_frame.paste(player2_frame.convert('RGBA'), (total_width // 2, 0), player2_frame.convert('RGBA'))
 
             # Append the combined frame to the list
             combined_frames.append(combined_frame)
@@ -497,7 +500,8 @@ class TreacheryPokemon(commands.Cog):
             save_all=True, 
             append_images=combined_frames[1:], 
             loop=0, 
-            duration=player1_sprite_image.info.get('duration', 100)
+            duration=player1_sprite_image.info.get('duration', 100),
+            disposal=2  # Ensure that the previous frame is cleared before drawing the next frame
         )
         combined_image_io.seek(0)
         combined_image_file = discord.File(combined_image_io, filename='combined_sprite.gif')
