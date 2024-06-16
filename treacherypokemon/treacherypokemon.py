@@ -482,6 +482,9 @@ class TreacheryPokemon(commands.Cog):
         player1_pokemon_name, player2_pokemon_name = player1_party[0], player2_party[0]
         combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
 
+        if not combined_image_file:
+            return await ctx.send("Failed to generate combined sprite.")
+
         turn_number = 1
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
         battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_pokemon_name} HP", value="Loading...", inline=True)
@@ -545,6 +548,8 @@ class TreacheryPokemon(commands.Cog):
                         new_pokemon = opponent_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if opponent_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
                         combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
+                        if not combined_image_file:
+                            return await ctx.send("Failed to generate combined sprite.")
                         battle_embed.set_image(url="attachment://combined_sprite.png")
                         battle_embed.set_field_at(hp_field_index, name=f"{opponent_display}'s {new_pokemon} HP", value=f"{opponent_hp[new_pokemon]}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
