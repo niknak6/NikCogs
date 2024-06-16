@@ -447,8 +447,8 @@ class TreacheryPokemon(commands.Cog):
         combined_frames = []
 
         # Extract frames from both GIFs
-        player1_frames = list(ImageSequence.Iterator(player1_sprite_image))
-        player2_frames = list(ImageSequence.Iterator(player2_sprite_image))
+        player1_frames = [frame.copy() for frame in ImageSequence.Iterator(player1_sprite_image)]
+        player2_frames = [frame.copy() for frame in ImageSequence.Iterator(player2_sprite_image)]
 
         # Ensure both GIFs have the same number of frames by repeating frames
         num_frames = max(len(player1_frames), len(player2_frames))
@@ -470,7 +470,7 @@ class TreacheryPokemon(commands.Cog):
             # Append the combined frame to the list
             combined_frames.append(combined_frame)
 
-        # Save the combined frames as a GIF to a BytesIO objects
+        # Save the combined frames as a GIF to a BytesIO object
         combined_image_io = BytesIO()
         combined_frames[0].save(
             combined_image_io, 
