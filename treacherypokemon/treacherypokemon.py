@@ -448,8 +448,10 @@ class TreacheryPokemon(commands.Cog):
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         return Image.open(BytesIO(await sprite_response.read()))
 
-        player1_sprite_image = await fetch_sprite(player1_pokemon_name, 'back_default')
-        player2_sprite_image = await fetch_sprite(player2_pokemon_name, 'front_default')
+        player1_sprite_image, player2_sprite_image = await asyncio.gather(
+            fetch_sprite(player1_pokemon_name, 'back_default'),
+            fetch_sprite(player2_pokemon_name, 'front_default')
+        )
 
         player1_frames = [frame.copy() for frame in ImageSequence.Iterator(player1_sprite_image)]
         player2_frames = [frame.copy() for frame in ImageSequence.Iterator(player2_sprite_image)]
@@ -463,13 +465,14 @@ class TreacheryPokemon(commands.Cog):
         arena_image = Image.open(arena_image_path)
         arena_width, arena_height = arena_image.size
 
-        combined_frames = []
-        for p1_frame, p2_frame in zip(player1_frames, player2_frames):
+        async def process_frame(p1_frame, p2_frame):
             combined_frame = arena_image.copy()
             combined_frame.paste(p1_frame.convert('RGBA'), (arena_width // 4 - p1_frame.width // 2, arena_height // 2), p1_frame.convert('RGBA'))
             combined_frame.paste(p2_frame.convert('RGBA'), (3 * arena_width // 4 - p2_frame.width // 2, arena_height // 2), p2_frame.convert('RGBA'))
             combined_frame = ImageEnhance.Color(combined_frame).enhance(1.2)
-            combined_frames.append(combined_frame)
+            return combined_frame
+
+        combined_frames = await asyncio.gather(*[process_frame(p1, p2) for p1, p2 in zip(player1_frames, player2_frames)])
 
         combined_image_io = BytesIO()
         combined_frames[0].save(
