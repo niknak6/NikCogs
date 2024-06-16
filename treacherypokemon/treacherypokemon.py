@@ -441,13 +441,15 @@ class TreacheryPokemon(commands.Cog):
         player2_sprite_image = fetch_sprite(player2_pokemon_name)
 
         # Create a new image with a width and height that accommodates both sprites
-        total_width = max(player1_sprite_image.width, player2_sprite_image.width)
-        total_height = player1_sprite_image.height + player2_sprite_image.height
+        total_width = max(player1_sprite_image.width, player2_sprite_image.width) * 2
+        total_height = max(player1_sprite_image.height, player2_sprite_image.height) * 2
         combined_sprite = Image.new('RGBA', (total_width, total_height))
 
-        # Paste player1's sprite in the bottom left and player2's sprite in the top right
-        combined_sprite.paste(player1_sprite_image, (0, total_height - player1_sprite_image.height))
-        combined_sprite.paste(player2_sprite_image, (total_width - player2_sprite_image.width, 0))
+        # Paste player1's sprite in the bottom left quadrant
+        combined_sprite.paste(player1_sprite_image, (0, total_height // 2))
+
+        # Paste player2's sprite in the top right quadrant
+        combined_sprite.paste(player2_sprite_image, (total_width // 2, 0))
 
         # Save the combined image to a BytesIO object and create a discord.File from it
         combined_image_io = BytesIO()
