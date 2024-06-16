@@ -473,18 +473,18 @@ class TreacheryPokemon(commands.Cog):
 
         combined_frames = await asyncio.gather(*[process_frame(p1, p2) for p1, p2 in zip(player1_frames, player2_frames)])
 
-        combined_image_io = BytesIO()
-        combined_frames[0].save(
-            combined_image_io, 
-            format='GIF', 
-            save_all=True, 
-            append_images=combined_frames[1:], 
-            loop=0, 
-            duration=player1_sprite_image.info.get('duration', 100),
-            disposal=2
-        )
-        combined_image_io.seek(0)
-        return discord.File(combined_image_io, filename='combined_sprite.gif')
+        async with aiofiles.tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            combined_frames[0].save(
+                temp_file.name, 
+                format='GIF', 
+                save_all=True, 
+                append_images=combined_frames[1:], 
+                loop=0, 
+                duration=player1_sprite_image.info.get('duration', 100),
+                disposal=2
+            )
+            await temp_file.flush()
+            return discord.File(temp_file.name, filename='combined_sprite.gif')
     
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
