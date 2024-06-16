@@ -429,17 +429,18 @@ class TreacheryPokemon(commands.Cog):
             print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
-    def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
-        # Helper function to fetch and process a sprites
-        def fetch_sprite(pokemon_name):
+    async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
+        # Helper function to fetch and process sprites
+        async def fetch_sprite(pokemon_name):
             sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
-            response = requests.get(sprite_url)
-            sprite = response.json()['sprites']['other']['official-artwork']['front_default']
-            return Image.open(BytesIO(requests.get(sprite).content))
+            async with aiohttp.ClientSession() as session:
+                async with session.get(sprite_url) as response:
+                    sprite = (await response.json())['sprites']['other']['official-artwork']['front_default']
+                    return Image.open(BytesIO(requests.get(sprite).content))
 
         # Fetch and process sprites
-        player1_sprite_image = fetch_sprite(player1_pokemon_name)
-        player2_sprite_image = fetch_sprite(player2_pokemon_name)
+        player1_sprite_image = await fetch_sprite(player1_pokemon_name)
+        player2_sprite_image = await fetch_sprite(player2_pokemon_name)
 
         # Create a new image with a width and height that accommodates both sprites
         total_width = max(player1_sprite_image.width, player2_sprite_image.width) * 2
