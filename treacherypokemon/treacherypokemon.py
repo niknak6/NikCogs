@@ -498,7 +498,7 @@ class TreacheryPokemon(commands.Cog):
             combined_frame = enhancer.enhance(1.2)  # Increase color saturation by 20%
 
             # Apply slight sharpening
-            combined_frame = combined_frame.filter(ImageFilter.SHARPEN)
+            # combined_frame = combined_frame.filter(ImageFilter.SHARPEN)
 
             # Append the combined frame to the list
             combined_frames.append(combined_frame)
