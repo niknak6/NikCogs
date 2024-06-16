@@ -438,9 +438,9 @@ class TreacheryPokemon(commands.Cog):
                 async with session.get(sprite_url) as response:
                     response.raise_for_status()
                     data = await response.json()
-                    sprite = next((data['sprites']['other']['showdown'].get(sprite_type),
-                                data['sprites'].get(sprite_type),
-                                data['sprites']['other']['official-artwork'].get('front_default')), None)
+                    sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
+                            data['sprites'].get(sprite_type) or
+                            data['sprites']['other']['official-artwork'].get('front_default'))
                     if not sprite:
                         raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
                     async with session.get(sprite) as sprite_response:
