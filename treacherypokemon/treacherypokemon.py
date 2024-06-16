@@ -472,10 +472,12 @@ class TreacheryPokemon(commands.Cog):
 
         async def process_frame(p1_frame, p2_frame):
             combined_frame = arena_image.copy()
+            p1_frame = p1_frame.convert("RGBA")
+            p2_frame = p2_frame.convert("RGBA")
             combined_frame.paste(p1_frame, (arena_width // 4 - p1_frame.width // 2, arena_height // 2 - p1_frame.height // 2), p1_frame)
             combined_frame.paste(p2_frame, (3 * arena_width // 4 - p2_frame.width // 2, arena_height // 2 - p2_frame.height // 2), p2_frame)
             return combined_frame
-
+        
         combined_frames = await asyncio.gather(*[process_frame(p1, p2) for p1, p2 in zip(player1_frames, player2_frames)])
 
         async with aiofiles.tempfile.NamedTemporaryFile(delete=False) as temp_file:
