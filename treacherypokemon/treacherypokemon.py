@@ -488,8 +488,14 @@ class TreacheryPokemon(commands.Cog):
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
+        async def fetch_pokemon_type(pokemon_name):
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}") as resp:
+                    return [t['type']['name'] for t in (await resp.json())['types']]
+
+        multipliers = {'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0}
+
         while player1_party and player2_party:
-            battle_embed.description = f"Turn {turn_number}"
             moves_display = f"**Turn {turn_number}**\n"
             for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
                 if not player_party:
@@ -540,11 +546,8 @@ class TreacheryPokemon(commands.Cog):
                         break
 
             turn_number += 1
+            battle_embed.description = f"Turn {turn_number}"
             await battle_message.edit(embed=battle_embed)
-
-        # Clean up after battle
-        del self.battles[ctx.author.id]
-        del self.battles[opponent.id]
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
