@@ -435,8 +435,15 @@ class TreacheryPokemon(commands.Cog):
             sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
             async with aiohttp.ClientSession() as session:
                 async with session.get(sprite_url) as response:
-                    sprite = (await response.json())['sprites']['other']['showdown'][sprite_type]
+                    if response.status != 200:
+                        raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
+                    data = await response.json()
+                    sprite = data['sprites']['other']['showdown'].get(sprite_type)
+                    if not sprite:
+                        raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
                     async with session.get(sprite) as sprite_response:
+                        if sprite_response.status != 200:
+                            raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         return Image.open(BytesIO(await sprite_response.read()))
 
         # Fetch and process sprites
