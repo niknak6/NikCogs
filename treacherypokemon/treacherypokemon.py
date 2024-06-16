@@ -475,8 +475,8 @@ class TreacheryPokemon(commands.Cog):
             max_size = (400, 400)
             combined_frame.thumbnail(max_size, Image.Resampling.LANCZOS)
             
-            # Convert the combined frame to palette mode with a limited number of colors
-            combined_frame = combined_frame.convert('P', palette=Image.ADAPTIVE, colors=128)
+            # Convert the combined frame to palette mode with a higher number of colors
+            combined_frame = combined_frame.convert('P', palette=Image.ADAPTIVE, colors=256)
             
             return combined_frame
 
@@ -489,10 +489,10 @@ class TreacheryPokemon(commands.Cog):
             save_all=True, 
             append_images=combined_frames[1:], 
             loop=0, 
-            duration=player1_sprite_image.info.get('duration', 100),
-            disposal=2,
-            optimize=True,  # Enable GIF optimization
-            colors=128  # Reduce the number of colors in the palette
+            duration=200,  # Increase the frame duration for smoother animation
+            disposal=1,  # Adjust the disposal method to avoid flashing/blinking
+            optimize=False,  # Disable GIF optimization to preserve quality
+            colors=256  # Increase the number of colors in the palette
         )
         combined_image_io.seek(0)
         return discord.File(combined_image_io, filename='combined_sprite.gif')
