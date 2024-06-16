@@ -431,17 +431,17 @@ class TreacheryPokemon(commands.Cog):
         
     async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
         # Helper function to fetch and process sprites
-        async def fetch_sprite(pokemon_name):
+        async def fetch_sprite(pokemon_name, sprite_type):
             sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
             async with aiohttp.ClientSession() as session:
                 async with session.get(sprite_url) as response:
-                    sprite = (await response.json())['sprites']['other']['official-artwork']['front_default']
+                    sprite = (await response.json())['sprites']['other']['showdown'][sprite_type]
                     async with session.get(sprite) as sprite_response:
                         return Image.open(BytesIO(await sprite_response.read()))
 
         # Fetch and process sprites
-        player1_sprite_image = await fetch_sprite(player1_pokemon_name)
-        player2_sprite_image = await fetch_sprite(player2_pokemon_name)
+        player1_sprite_image = await fetch_sprite(player1_pokemon_name, 'back_default')
+        player2_sprite_image = await fetch_sprite(player2_pokemon_name, 'front_default')
 
         # Create a new image with a width and height that accommodates both sprites
         total_width = max(player1_sprite_image.width, player2_sprite_image.width) * 2
@@ -456,9 +456,9 @@ class TreacheryPokemon(commands.Cog):
 
         # Save the combined image to a BytesIO object and create a discord.File from it
         combined_image_io = BytesIO()
-        combined_sprite.save(combined_image_io, format='PNG')
+        combined_sprite.save(combined_image_io, format='GIF')
         combined_image_io.seek(0)
-        combined_image_file = discord.File(combined_image_io, filename='combined_sprite.png')
+        combined_image_file = discord.File(combined_image_io, filename='combined_sprite.gif')
 
         return combined_image_file
     
@@ -493,7 +493,7 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.add_field(name=f"{player2_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Defeated Pokémon", value="None", inline=False)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
-        battle_embed.set_image(url="attachment://combined_sprite.png")
+        battle_embed.set_image(url="attachment://combined_sprite.gif")
 
         battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
         await battle_message.add_reaction("⚔️")
