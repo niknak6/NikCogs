@@ -474,14 +474,15 @@ class TreacheryPokemon(commands.Cog):
         player1_frames = (player1_frames * (num_frames // len(player1_frames) + 1))[:num_frames]
         player2_frames = (player2_frames * (num_frames // len(player2_frames) + 1))[:num_frames]
 
+        # Resize individual frames before combining
+        player1_frames = [frame.resize((int(frame.width * 0.75), int(frame.height * 0.75)), Image.Resampling.LANCZOS) for frame in player1_frames]
+        player2_frames = [frame.resize((int(frame.width * 0.75), int(frame.height * 0.75)), Image.Resampling.LANCZOS) for frame in player2_frames]
+
         for player1_frame, player2_frame in zip(player1_frames, player2_frames):
             # Create a new image with a width and height that accommodates both sprites
             total_width = max(player1_frame.width, player2_frame.width) * 2
             total_height = max(player1_frame.height, player2_frame.height) * 2
-            combined_frame = Image.new('RGBA', (total_width, total_height))
-
-            # Clear the background to avoid artifacts
-            combined_frame.paste((0, 0, 0, 0), (0, 0, total_width, total_height))
+            combined_frame = Image.new('RGBA', (total_width, total_height), (0, 0, 0, 0))  # Ensure transparency
 
             # Paste player1's sprite in the bottom left quadrant
             combined_frame.paste(player1_frame.convert('RGBA'), (0, total_height // 2), player1_frame.convert('RGBA'))
@@ -489,16 +490,9 @@ class TreacheryPokemon(commands.Cog):
             # Paste player2's sprite in the top right quadrant
             combined_frame.paste(player2_frame.convert('RGBA'), (total_width // 2, 0), player2_frame.convert('RGBA'))
 
-            # Apply slight anti-aliasing
-            # combined_frame = combined_frame.resize((int(total_width * 0.75), int(total_height * 0.75)), Image.Resampling.LANCZOS)
-            # combined_frame = combined_frame.resize((total_width, total_height), Image.Resampling.LANCZOS)
-
             # Enhance colors
             enhancer = ImageEnhance.Color(combined_frame)
             combined_frame = enhancer.enhance(1.2)  # Increase color saturation by 20%
-
-            # Apply slight sharpening
-            # combined_frame = combined_frame.filter(ImageFilter.SHARPEN)
 
             # Append the combined frame to the list
             combined_frames.append(combined_frame)
@@ -517,7 +511,8 @@ class TreacheryPokemon(commands.Cog):
         combined_image_io.seek(0)
         combined_image_file = discord.File(combined_image_io, filename='combined_sprite.gif')
 
-        return combined_image_file
+        # Send the combined GIF file
+        await ctx.send(file=combined_image_file)
     
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
