@@ -10,7 +10,7 @@ import datetime
 import asyncio
 import aiohttp
 import traceback
-from PIL import Image, ImageSequence
+from PIL import Image, ImageFilter, ImageEnhance, ImageSequence, ImageResampling
 from io import BytesIO
 
 class TreacheryPokemon(commands.Cog):
@@ -490,8 +490,8 @@ class TreacheryPokemon(commands.Cog):
             combined_frame.paste(player2_frame.convert('RGBA'), (total_width // 2, 0), player2_frame.convert('RGBA'))
 
             # Apply anti-aliasing
-            combined_frame = combined_frame.resize((total_width // 2, total_height // 2), Image.ANTIALIAS)
-            combined_frame = combined_frame.resize((total_width, total_height), Image.ANTIALIAS)
+            combined_frame = combined_frame.resize((total_width // 2, total_height // 2), Image.Resampling.LANCZOS)
+            combined_frame = combined_frame.resize((total_width, total_height), Image.Resampling.LANCZOS)
 
             # Enhance edges
             combined_frame = combined_frame.filter(ImageFilter.EDGE_ENHANCE_MORE)
