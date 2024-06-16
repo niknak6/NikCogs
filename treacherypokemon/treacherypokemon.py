@@ -490,8 +490,8 @@ class TreacheryPokemon(commands.Cog):
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
         battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name=f"{opponent.display_name}'s {player2_pokemon_name} HP", value="Loading...", inline=True)
-        battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
         battle_embed.add_field(name="Defeated Pokémon", value="None", inline=False)
+        battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
         battle_embed.set_image(url="attachment://combined_sprite.png")
 
         battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
@@ -537,7 +537,7 @@ class TreacheryPokemon(commands.Cog):
                 formatted_move_name = "No move available" if move == "NULL" else ' '.join(word.capitalize() for word in move.replace('-', ' ').split())
                 moves_display += f"{player_display}'s {pokemon}: {formatted_move_name} - Damage: {damage} ({multiplier}x)\n"
 
-                battle_embed.set_field_at(2, name="Moves", value=moves_display, inline=False)
+                battle_embed.set_field_at(3, name="Moves", value=moves_display, inline=False)
 
                 # Update the battle embed after each move
                 await battle_message.edit(embed=battle_embed)
@@ -546,8 +546,8 @@ class TreacheryPokemon(commands.Cog):
                     defeated_pokemon.append(f"{opponent_party[0]} ({opponent_display})")
                     opponent_party.pop(0)
                     moves_display += f"{opponent_display}'s {opposing_pokemon_name} has been defeated!\n"
-                    battle_embed.set_field_at(2, name="Moves", value=moves_display, inline=False)
-                    battle_embed.set_field_at(3, name="Defeated Pokémon", value='\n'.join(defeated_pokemon), inline=False)
+                    battle_embed.set_field_at(3, name="Moves", value=moves_display, inline=False)
+                    battle_embed.set_field_at(2, name="Defeated Pokémon", value='\n'.join(defeated_pokemon), inline=False)
                     if opponent_party:
                         new_pokemon = opponent_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if opponent_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
@@ -571,6 +571,7 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.clear_fields()
         battle_embed.description = f"**{winner} wins the battle!**"
         battle_embed.add_field(name="Defeated Pokémon", value='\n'.join(defeated_pokemon) or "None", inline=False)
+        battle_embed.add_field(name="Moves", value="None", inline=False)
         battle_embed.set_image(url=None)
         await battle_message.edit(content="", embed=battle_embed)
 
