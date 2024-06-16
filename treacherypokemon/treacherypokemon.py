@@ -484,6 +484,7 @@ class TreacheryPokemon(commands.Cog):
         battle_embed.add_field(name=f"{ctx.author.display_name}'s {player1_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name=f"{opponent.display_name}'s {player2_pokemon_name} HP", value="Loading...", inline=True)
         battle_embed.add_field(name="Moves", value="Waiting...", inline=False)
+        battle_embed.add_field(name="Defeated Pokémon", value="None", inline=False)
         battle_embed.set_image(url="attachment://combined_sprite.png")
 
         battle_message = await ctx.send(file=combined_image_file, embed=battle_embed)
@@ -497,9 +498,14 @@ class TreacheryPokemon(commands.Cog):
 
         multipliers = {'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0}
 
+        defeated_pokemon = []
+
         while player1_party and player2_party:
             moves_display = f"**Turn {turn_number}**\n"
-            for player_party, player_hp, player_display in [(player1_party, player1_hp, ctx.author.display_name), (player2_party, player2_hp, opponent.display_name)]:
+            for player_party, player_hp, player_display in [
+                (player1_party, player1_hp, ctx.author.display_name),
+                (player2_party, player2_hp, opponent.display_name)
+            ]:
                 if not player_party:
                     continue
 
@@ -529,8 +535,10 @@ class TreacheryPokemon(commands.Cog):
                 battle_embed.set_field_at(2, name="Moves", value=moves_display, inline=False)
 
                 if player_hp[pokemon] <= 0:
+                    defeated_pokemon.append(f"{pokemon} ({player_display})")
                     player_party.pop(0)
                     battle_embed.description += f"\n{player_display}'s {pokemon} has been defeated!"
+                    battle_embed.set_field_at(3, name="Defeated Pokémon", value='\n'.join(defeated_pokemon), inline=False)
                     if player_party:
                         new_pokemon = player_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if player_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
@@ -548,6 +556,7 @@ class TreacheryPokemon(commands.Cog):
         winner = ctx.author.display_name if player2_party else opponent.display_name
         battle_embed.clear_fields()
         battle_embed.description = f"**{winner} wins the battle!**"
+        battle_embed.add_field(name="Defeated Pokémon", value='\n'.join(defeated_pokemon) or "None", inline=False)
         battle_embed.set_image(url=None)
         await battle_message.edit(content="", embed=battle_embed)
 
