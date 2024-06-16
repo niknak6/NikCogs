@@ -9,6 +9,7 @@ from discord import Embed, Reaction
 import datetime
 import asyncio
 import aiohttp
+import os
 import traceback
 from PIL import Image, ImageFilter, ImageEnhance, ImageSequence
 from io import BytesIO
