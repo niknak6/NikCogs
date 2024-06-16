@@ -429,7 +429,7 @@ class TreacheryPokemon(commands.Cog):
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
     def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
-        # Helper function to fetch and process a sprite
+        # Helper function to fetch and process a sprites
         def fetch_sprite(pokemon_name):
             sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
             response = requests.get(sprite_url)
