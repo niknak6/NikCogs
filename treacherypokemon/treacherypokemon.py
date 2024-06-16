@@ -438,9 +438,21 @@ class TreacheryPokemon(commands.Cog):
                     if response.status != 200:
                         raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
                     data = await response.json()
+                    
+                    # Try to get the sprite from 'showdown' first
                     sprite = data['sprites']['other']['showdown'].get(sprite_type)
+                    
+                    # Fallback to 'sprites' if 'showdown' sprite is not available
+                    if not sprite:
+                        sprite = data['sprites'].get(sprite_type)
+                    
+                    # Fallback to 'official-artwork' if neither 'showdown' nor 'sprites' are available
+                    if not sprite:
+                        sprite = data['sprites']['other']['official-artwork'].get('front_default')
+                    
                     if not sprite:
                         raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
+                    
                     async with session.get(sprite) as sprite_response:
                         if sprite_response.status != 200:
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
