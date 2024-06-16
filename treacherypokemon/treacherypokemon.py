@@ -543,8 +543,8 @@ class TreacheryPokemon(commands.Cog):
         # Send the initial message with the embed only
         battle_message = await ctx.send(embed=battle_embed)
 
-        # Edit the message to include the image file
-        await battle_message.edit(embed=battle_embed, file=combined_image_file)
+        # Add the image file to the message
+        await battle_message.add_files(combined_image_file)
         await battle_message.add_reaction("⚔️")
         self.battles[ctx.author.id], self.battles[opponent.id] = opponent.id, ctx.author.id
 
