@@ -549,6 +549,10 @@ class TreacheryPokemon(commands.Cog):
                     moves_display += f"{opponent_display}'s {opposing_pokemon_name} has been defeated!\n"
                     battle_embed.set_field_at(4, name="Moves", value=moves_display, inline=False)
                     battle_embed.set_field_at(3, name="Defeated Pokémon", value='\n'.join(defeated_pokemon), inline=False)
+
+                    # Update the embed to remove the defeated Pokémon before adding the new one
+                    await battle_message.edit(embed=battle_embed)
+
                     if opponent_party:
                         new_pokemon = opponent_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if opponent_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
