@@ -455,8 +455,8 @@ class TreacheryPokemon(commands.Cog):
         )
 
         # Resize player sprites to a fixed size
-        player1_sprite_image = player1_sprite_image.resize((200, 200), Image.ANTIALIAS)
-        player2_sprite_image = player2_sprite_image.resize((200, 200), Image.ANTIALIAS)
+        player1_sprite_image = player1_sprite_image.resize((200, 200), Image.Resampling.LANCZOS)
+        player2_sprite_image = player2_sprite_image.resize((200, 200), Image.Resampling.LANCZOS)
 
         player1_frames = [frame.copy() for frame in ImageSequence.Iterator(player1_sprite_image)]
         player2_frames = [frame.copy() for frame in ImageSequence.Iterator(player2_sprite_image)]
@@ -467,7 +467,7 @@ class TreacheryPokemon(commands.Cog):
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
         arena_image = Image.open(arena_image_path)
-        arena_image = arena_image.resize((800, 600), Image.ANTIALIAS)  # Resize arena image to a smaller size
+        arena_image = arena_image.resize((800, 600), Image.Resampling.LANCZOS)  # Resize arena image to a smaller size
         arena_width, arena_height = arena_image.size
 
         async def process_frame(p1_frame, p2_frame):
