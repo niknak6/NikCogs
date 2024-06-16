@@ -11,6 +11,7 @@ import asyncio
 import aiohttp
 import traceback
 import os
+import aiofiles
 from PIL import Image, ImageFilter, ImageEnhance, ImageSequence
 from io import BytesIO
 
