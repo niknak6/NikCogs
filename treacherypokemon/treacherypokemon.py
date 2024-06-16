@@ -481,8 +481,8 @@ class TreacheryPokemon(commands.Cog):
         combined_frames = []
         for p1_frame, p2_frame in zip(player1_frames, player2_frames):
             combined_frame = arena_image.copy()
-            combined_frame.paste(p1_frame, (arena_width // 4 - p1_frame.width // 2, arena_height // 2 - p1_frame.height // 2), p1_frame)
-            combined_frame.paste(p2_frame, (3 * arena_width // 4 - p2_frame.width // 2, arena_height // 2 - p2_frame.height // 2), p2_frame)
+            combined_frame.paste(p1_frame, (arena_width // 4 - p1_frame.width // 2, 3 * arena_height // 4 - p1_frame.height // 2), p1_frame)
+            combined_frame.paste(p2_frame, (3 * arena_width // 4 - p2_frame.width // 2, arena_height // 4 - p2_frame.height // 2), p2_frame)
             combined_frames.append(combined_frame)
 
         async with aiofiles.tempfile.NamedTemporaryFile(delete=False) as temp_file:
