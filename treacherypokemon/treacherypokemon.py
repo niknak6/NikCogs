@@ -545,12 +545,13 @@ class TreacheryPokemon(commands.Cog):
                         battle_embed.set_image(url="attachment://combined_sprite.png")
                         battle_embed.set_field_at(hp_field_index, name=f"{opponent_display}'s {new_pokemon} HP", value=f"{opponent_hp[new_pokemon]}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
-                        await asyncio.sleep(1.5)  # Further increased sleep duration to 1.5 seconds
                     else:
                         break
 
-            turn_number += 1
-            print(f"Turn {turn_number} completed")  # Debugging statement to track turns
+            async with self.rate_limit_lock:
+                turn_number += 1
+                print(f"Turn {turn_number} completed")  # Debugging statement to track turns
+                await asyncio.sleep(1.5)  # Ensure there's a delay between turns to respect rate limits
 
         winner = ctx.author.display_name if player2_party else opponent.display_name
         battle_embed.clear_fields()
