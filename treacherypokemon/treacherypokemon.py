@@ -480,7 +480,7 @@ class TreacheryPokemon(commands.Cog):
         player2_hp = {pokemon: self.get_pokemon_health(opponent.id, pokemon) for pokemon in player2_party}
 
         player1_pokemon_name, player2_pokemon_name = player1_party[0], player2_party[0]
-        combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
+        combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
 
         turn_number = 1
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
@@ -544,7 +544,7 @@ class TreacheryPokemon(commands.Cog):
                     if opponent_party:
                         new_pokemon = opponent_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if opponent_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
-                        combined_image_file = self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)
+                        combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
                         battle_embed.set_image(url="attachment://combined_sprite.png")
                         battle_embed.set_field_at(hp_field_index, name=f"{opponent_display}'s {new_pokemon} HP", value=f"{opponent_hp[new_pokemon]}", inline=True)
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
