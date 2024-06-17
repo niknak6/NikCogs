@@ -466,13 +466,7 @@ class TreacheryPokemon(commands.Cog):
                 new_height = max_size
                 new_width = int(new_height * aspect_ratio)
                 frame = frame.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                
-                # Apply smoothing filter
-                frame = frame.filter(ImageFilter.SMOOTH)
-                
-                # Apply mild Gaussian blur
-                frame = frame.filter(ImageFilter.GaussianBlur(radius=1))
-                
+                frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
                 frames.append(frame)
                 durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
             return frames, durations
