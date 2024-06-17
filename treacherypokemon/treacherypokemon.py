@@ -455,9 +455,11 @@ class TreacheryPokemon(commands.Cog):
                 fetch_sprite(player2_pokemon_name, 'front_default')
             )
 
-        def process_frames(sprite_image, max_size):
+        def process_frames(sprite_image, max_size, frame_skip=2):
             frames = []
-            for frame in ImageSequence.Iterator(sprite_image):
+            for i, frame in enumerate(ImageSequence.Iterator(sprite_image)):
+                if i % frame_skip != 0:
+                    continue
                 frame = frame.convert("RGBA")
                 width, height = frame.size
                 aspect_ratio = width / height
