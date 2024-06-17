@@ -465,7 +465,7 @@ class TreacheryPokemon(commands.Cog):
                 aspect_ratio = width / height
                 new_height = max_size
                 new_width = int(new_height * aspect_ratio)
-                frame = frame.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                frame = frame.resize((new_width, new_height), Image.Resampling.BILINEAR)
                 frames.append(frame)
             return frames
 
@@ -489,7 +489,7 @@ class TreacheryPokemon(commands.Cog):
             combined_frames.append(frame)
 
         output = BytesIO()
-        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=100, disposal=2, optimize=True)
+        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=150, disposal=2, optimize=True)
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
     
