@@ -440,8 +440,8 @@ class TreacheryPokemon(commands.Cog):
                         raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
                     data = await response.json()
                     sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                              data['sprites'].get(sprite_type) or
-                              data['sprites']['other']['official-artwork'].get('front_default'))
+                            data['sprites'].get(sprite_type) or
+                            data['sprites']['other']['official-artwork'].get('front_default'))
                     if not sprite:
                         raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
                     async with session.get(sprite) as sprite_response:
@@ -487,7 +487,7 @@ class TreacheryPokemon(commands.Cog):
             combined_frames.append(frame)
 
         output = BytesIO()
-        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=100, disposal=2)
+        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=100, disposal=2, optimize=True)
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
     
