@@ -496,6 +496,10 @@ class TreacheryPokemon(commands.Cog):
         player1_frames, player1_durations = distribute_padding(player1_frames, player1_durations, max_frames)
         player2_frames, player2_durations = distribute_padding(player2_frames, player2_durations, max_frames)
 
+        # Ensure both lists have the same length after padding
+        if len(player1_frames) != len(player2_frames):
+            raise ValueError("Frame lists are not of the same length after padding")
+
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
         arena_image = Image.open(arena_image_path).convert("RGBA")
