@@ -489,7 +489,7 @@ class TreacheryPokemon(commands.Cog):
             combined_frames.append(frame)
 
         output = BytesIO()
-        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=150, disposal=2, optimize=True)
+        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=100, disposal=2, optimize=True)
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
     
