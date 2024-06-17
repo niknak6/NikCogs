@@ -451,20 +451,13 @@ class TreacheryPokemon(commands.Cog):
                         image = Image.open(BytesIO(image_data)).convert("RGBA")
                         return self.resize_sprite(image, max_size)
 
-            def resize_sprite(sprite_image, max_size):
-                width, height = sprite_image.size
-                aspect_ratio = width / height
-                new_height = max_size
-                new_width = int(new_height * aspect_ratio)
-                return sprite_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-
             player1_sprite, player2_sprite = await asyncio.gather(
                 fetch_and_scale_sprite(player1_pokemon_name, 'back_default', 150),
                 fetch_and_scale_sprite(player2_pokemon_name, 'front_default', 150)
             )
 
         arena_image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arena.png')
-        arena_image = Image.open(arena_image_path).convert("RGBA")
+        arena_image = Image.open(arena, image_path).convert("RGBA")
         arena_width, arena_height = arena_image.size
 
         output = BytesIO()
@@ -480,6 +473,13 @@ class TreacheryPokemon(commands.Cog):
         frames[0].save(output, format='GIF', save_all=True, append_images=frames[1:], loop=0, duration=100, disposal=2)
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
+
+    def resize_sprite(self, sprite_image, max_size):
+        width, height = sprite_image.size
+        aspect_ratio = width / height
+        new_height = max_size
+        new_width = int(new_height * aspect_ratio)
+        return sprite_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
     
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
