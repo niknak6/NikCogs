@@ -482,8 +482,8 @@ class TreacheryPokemon(commands.Cog):
         player1_frames, player1_durations = pad_frames(player1_frames, player1_durations, max_frames)
         player2_frames, player2_durations = pad_frames(player2_frames, player2_durations, max_frames)
 
-        # Calculate total duration of the longest GIF
-        total_duration = max(sum(player1_durations), sum(player2_durations))
+        # Use the minimum frame duration to ensure smooth playback
+        min_duration = min(min(player1_durations), min(player2_durations))
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
@@ -500,16 +500,13 @@ class TreacheryPokemon(commands.Cog):
             frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
             frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
             combined_frames.append(frame)
-            combined_durations.append(max(player1_durations[i], player2_durations[i]))
-
-        # Adjust the last frame duration to ensure the total duration matches the longest GIF
-        combined_durations[-1] += total_duration - sum(combined_durations)
+            combined_durations.append(min_duration)
 
         output = BytesIO()
         combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
-    
+        
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
         if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
