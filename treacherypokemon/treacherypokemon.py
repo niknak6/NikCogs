@@ -447,7 +447,8 @@ class TreacheryPokemon(commands.Cog):
                     async with session.get(sprite) as sprite_response:
                         if sprite_response.status != 200:
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
-                        return Image.open(BytesIO(await sprite_response.read()))
+                        image_data = await sprite_response.read()
+                        return Image.open(BytesIO(image_data)).convert("RGBA")
 
             player1_sprite_image, player2_sprite_image = await asyncio.gather(
                 fetch_sprite(player1_pokemon_name, 'back_default'),
@@ -467,8 +468,8 @@ class TreacheryPokemon(commands.Cog):
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
         arena_image = Image.open(arena_image_path).convert("RGBA")
-        arena_width, arena_height = arena_image.size
 
+        arena_width, arena_height = arena_image.size
         combined_image = arena_image.copy()
         combined_image.paste(player1_sprite, (185 - player1_sprite.width // 2, arena_height - 220 - player1_sprite.height // 2), player1_sprite)
         combined_image.paste(player2_sprite, (arena_width - 370 - player2_sprite.width // 2, 150 - player2_sprite.height // 2), player2_sprite)
