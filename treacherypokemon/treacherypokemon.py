@@ -433,7 +433,7 @@ class TreacheryPokemon(commands.Cog):
         
     async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
         async with aiohttp.ClientSession() as session:
-            async def fetch_sprite(pokemon_name, sprite_type):
+            async def fetch_and_scale_sprite(pokemon_name, sprite_type, max_size):
                 sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
                 async with session.get(sprite_url) as response:
                     if response.status != 200:
@@ -448,46 +448,36 @@ class TreacheryPokemon(commands.Cog):
                         if sprite_response.status != 200:
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         image_data = await sprite_response.read()
-                        return Image.open(BytesIO(image_data))
+                        image = Image.open(BytesIO(image_data)).convert("RGBA")
+                        return self.resize_sprite(image, max_size)
 
-            player1_sprite_image, player2_sprite_image = await asyncio.gather(
-                fetch_sprite(player1_pokemon_name, 'back_default'),
-                fetch_sprite(player2_pokemon_name, 'front_default')
-            )
-
-        def process_frames(sprite_image, max_size):
-            frames = []
-            for frame in ImageSequence.Iterator(sprite_image):
-                frame = frame.convert("RGBA")
-                width, height = frame.size
+            def resize_sprite(sprite_image, max_size):
+                width, height = sprite_image.size
                 aspect_ratio = width / height
                 new_height = max_size
                 new_width = int(new_height * aspect_ratio)
-                frame = frame.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                frames.append(frame)
-            return frames
+                return sprite_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
-        player1_frames = process_frames(player1_sprite_image, 150)
-        player2_frames = process_frames(player2_sprite_image, 150)
+            player1_sprite, player2_sprite = await asyncio.gather(
+                fetch_and_scale_sprite(player1_pokemon_name, 'back_default', 150),
+                fetch_and_scale_sprite(player2_pokemon_name, 'front_default', 150)
+            )
 
-        cog_directory = os.path.dirname(os.path.abspath(__file__))
-        arena_image_path = os.path.join(cog_directory, 'arena.png')
+        arena_image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arena.png')
         arena_image = Image.open(arena_image_path).convert("RGBA")
-
         arena_width, arena_height = arena_image.size
-        num_frames = max(len(player1_frames), len(player2_frames))
-        combined_frames = []
-
-        for i in range(num_frames):
-            frame = arena_image.copy()
-            p1_frame = player1_frames[i % len(player1_frames)]
-            p2_frame = player2_frames[i % len(player2_frames)]
-            frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
-            frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
-            combined_frames.append(frame)
 
         output = BytesIO()
-        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=100, disposal=2)
+        frames = []
+        for frame_index in range(max(len(player1_sprite), len(player2_sprite))):
+            frame = arena_image.copy()
+            p1_frame = player1_sprite[frame_index % len(player1_sprite)]
+            p2_frame = player2_sprite[frame_index % len(player2_sprite)]
+            frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
+            frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
+            frames.append(frame)
+
+        frames[0].save(output, format='GIF', save_all=True, append_images=frames[1:], loop=0, duration=100, disposal=2)
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
     
