@@ -474,7 +474,8 @@ class TreacheryPokemon(commands.Cog):
             if num_padding_frames <= 0:
                 return frames, durations
 
-            padding_interval = len(frames) // (num_padding_frames + 1)
+            # Ensure padding_interval is never zero
+            padding_interval = max(1, len(frames) // (num_padding_frames + 1))
             padded_frames = []
             padded_durations = []
 
