@@ -469,21 +469,31 @@ class TreacheryPokemon(commands.Cog):
                 durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
             return frames, durations
 
-        def pad_frames(frames, durations, target_length):
-            while len(frames) < target_length:
-                frames.append(frames[-1])
-                durations.append(durations[-1])
-            return frames, durations
+        def distribute_padding(frames, durations, target_length):
+            num_padding_frames = target_length - len(frames)
+            if num_padding_frames <= 0:
+                return frames, durations
+
+            padding_interval = len(frames) // (num_padding_frames + 1)
+            padded_frames = []
+            padded_durations = []
+
+            for i in range(len(frames)):
+                padded_frames.append(frames[i])
+                padded_durations.append(durations[i])
+                if (i + 1) % padding_interval == 0 and num_padding_frames > 0:
+                    padded_frames.append(frames[i])
+                    padded_durations.append(durations[i])
+                    num_padding_frames -= 1
+
+            return padded_frames, padded_durations
 
         player1_frames, player1_durations = process_frames(player1_sprite_image, 150)
         player2_frames, player2_durations = process_frames(player2_sprite_image, 150)
 
         max_frames = max(len(player1_frames), len(player2_frames))
-        player1_frames, player1_durations = pad_frames(player1_frames, player1_durations, max_frames)
-        player2_frames, player2_durations = pad_frames(player2_frames, player2_durations, max_frames)
-
-        # Use the minimum frame duration to ensure smooth playback
-        min_duration = min(min(player1_durations), min(player2_durations))
+        player1_frames, player1_durations = distribute_padding(player1_frames, player1_durations, max_frames)
+        player2_frames, player2_durations = distribute_padding(player2_frames, player2_durations, max_frames)
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
@@ -500,7 +510,7 @@ class TreacheryPokemon(commands.Cog):
             frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
             frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
             combined_frames.append(frame)
-            combined_durations.append(min_duration)
+            combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
         output = BytesIO()
         combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
