@@ -448,34 +448,46 @@ class TreacheryPokemon(commands.Cog):
                         if sprite_response.status != 200:
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         image_data = await sprite_response.read()
-                        return Image.open(BytesIO(image_data)).convert("RGBA")
+                        return Image.open(BytesIO(image_data))
 
             player1_sprite_image, player2_sprite_image = await asyncio.gather(
                 fetch_sprite(player1_pokemon_name, 'back_default'),
                 fetch_sprite(player2_pokemon_name, 'front_default')
             )
 
-        def resize_sprite(sprite_image, max_size):
-            width, height = sprite_image.size
-            aspect_ratio = width / height
-            new_height = max_size
-            new_width = int(new_height * aspect_ratio)
-            return sprite_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        def process_frames(sprite_image, max_size):
+            frames = []
+            for frame in ImageSequence.Iterator(sprite_image):
+                frame = frame.convert("RGBA")
+                width, height = frame.size
+                aspect_ratio = width / height
+                new_height = max_size
+                new_width = int(new_height * aspect_ratio)
+                frame = frame.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                frames.append(frame)
+            return frames
 
-        player1_sprite = resize_sprite(player1_sprite_image, 150)
-        player2_sprite = resize_sprite(player2_sprite_image, 150)
+        player1_frames = process_frames(player1_sprite_image, 150)
+        player2_frames = process_frames(player2_sprite_image, 150)
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
         arena_image = Image.open(arena_image_path).convert("RGBA")
 
         arena_width, arena_height = arena_image.size
-        combined_image = arena_image.copy()
-        combined_image.paste(player1_sprite, (185 - player1_sprite.width // 2, arena_height - 220 - player1_sprite.height // 2), player1_sprite)
-        combined_image.paste(player2_sprite, (arena_width - 370 - player2_sprite.width // 2, 150 - player2_sprite.height // 2), player2_sprite)
+        num_frames = max(len(player1_frames), len(player2_frames))
+        combined_frames = []
+
+        for i in range(num_frames):
+            frame = arena_image.copy()
+            p1_frame = player1_frames[i % len(player1_frames)]
+            p2_frame = player2_frames[i % len(player2_frames)]
+            frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
+            frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
+            combined_frames.append(frame)
 
         output = BytesIO()
-        combined_image.save(output, format='GIF')
+        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=100, disposal=2)
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
     
