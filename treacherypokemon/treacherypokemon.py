@@ -432,27 +432,27 @@ class TreacheryPokemon(commands.Cog):
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
     async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
-        async def fetch_sprite(pokemon_name, sprite_type, session):
+        async def fetch_sprite(pokemon_name, sprite_type):
             sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
-            async with session.get(sprite_url) as response:
-                if response.status != 200:
-                    raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
-                data = await response.json()
-                sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                        data['sprites'].get(sprite_type) or
-                        data['sprites']['other']['official-artwork'].get('front_default'))
-                if not sprite:
-                    raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
-                async with session.get(sprite) as sprite_response:
-                    if sprite_response.status != 200:
-                        raise ValueError(f"Failed to fetch sprite image: {sprite}")
-                    return Image.open(BytesIO(await sprite_response.read()))
+            async with aiohttp.ClientSession() as session:
+                async with session.get(sprite_url) as response:
+                    if response.status != 200:
+                        raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
+                    data = await response.json()
+                    sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
+                            data['sprites'].get(sprite_type) or
+                            data['sprites']['other']['official-artwork'].get('front_default'))
+                    if not sprite:
+                        raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
+                    async with session.get(sprite) as sprite_response:
+                        if sprite_response.status != 200:
+                            raise ValueError(f"Failed to fetch sprite image: {sprite}")
+                        return Image.open(BytesIO(await sprite_response.read()))
 
-        async with aiohttp.ClientSession() as session:
-            player1_sprite_image, player2_sprite_image = await asyncio.gather(
-                fetch_sprite(player1_pokemon_name, 'back_default', session),
-                fetch_sprite(player2_pokemon_name, 'front_default', session)
-            )
+        player1_sprite_image, player2_sprite_image = await asyncio.gather(
+            fetch_sprite(player1_pokemon_name, 'back_default'),
+            fetch_sprite(player2_pokemon_name, 'front_default')
+        )
 
         def resize_sprite(sprite_image, max_size):
             width, height = sprite_image.size
@@ -479,7 +479,25 @@ class TreacheryPokemon(commands.Cog):
         arena_width, arena_height = arena_image.size
 
         combined_frames = []
-        for p1_frame, p2_frame in zip
+        for p1_frame, p2_frame in zip(player1_frames, player2_frames):
+            combined_frame = arena_image.copy()
+            combined_frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
+            combined_frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
+            combined_frames.append(combined_frame)
+
+        async with aiofiles.tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            combined_frames[0].save(
+                temp_file.name,
+                format='GIF',
+                save_all=True,
+                append_images=combined_frames[1:],
+                loop=0,
+                duration=player1_sprite_image.info.get('duration', 100),
+                disposal=2,
+                optimize=False
+            )
+            await temp_file.flush()
+            return discord.File(temp_file.name, filename='combined_sprite.gif')
     
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
