@@ -440,8 +440,8 @@ class TreacheryPokemon(commands.Cog):
                         raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
                     data = await response.json()
                     sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                              data['sprites'].get(sprite_type) or
-                              data['sprites']['other']['official-artwork'].get('front_default'))
+                            data['sprites'].get(sprite_type) or
+                            data['sprites']['other']['official-artwork'].get('front_default'))
                     if not sprite:
                         raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
                     async with session.get(sprite) as sprite_response:
@@ -464,34 +464,43 @@ class TreacheryPokemon(commands.Cog):
                 aspect_ratio = width / height
                 new_height = max_size
                 new_width = int(new_height * aspect_ratio)
-                frame = frame.resize((new_width, new_height), Image.Resampling.BILINEAR)
+                frame = frame.resize((new_width, new_height), Image.Resampling.LANCZOS)
                 frames.append(frame)
                 durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
             return frames, durations
 
+        def pad_frames(frames, durations, target_length):
+            while len(frames) < target_length:
+                frames.append(frames[-1])
+                durations.append(durations[-1])
+            return frames, durations
+
         player1_frames, player1_durations = process_frames(player1_sprite_image, 150)
         player2_frames, player2_durations = process_frames(player2_sprite_image, 150)
+
+        max_frames = max(len(player1_frames), len(player2_frames))
+        player1_frames, player1_durations = pad_frames(player1_frames, player1_durations, max_frames)
+        player2_frames, player2_durations = pad_frames(player2_frames, player2_durations, max_frames)
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
         arena_image = Image.open(arena_image_path).convert("RGBA")
 
         arena_width, arena_height = arena_image.size
-        num_frames = max(len(player1_frames), len(player2_frames))
         combined_frames = []
         combined_durations = []
 
-        for i in range(num_frames):
+        for i in range(max_frames):
             frame = arena_image.copy()
-            p1_frame = player1_frames[i % len(player1_frames)]
-            p2_frame = player2_frames[i % len(player2_frames)]
+            p1_frame = player1_frames[i]
+            p2_frame = player2_frames[i]
             frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
             frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
             combined_frames.append(frame)
-            combined_durations.append(max(player1_durations[i % len(player1_durations)], player2_durations[i % len(player2_durations)]))
+            combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
         output = BytesIO()
-        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2, optimize=True)
+        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
     
