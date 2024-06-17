@@ -10,6 +10,7 @@ import datetime
 import asyncio
 import aiohttp
 import traceback
+import logging
 import os
 import aiofiles
 from PIL import Image, ImageFilter, ImageEnhance, ImageSequence
@@ -487,14 +488,26 @@ class TreacheryPokemon(commands.Cog):
                     padded_durations.append(durations[i])
                     num_padding_frames -= 1
 
+            # If there are still padding frames left, add them to the end
+            while num_padding_frames > 0:
+                padded_frames.append(frames[-1])
+                padded_durations.append(durations[-1])
+                num_padding_frames -= 1
+
             return padded_frames, padded_durations
 
         player1_frames, player1_durations = process_frames(player1_sprite_image, 150)
         player2_frames, player2_durations = process_frames(player2_sprite_image, 150)
 
+        logging.info(f"Initial player1_frames length: {len(player1_frames)}")
+        logging.info(f"Initial player2_frames length: {len(player2_frames)}")
+
         max_frames = max(len(player1_frames), len(player2_frames))
         player1_frames, player1_durations = distribute_padding(player1_frames, player1_durations, max_frames)
         player2_frames, player2_durations = distribute_padding(player2_frames, player2_durations, max_frames)
+
+        logging.info(f"Padded player1_frames length: {len(player1_frames)}")
+        logging.info(f"Padded player2_frames length: {len(player2_frames)}")
 
         # Ensure both lists have the same length after padding
         if len(player1_frames) != len(player2_frames):
