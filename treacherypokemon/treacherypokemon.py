@@ -464,6 +464,8 @@ class TreacheryPokemon(commands.Cog):
                 # Create a solid background image
                 background = Image.new("RGBA", frame.size, (255, 255, 255, 0))  # Transparent background
                 frame = Image.alpha_composite(background, frame)  # Composite the frame onto the background
+                frame = frame.resize(frame.size, Image.Resampling.BICUBIC)  # Apply resampling filter
+                frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
                 frames.append(frame)
                 durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
             return frames, durations
@@ -529,7 +531,7 @@ class TreacheryPokemon(commands.Cog):
             combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
         output = BytesIO()
-        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2, optimize=True)
+        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
         
