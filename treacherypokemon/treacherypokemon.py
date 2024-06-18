@@ -432,106 +432,106 @@ class TreacheryPokemon(commands.Cog):
             print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
-async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
-    async with aiohttp.ClientSession() as session:
-        async def fetch_sprite(pokemon_name, sprite_type):
-            sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
-            async with session.get(sprite_url) as response:
-                if response.status != 200:
-                    raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
-                data = await response.json()
-                sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                          data['sprites'].get(sprite_type) or
-                          data['sprites']['other']['official-artwork'].get('front_default'))
-                if not sprite:
-                    raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
-                async with session.get(sprite) as sprite_response:
-                    if sprite_response.status != 200:
-                        raise ValueError(f"Failed to fetch sprite image: {sprite}")
-                    image_data = await sprite_response.read()
-                    return Image.open(BytesIO(image_data))
+    async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
+        async with aiohttp.ClientSession() as session:
+            async def fetch_sprite(pokemon_name, sprite_type):
+                sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+                async with session.get(sprite_url) as response:
+                    if response.status != 200:
+                        raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
+                    data = await response.json()
+                    sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
+                            data['sprites'].get(sprite_type) or
+                            data['sprites']['other']['official-artwork'].get('front_default'))
+                    if not sprite:
+                        raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
+                    async with session.get(sprite) as sprite_response:
+                        if sprite_response.status != 200:
+                            raise ValueError(f"Failed to fetch sprite image: {sprite}")
+                        image_data = await sprite_response.read()
+                        return Image.open(BytesIO(image_data))
 
-        player1_sprite_image, player2_sprite_image = await asyncio.gather(
-            fetch_sprite(player1_pokemon_name, 'back_default'),
-            fetch_sprite(player2_pokemon_name, 'front_default')
-        )
+            player1_sprite_image, player2_sprite_image = await asyncio.gather(
+                fetch_sprite(player1_pokemon_name, 'back_default'),
+                fetch_sprite(player2_pokemon_name, 'front_default')
+            )
 
-    def process_frames(sprite_image):
-        frames = []
-        durations = []
-        for frame in ImageSequence.Iterator(sprite_image):
-            frame = frame.convert("RGBA")
-            # Create a solid background image
-            background = Image.new("RGBA", frame.size, (255, 255, 255, 0))  # Transparent background
-            frame = Image.alpha_composite(background, frame)  # Composite the frame onto the background
-            frames.append(frame)
-            durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
-        return frames, durations
-
-    def distribute_padding(frames, durations, target_length):
-        num_padding_frames = target_length - len(frames)
-        if num_padding_frames <= 0:
+        def process_frames(sprite_image):
+            frames = []
+            durations = []
+            for frame in ImageSequence.Iterator(sprite_image):
+                frame = frame.convert("RGBA")
+                # Create a solid background image
+                background = Image.new("RGBA", frame.size, (255, 255, 255, 0))  # Transparent background
+                frame = Image.alpha_composite(background, frame)  # Composite the frame onto the background
+                frames.append(frame)
+                durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
             return frames, durations
 
-        # Ensure padding_interval is never zero
-        padding_interval = max(1, len(frames) // (num_padding_frames + 1))
-        padded_frames = []
-        padded_durations = []
+        def distribute_padding(frames, durations, target_length):
+            num_padding_frames = target_length - len(frames)
+            if num_padding_frames <= 0:
+                return frames, durations
 
-        for i in range(len(frames)):
-            padded_frames.append(frames[i])
-            padded_durations.append(durations[i])
-            if (i + 1) % padding_interval == 0 and num_padding_frames > 0:
+            # Ensure padding_interval is never zero
+            padding_interval = max(1, len(frames) // (num_padding_frames + 1))
+            padded_frames = []
+            padded_durations = []
+
+            for i in range(len(frames)):
                 padded_frames.append(frames[i])
                 padded_durations.append(durations[i])
+                if (i + 1) % padding_interval == 0 and num_padding_frames > 0:
+                    padded_frames.append(frames[i])
+                    padded_durations.append(durations[i])
+                    num_padding_frames -= 1
+
+            # If there are still padding frames left, add them to the end
+            while num_padding_frames > 0:
+                padded_frames.append(frames[-1])
+                padded_durations.append(durations[-1])
                 num_padding_frames -= 1
 
-        # If there are still padding frames left, add them to the end
-        while num_padding_frames > 0:
-            padded_frames.append(frames[-1])
-            padded_durations.append(durations[-1])
-            num_padding_frames -= 1
+            return padded_frames, padded_durations
 
-        return padded_frames, padded_durations
+        player1_frames, player1_durations = process_frames(player1_sprite_image)
+        player2_frames, player2_durations = process_frames(player2_sprite_image)
 
-    player1_frames, player1_durations = process_frames(player1_sprite_image)
-    player2_frames, player2_durations = process_frames(player2_sprite_image)
+        logging.info(f"Initial player1_frames length: {len(player1_frames)}")
+        logging.info(f"Initial player2_frames length: {len(player2_frames)}")
 
-    logging.info(f"Initial player1_frames length: {len(player1_frames)}")
-    logging.info(f"Initial player2_frames length: {len(player2_frames)}")
+        max_frames = max(len(player1_frames), len(player2_frames))
+        player1_frames, player1_durations = distribute_padding(player1_frames, player1_durations, max_frames)
+        player2_frames, player2_durations = distribute_padding(player2_frames, player2_durations, max_frames)
 
-    max_frames = max(len(player1_frames), len(player2_frames))
-    player1_frames, player1_durations = distribute_padding(player1_frames, player1_durations, max_frames)
-    player2_frames, player2_durations = distribute_padding(player2_frames, player2_durations, max_frames)
+        logging.info(f"Padded player1_frames length: {len(player1_frames)}")
+        logging.info(f"Padded player2_frames length: {len(player2_frames)}")
 
-    logging.info(f"Padded player1_frames length: {len(player1_frames)}")
-    logging.info(f"Padded player2_frames length: {len(player2_frames)}")
+        # Ensure both lists have the same length after padding
+        if len(player1_frames) != len(player2_frames):
+            raise ValueError("Frame lists are not of the same length after padding")
 
-    # Ensure both lists have the same length after padding
-    if len(player1_frames) != len(player2_frames):
-        raise ValueError("Frame lists are not of the same length after padding")
+        cog_directory = os.path.dirname(os.path.abspath(__file__))
+        arena_image_path = os.path.join(cog_directory, 'arena.png')
+        arena_image = Image.open(arena_image_path).convert("RGBA")
 
-    cog_directory = os.path.dirname(os.path.abspath(__file__))
-    arena_image_path = os.path.join(cog_directory, 'arena.png')
-    arena_image = Image.open(arena_image_path).convert("RGBA")
+        arena_width, arena_height = arena_image.size
+        combined_frames = []
+        combined_durations = []
 
-    arena_width, arena_height = arena_image.size
-    combined_frames = []
-    combined_durations = []
+        for i in range(max_frames):
+            frame = arena_image.copy()
+            p1_frame = player1_frames[i]
+            p2_frame = player2_frames[i]
+            frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
+            frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
+            combined_frames.append(frame)
+            combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
-    for i in range(max_frames):
-        frame = arena_image.copy()
-        p1_frame = player1_frames[i]
-        p2_frame = player2_frames[i]
-        frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
-        frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
-        combined_frames.append(frame)
-        combined_durations.append(max(player1_durations[i], player2_durations[i]))
-
-    output = BytesIO()
-    combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2, optimize=True)
-    output.seek(0)
-    return discord.File(output, filename='combined_sprite.gif')
+        output = BytesIO()
+        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2, optimize=True)
+        output.seek(0)
+        return discord.File(output, filename='combined_sprite.gif')
         
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
