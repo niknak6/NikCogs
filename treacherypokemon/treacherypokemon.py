@@ -461,6 +461,9 @@ class TreacheryPokemon(commands.Cog):
             durations = []
             for frame in ImageSequence.Iterator(sprite_image):
                 frame = frame.convert("RGBA")
+                # Create a solid background image
+                background = Image.new("RGBA", frame.size, (255, 255, 255, 0))  # Transparent background
+                frame = Image.alpha_composite(background, frame)  # Composite the frame onto the background
                 frame = frame.resize(frame.size, Image.Resampling.BICUBIC)  # Apply resampling filter
                 frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
                 frames.append(frame)
