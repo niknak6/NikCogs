@@ -546,6 +546,10 @@ class TreacheryPokemon(commands.Cog):
             combined_frames.append(frame)
             combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
+        # Debugging: Save the combined frames to check if they are correct
+        for idx, frame in enumerate(combined_frames):
+            imageio.imwrite(f"debug_frame_{idx}.png", frame)
+
         output = BytesIO()
         imageio.mimsave(output, combined_frames, format='GIF', duration=[d / 1000 for d in combined_durations])
         output.seek(0)
