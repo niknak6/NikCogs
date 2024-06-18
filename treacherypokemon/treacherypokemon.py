@@ -456,81 +456,50 @@ class TreacheryPokemon(commands.Cog):
                 fetch_sprite(player2_pokemon_name, 'front_default')
             )
 
-        def process_frames(sprite_image):
-            frames = []
-            durations = []
-            for frame in ImageSequence.Iterator(sprite_image):
-                frame = frame.convert("RGBA")
-                frame = frame.resize(frame.size, Image.Resampling.HAMMING)  # Apply resampling filter
-                frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
-                frames.append(frame)
-                durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
-            return frames, durations
-
-        def distribute_padding(frames, durations, target_length):
-            num_padding_frames = target_length - len(frames)
-            if num_padding_frames <= 0:
+            def process_frames(sprite_image):
+                frames = []
+                durations = []
+                for frame in ImageSequence.Iterator(sprite_image):
+                    frame = frame.convert("RGBA")
+                    frame = frame.resize(frame.size, Image.Resampling.HAMMING)  # Apply resampling filter
+                    frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
+                    frames.append(frame)
+                    durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
                 return frames, durations
 
-            # Ensure padding_interval is never zero
-            padding_interval = max(1, len(frames) // (num_padding_frames + 1))
-            padded_frames = []
-            padded_durations = []
+            def blend_sprites(background, sprite, position):
+                mask = sprite.split()[3]  # Use alpha channel as mask
+                background.paste(sprite, position, mask)
+                return background
 
-            for i in range(len(frames)):
-                padded_frames.append(frames[i])
-                padded_durations.append(durations[i])
-                if (i + 1) % padding_interval == 0 and num_padding_frames > 0:
-                    padded_frames.append(frames[i])
-                    padded_durations.append(durations[i])
-                    num_padding_frames -= 1
+            player1_frames, player1_durations = process_frames(player1_sprite_image)
+            player2_frames, player2_durations = process_frames(player2_sprite_image)
 
-            # If there are still padding frames left, add them to the end
-            while num_padding_frames > 0:
-                padded_frames.append(frames[-1])
-                padded_durations.append(durations[-1])
-                num_padding_frames -= 1
+            max_frames = max(len(player1_frames), len(player2_frames))
 
-            return padded_frames, padded_durations
+            cog_directory = os.path.dirname(os.path.abspath(__file__))
+            arena_image_path = os.path.join(cog_directory, 'arena.png')
+            arena_image = Image.open(arena_image_path).convert("RGBA")
 
-        player1_frames, player1_durations = process_frames(player1_sprite_image)
-        player2_frames, player2_durations = process_frames(player2_sprite_image)
+            arena_width, arena_height = arena_image.size
+            combined_frames = []
+            combined_durations = []
 
-        logging.info(f"Initial player1_frames length: {len(player1_frames)}")
-        logging.info(f"Initial player2_frames length: {len(player2_frames)}")
+            for i in range(max_frames):
+                frame = arena_image.copy()
+                p1_frame = player1_frames[i]
+                p2_frame = player2_frames[i]
+                p1_position = (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2)
+                p2_position = (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2)
+                frame = blend_sprites(frame, p1_frame, p1_position)
+                frame = blend_sprites(frame, p2_frame, p2_position)
+                combined_frames.append(frame)
+                combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
-        max_frames = max(len(player1_frames), len(player2_frames))
-        player1_frames, player1_durations = distribute_padding(player1_frames, player1_durations, max_frames)
-        player2_frames, player2_durations = distribute_padding(player2_frames, player2_durations, max_frames)
-
-        logging.info(f"Padded player1_frames length: {len(player1_frames)}")
-        logging.info(f"Padded player2_frames length: {len(player2_frames)}")
-
-        # Ensure both lists have the same length after padding
-        if len(player1_frames) != len(player2_frames):
-            raise ValueError("Frame lists are not of the same length after padding")
-
-        cog_directory = os.path.dirname(os.path.abspath(__file__))
-        arena_image_path = os.path.join(cog_directory, 'arena.png')
-        arena_image = Image.open(arena_image_path).convert("RGBA")
-
-        arena_width, arena_height = arena_image.size
-        combined_frames = []
-        combined_durations = []
-
-        for i in range(max_frames):
-            frame = arena_image.copy()
-            p1_frame = player1_frames[i]
-            p2_frame = player2_frames[i]
-            frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
-            frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
-            combined_frames.append(frame)
-            combined_durations.append(max(player1_durations[i], player2_durations[i]))
-
-        output = BytesIO()
-        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
-        output.seek(0)
-        return discord.File(output, filename='combined_sprite.gif')
+            output = BytesIO()
+            combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
+            output.seek(0)
+            return discord.File(output, filename='combined_sprite.gif')
         
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
