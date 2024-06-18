@@ -462,6 +462,9 @@ class TreacheryPokemon(commands.Cog):
             durations = []
             for frame in sprite_image:
                 frame = imageio.core.util.Array(frame).astype('uint8')
+                # Ensure the frame has 4 channels (RGBA)
+                if frame.shape[2] == 3:
+                    frame = imageio.core.util.Array(imageio.core.util.Image(frame).convert('RGBA'))
                 frames.append(frame)
                 durations.append(100)  # Default to 100ms if duration is not available
             return frames, durations
@@ -512,6 +515,9 @@ class TreacheryPokemon(commands.Cog):
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
         arena_image = imageio.imread(arena_image_path)
+        # Ensure the arena image has 4 channels (RGBA)
+        if arena_image.shape[2] == 3:
+            arena_image = imageio.core.util.Array(imageio.core.util.Image(arena_image).convert('RGBA'))
 
         arena_width, arena_height = arena_image.shape[1], arena_image.shape[0]
         combined_frames = []
