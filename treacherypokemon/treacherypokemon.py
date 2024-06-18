@@ -8,6 +8,7 @@ from redbot.core.commands.converter import Optional
 from discord import Embed, Reaction
 import datetime
 import asyncio
+import imageio
 import aiohttp
 import traceback
 import logging
@@ -449,7 +450,7 @@ class TreacheryPokemon(commands.Cog):
                         if sprite_response.status != 200:
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         image_data = await sprite_response.read()
-                        return Image.open(BytesIO(image_data))
+                        return imageio.imread(BytesIO(image_data))
 
             player1_sprite_image, player2_sprite_image = await asyncio.gather(
                 fetch_sprite(player1_pokemon_name, 'back_default'),
@@ -459,12 +460,10 @@ class TreacheryPokemon(commands.Cog):
         def process_frames(sprite_image):
             frames = []
             durations = []
-            for frame in ImageSequence.Iterator(sprite_image):
-                frame = frame.convert("RGBA")
-                frame = frame.resize(frame.size, Image.Resampling.BICUBIC)  # Apply resampling filter
-                frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
+            for frame in sprite_image:
+                frame = imageio.core.util.Array(frame).astype('uint8')
                 frames.append(frame)
-                durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
+                durations.append(100)  # Default to 100ms if duration is not available
             return frames, durations
 
         def distribute_padding(frames, durations, target_length):
@@ -512,9 +511,9 @@ class TreacheryPokemon(commands.Cog):
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
-        arena_image = Image.open(arena_image_path).convert("RGBA")
+        arena_image = imageio.imread(arena_image_path)
 
-        arena_width, arena_height = arena_image.size
+        arena_width, arena_height = arena_image.shape[1], arena_image.shape[0]
         combined_frames = []
         combined_durations = []
 
@@ -522,13 +521,15 @@ class TreacheryPokemon(commands.Cog):
             frame = arena_image.copy()
             p1_frame = player1_frames[i]
             p2_frame = player2_frames[i]
-            frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
-            frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
+            frame[arena_height - 220 - p1_frame.shape[0] // 2:arena_height - 220 + p1_frame.shape[0] // 2,
+                  185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2] = p1_frame
+            frame[150 - p2_frame.shape[0] // 2:150 + p2_frame.shape[0] // 2,
+                  arena_width - 370 - p2_frame.shape[1] // 2:arena_width - 370 + p2_frame.shape[1] // 2] = p2_frame
             combined_frames.append(frame)
             combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
         output = BytesIO()
-        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
+        imageio.mimsave(output, combined_frames, format='GIF', duration=[d / 1000 for d in combined_durations])
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
         
