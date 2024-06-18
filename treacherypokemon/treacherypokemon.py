@@ -532,7 +532,7 @@ class TreacheryPokemon(commands.Cog):
             frame = arena_image.copy()
             p1_frame = player1_frames[i]
             p2_frame = player2_frames[i]
-            # Ensure the dimensions match before pasting
+            # Calculate target areas
             p1_target_area = frame[arena_height - 220 - p1_frame.shape[0] // 2:arena_height - 220 + p1_frame.shape[0] // 2,
                                    185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2]
             p2_target_area = frame[150 - p2_frame.shape[0] // 2:150 + p2_frame.shape[0] // 2,
@@ -541,12 +541,16 @@ class TreacheryPokemon(commands.Cog):
             logging.info(f"Frame {i}: p1_frame shape: {p1_frame.shape}, p1_target_area shape: {p1_target_area.shape}")
             logging.info(f"Frame {i}: p2_frame shape: {p2_frame.shape}, p2_target_area shape: {p2_target_area.shape}")
 
-            if p1_target_area.shape == p1_frame.shape:
-                frame[arena_height - 220 - p1_frame.shape[0] // 2:arena_height - 220 + p1_frame.shape[0] // 2,
-                      185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2] = p1_frame
-            if p2_target_area.shape == p2_frame.shape:
-                frame[150 - p2_frame.shape[0] // 2:150 + p2_frame.shape[0] // 2,
-                      arena_width - 370 - p2_frame.shape[1] // 2:arena_width - 370 + p2_frame.shape[1] // 2] = p2_frame
+            # Resize frames if necessary
+            if p1_target_area.shape != p1_frame.shape:
+                p1_frame = np.resize(p1_frame, p1_target_area.shape)
+            if p2_target_area.shape != p2_frame.shape:
+                p2_frame = np.resize(p2_frame, p2_target_area.shape)
+
+            frame[arena_height - 220 - p1_frame.shape[0] // 2:arena_height - 220 + p1_frame.shape[0] // 2,
+                  185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2] = p1_frame
+            frame[150 - p2_frame.shape[0] // 2:150 + p2_frame.shape[0] // 2,
+                  arena_width - 370 - p2_frame.shape[1] // 2:arena_width - 370 + p2_frame.shape[1] // 2] = p2_frame
             combined_frames.append(frame)
             combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
