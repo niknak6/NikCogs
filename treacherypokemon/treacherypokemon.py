@@ -456,16 +456,11 @@ class TreacheryPokemon(commands.Cog):
                 fetch_sprite(player2_pokemon_name, 'front_default')
             )
 
-        def process_frames(sprite_image, max_size):
+        def process_frames(sprite_image):
             frames = []
             durations = []
             for frame in ImageSequence.Iterator(sprite_image):
                 frame = frame.convert("RGBA")
-                width, height = frame.size
-                aspect_ratio = width / height
-                new_height = max_size
-                new_width = int(new_height * aspect_ratio)
-                frame = frame.resize((new_width, new_height), Image.Resampling.LANCZOS)
                 frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
                 frames.append(frame)
                 durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
@@ -497,8 +492,8 @@ class TreacheryPokemon(commands.Cog):
 
             return padded_frames, padded_durations
 
-        player1_frames, player1_durations = process_frames(player1_sprite_image, 150)
-        player2_frames, player2_durations = process_frames(player2_sprite_image, 150)
+        player1_frames, player1_durations = process_frames(player1_sprite_image)
+        player2_frames, player2_durations = process_frames(player2_sprite_image)
 
         logging.info(f"Initial player1_frames length: {len(player1_frames)}")
         logging.info(f"Initial player2_frames length: {len(player2_frames)}")
