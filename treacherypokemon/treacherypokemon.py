@@ -8,9 +8,7 @@ from redbot.core.commands.converter import Optional
 from discord import Embed, Reaction
 import datetime
 import asyncio
-import imageio
 import aiohttp
-import numpy as np
 import traceback
 import logging
 import os
@@ -451,7 +449,7 @@ class TreacheryPokemon(commands.Cog):
                         if sprite_response.status != 200:
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         image_data = await sprite_response.read()
-                        return imageio.v2.imread(BytesIO(image_data))
+                        return Image.open(BytesIO(image_data))
 
             player1_sprite_image, player2_sprite_image = await asyncio.gather(
                 fetch_sprite(player1_pokemon_name, 'back_default'),
@@ -461,15 +459,12 @@ class TreacheryPokemon(commands.Cog):
         def process_frames(sprite_image):
             frames = []
             durations = []
-            for frame in sprite_image:
-                frame = imageio.core.util.Array(frame).astype('uint8')
-                # Ensure the frame has 4 channels (RGBA)
-                if len(frame.shape) == 2:  # Grayscale image
-                    frame = np.stack((frame, frame, frame, np.full_like(frame, 255)), axis=-1)
-                elif frame.shape[2] == 3:  # RGB image
-                    frame = np.concatenate((frame, np.full((frame.shape[0], frame.shape[1], 1), 255, dtype=np.uint8)), axis=-1)
+            for frame in ImageSequence.Iterator(sprite_image):
+                frame = frame.convert("RGBA")
+                frame = frame.resize(frame.size, Image.Resampling.BICUBIC)  # Apply resampling filter
+                frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
                 frames.append(frame)
-                durations.append(100)  # Default to 100ms if duration is not available
+                durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
             return frames, durations
 
         def distribute_padding(frames, durations, target_length):
@@ -517,14 +512,9 @@ class TreacheryPokemon(commands.Cog):
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
-        arena_image = imageio.v2.imread(arena_image_path)
-        # Ensure the arena image has 4 channels (RGBA)
-        if len(arena_image.shape) == 2:  # Grayscale image
-            arena_image = np.stack((arena_image, arena_image, arena_image, np.full_like(arena_image, 255)), axis=-1)
-        elif arena_image.shape[2] == 3:  # RGB image
-            arena_image = np.concatenate((arena_image, np.full((arena_image.shape[0], arena_image.shape[1], 1), 255, dtype=np.uint8)), axis=-1)
+        arena_image = Image.open(arena_image_path).convert("RGBA")
 
-        arena_width, arena_height = arena_image.shape[1], arena_image.shape[0]
+        arena_width, arena_height = arena_image.size
         combined_frames = []
         combined_durations = []
 
@@ -532,30 +522,13 @@ class TreacheryPokemon(commands.Cog):
             frame = arena_image.copy()
             p1_frame = player1_frames[i]
             p2_frame = player2_frames[i]
-            # Calculate target areas
-            p1_target_area = frame[arena_height - 220 - p1_frame.shape[0] // 2:arena_height - 220 + p1_frame.shape[0] // 2,
-                                   185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2]
-            p2_target_area = frame[150 - p2_frame.shape[0] // 2:150 + p2_frame.shape[0] // 2,
-                                   arena_width - 370 - p2_frame.shape[1] // 2:arena_width - 370 + p2_frame.shape[1] // 2]
-            
-            logging.info(f"Frame {i}: p1_frame shape: {p1_frame.shape}, p1_target_area shape: {p1_target_area.shape}")
-            logging.info(f"Frame {i}: p2_frame shape: {p2_frame.shape}, p2_target_area shape: {p2_target_area.shape}")
-
-            # Resize frames if necessary
-            if p1_target_area.shape != p1_frame.shape:
-                p1_frame = np.resize(p1_frame, p1_target_area.shape)
-            if p2_target_area.shape != p2_frame.shape:
-                p2_frame = np.resize(p2_frame, p2_target_area.shape)
-
-            frame[arena_height - 220 - p1_frame.shape[0] // 2:arena_height - 220 + p1_frame.shape[0] // 2,
-                  185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2] = p1_frame
-            frame[150 - p2_frame.shape[0] // 2:150 + p2_frame.shape[0] // 2,
-                  arena_width - 370 - p2_frame.shape[1] // 2:arena_width - 370 + p2_frame.shape[1] // 2] = p2_frame
+            frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
+            frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
             combined_frames.append(frame)
             combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
         output = BytesIO()
-        imageio.mimsave(output, combined_frames, format='GIF', duration=[d / 1000 for d in combined_durations])
+        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
         output.seek(0)
         return discord.File(output, filename='combined_sprite.gif')
         
