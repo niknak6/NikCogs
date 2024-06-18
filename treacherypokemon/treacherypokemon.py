@@ -10,6 +10,7 @@ import datetime
 import asyncio
 import imageio
 import aiohttp
+import numpy as np
 import traceback
 import logging
 import os
@@ -464,9 +465,9 @@ class TreacheryPokemon(commands.Cog):
                 frame = imageio.core.util.Array(frame).astype('uint8')
                 # Ensure the frame has 4 channels (RGBA)
                 if len(frame.shape) == 2:  # Grayscale image
-                    frame = imageio.core.util.Array(imageio.core.util.Image(frame).convert('RGBA'))
+                    frame = np.stack((frame, frame, frame, np.full_like(frame, 255)), axis=-1)
                 elif frame.shape[2] == 3:  # RGB image
-                    frame = imageio.core.util.Array(imageio.core.util.Image(frame).convert('RGBA'))
+                    frame = np.concatenate((frame, np.full((frame.shape[0], frame.shape[1], 1), 255, dtype=np.uint8)), axis=-1)
                 frames.append(frame)
                 durations.append(100)  # Default to 100ms if duration is not available
             return frames, durations
@@ -519,9 +520,9 @@ class TreacheryPokemon(commands.Cog):
         arena_image = imageio.imread(arena_image_path)
         # Ensure the arena image has 4 channels (RGBA)
         if len(arena_image.shape) == 2:  # Grayscale image
-            arena_image = imageio.core.util.Array(imageio.core.util.Image(arena_image).convert('RGBA'))
+            arena_image = np.stack((arena_image, arena_image, arena_image, np.full_like(arena_image, 255)), axis=-1)
         elif arena_image.shape[2] == 3:  # RGB image
-            arena_image = imageio.core.util.Array(imageio.core.util.Image(arena_image).convert('RGBA'))
+            arena_image = np.concatenate((arena_image, np.full((arena_image.shape[0], arena_image.shape[1], 1), 255, dtype=np.uint8)), axis=-1)
 
         arena_width, arena_height = arena_image.shape[1], arena_image.shape[0]
         combined_frames = []
