@@ -532,10 +532,17 @@ class TreacheryPokemon(commands.Cog):
             frame = arena_image.copy()
             p1_frame = player1_frames[i]
             p2_frame = player2_frames[i]
-            frame[arena_height - 220 - p1_frame.shape[0] // 2:arena_height - 220 + p1_frame.shape[0] // 2,
-                  185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2] = p1_frame
-            frame[150 - p2_frame.shape[0] // 2:150 + p2_frame.shape[0] // 2,
-                  arena_width - 370 - p2_frame.shape[1] // 2:arena_width - 370 + p2_frame.shape[1] // 2] = p2_frame
+            # Ensure the dimensions match before pasting
+            p1_target_area = frame[arena_height - 220 - p1_frame.shape[0] // 2:arena_height - 220 + p1_frame.shape[0] // 2,
+                                   185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2]
+            p2_target_area = frame[150 - p2_frame.shape[0] // 2:150 + p2_frame.shape[0] // 2,
+                                   arena_width - 370 - p2_frame.shape[1] // 2:arena_width - 370 + p2_frame.shape[1] // 2]
+            if p1_target_area.shape == p1_frame.shape:
+                frame[arena_height - 220 - p1_frame.shape[0] // 2:arena_height - 220 + p1_frame.shape[0] // 2,
+                      185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2] = p1_frame
+            if p2_target_area.shape == p2_frame.shape:
+                frame[150 - p2_frame.shape[0] // 2:150 + p2_frame.shape[0] // 2,
+                      arena_width - 370 - p2_frame.shape[1] // 2:arena_width - 370 + p2_frame.shape[1] // 2] = p2_frame
             combined_frames.append(frame)
             combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
