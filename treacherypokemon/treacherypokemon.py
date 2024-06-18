@@ -441,8 +441,8 @@ class TreacheryPokemon(commands.Cog):
                         raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
                     data = await response.json()
                     sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                            data['sprites'].get(sprite_type) or
-                            data['sprites']['other']['official-artwork'].get('front_default'))
+                              data['sprites'].get(sprite_type) or
+                              data['sprites']['other']['official-artwork'].get('front_default'))
                     if not sprite:
                         raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
                     async with session.get(sprite) as sprite_response:
@@ -461,8 +461,6 @@ class TreacheryPokemon(commands.Cog):
             durations = []
             for frame in ImageSequence.Iterator(sprite_image):
                 frame = frame.convert("RGBA")
-                frame = frame.resize(frame.size, Image.Resampling.HAMMING)  # Apply resampling filter
-                frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
                 frames.append(frame)
                 durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
             return frames, durations
@@ -472,7 +470,6 @@ class TreacheryPokemon(commands.Cog):
             if num_padding_frames <= 0:
                 return frames, durations
 
-            # Ensure padding_interval is never zero
             padding_interval = max(1, len(frames) // (num_padding_frames + 1))
             padded_frames = []
             padded_durations = []
@@ -485,7 +482,6 @@ class TreacheryPokemon(commands.Cog):
                     padded_durations.append(durations[i])
                     num_padding_frames -= 1
 
-            # If there are still padding frames left, add them to the end
             while num_padding_frames > 0:
                 padded_frames.append(frames[-1])
                 padded_durations.append(durations[-1])
@@ -506,7 +502,6 @@ class TreacheryPokemon(commands.Cog):
         logging.info(f"Padded player1_frames length: {len(player1_frames)}")
         logging.info(f"Padded player2_frames length: {len(player2_frames)}")
 
-        # Ensure both lists have the same length after padding
         if len(player1_frames) != len(player2_frames):
             raise ValueError("Frame lists are not of the same length after padding")
 
