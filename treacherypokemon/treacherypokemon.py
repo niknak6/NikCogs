@@ -451,7 +451,7 @@ class TreacheryPokemon(commands.Cog):
                         if sprite_response.status != 200:
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         image_data = await sprite_response.read()
-                        return imageio.imread(BytesIO(image_data))
+                        return imageio.v2.imread(BytesIO(image_data))
 
             player1_sprite_image, player2_sprite_image = await asyncio.gather(
                 fetch_sprite(player1_pokemon_name, 'back_default'),
@@ -517,7 +517,7 @@ class TreacheryPokemon(commands.Cog):
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
-        arena_image = imageio.imread(arena_image_path)
+        arena_image = imageio.v2.imread(arena_image_path)
         # Ensure the arena image has 4 channels (RGBA)
         if len(arena_image.shape) == 2:  # Grayscale image
             arena_image = np.stack((arena_image, arena_image, arena_image, np.full_like(arena_image, 255)), axis=-1)
@@ -537,6 +537,10 @@ class TreacheryPokemon(commands.Cog):
                                    185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2]
             p2_target_area = frame[150 - p2_frame.shape[0] // 2:150 + p2_frame.shape[0] // 2,
                                    arena_width - 370 - p2_frame.shape[1] // 2:arena_width - 370 + p2_frame.shape[1] // 2]
+            
+            logging.info(f"Frame {i}: p1_frame shape: {p1_frame.shape}, p1_target_area shape: {p1_target_area.shape}")
+            logging.info(f"Frame {i}: p2_frame shape: {p2_frame.shape}, p2_target_area shape: {p2_target_area.shape}")
+
             if p1_target_area.shape == p1_frame.shape:
                 frame[arena_height - 220 - p1_frame.shape[0] // 2:arena_height - 220 + p1_frame.shape[0] // 2,
                       185 - p1_frame.shape[1] // 2:185 + p1_frame.shape[1] // 2] = p1_frame
@@ -545,10 +549,6 @@ class TreacheryPokemon(commands.Cog):
                       arena_width - 370 - p2_frame.shape[1] // 2:arena_width - 370 + p2_frame.shape[1] // 2] = p2_frame
             combined_frames.append(frame)
             combined_durations.append(max(player1_durations[i], player2_durations[i]))
-
-        # Debugging: Save the combined frames to check if they are correct
-        for idx, frame in enumerate(combined_frames):
-            imageio.imwrite(f"debug_frame_{idx}.png", frame)
 
         output = BytesIO()
         imageio.mimsave(output, combined_frames, format='GIF', duration=[d / 1000 for d in combined_durations])
