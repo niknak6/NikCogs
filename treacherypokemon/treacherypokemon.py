@@ -432,74 +432,7 @@ class TreacheryPokemon(commands.Cog):
             print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
-    async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
-        async with aiohttp.ClientSession() as session:
-            async def fetch_sprite(pokemon_name, sprite_type):
-                sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
-                async with session.get(sprite_url) as response:
-                    if response.status != 200:
-                        raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
-                    data = await response.json()
-                    sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                            data['sprites'].get(sprite_type) or
-                            data['sprites']['other']['official-artwork'].get('front_default'))
-                    if not sprite:
-                        raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
-                    async with session.get(sprite) as sprite_response:
-                        if sprite_response.status != 200:
-                            raise ValueError(f"Failed to fetch sprite image: {sprite}")
-                        image_data = await sprite_response.read()
-                        return Image.open(BytesIO(image_data))
 
-            player1_sprite_image, player2_sprite_image = await asyncio.gather(
-                fetch_sprite(player1_pokemon_name, 'back_default'),
-                fetch_sprite(player2_pokemon_name, 'front_default')
-            )
-
-            def process_frames(sprite_image):
-                frames = []
-                durations = []
-                for frame in ImageSequence.Iterator(sprite_image):
-                    frame = frame.convert("RGBA")
-                    frame = frame.resize(frame.size, Image.Resampling.HAMMING)  # Apply resampling filter
-                    frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
-                    frames.append(frame)
-                    durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
-                return frames, durations
-
-            def blend_sprites(background, sprite, position):
-                mask = sprite.split()[3]  # Use alpha channel as mask
-                background.paste(sprite, position, mask)
-                return background
-
-            player1_frames, player1_durations = process_frames(player1_sprite_image)
-            player2_frames, player2_durations = process_frames(player2_sprite_image)
-
-            max_frames = max(len(player1_frames), len(player2_frames))
-
-            cog_directory = os.path.dirname(os.path.abspath(__file__))
-            arena_image_path = os.path.join(cog_directory, 'arena.png')
-            arena_image = Image.open(arena_image_path).convert("RGBA")
-
-            arena_width, arena_height = arena_image.size
-            combined_frames = []
-            combined_durations = []
-
-            for i in range(max_frames):
-                frame = arena_image.copy()
-                p1_frame = player1_frames[i]
-                p2_frame = player2_frames[i]
-                p1_position = (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2)
-                p2_position = (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2)
-                frame = blend_sprites(frame, p1_frame, p1_position)
-                frame = blend_sprites(frame, p2_frame, p2_position)
-                combined_frames.append(frame)
-                combined_durations.append(max(player1_durations[i], player2_durations[i]))
-
-            output = BytesIO()
-            combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
-            output.seek(0)
-            return discord.File(output, filename='combined_sprite.gif')
         
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
