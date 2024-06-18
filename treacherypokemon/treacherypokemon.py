@@ -461,7 +461,7 @@ class TreacheryPokemon(commands.Cog):
             durations = []
             for frame in ImageSequence.Iterator(sprite_image):
                 frame = frame.convert("RGBA")
-                frame = frame.resize(frame.size, Image.Resampling.BICUBIC)  # Apply resampling filter
+                frame = frame.resize(frame.size, Image.Resampling.LANCZOS)  # Apply resampling filter
                 frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
                 frames.append(frame)
                 durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
