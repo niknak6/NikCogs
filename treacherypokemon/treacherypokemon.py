@@ -449,14 +449,15 @@ class TreacheryPokemon(commands.Cog):
                         if sprite_response.status != 200:
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
                         image_data = await sprite_response.read()
-                        return Image.open(BytesIO(image_data))
+                        return BytesIO(image_data)
 
-            player1_sprite_image, player2_sprite_image = await asyncio.gather(
+            player1_sprite_data, player2_sprite_data = await asyncio.gather(
                 fetch_sprite(player1_pokemon_name, 'back_default'),
                 fetch_sprite(player2_pokemon_name, 'front_default')
             )
 
-        def load_gif_frames(gif):
+        def load_gif_frames(gif_data):
+            gif = Image.open(gif_data)
             frames = [frame.copy().convert("RGBA") for frame in ImageSequence.Iterator(gif)]
             durations = []
             for frame in ImageSequence.Iterator(gif):
@@ -504,8 +505,8 @@ class TreacheryPokemon(commands.Cog):
         arena_image_path = os.path.join(cog_directory, 'arena.png')
         arena_image = Image.open(arena_image_path).convert("RGBA")
 
-        gif1_frames, durations1 = load_gif_frames(player1_sprite_image)
-        gif2_frames, durations2 = load_gif_frames(player2_sprite_image)
+        gif1_frames, durations1 = load_gif_frames(player1_sprite_data)
+        gif2_frames, durations2 = load_gif_frames(player2_sprite_data)
 
         result_frames, result_durations = composite_frames(arena_image, gif1_frames, gif2_frames, durations1, durations2)
 
