@@ -517,7 +517,10 @@ class TreacheryPokemon(commands.Cog):
         combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
         output.seek(0)
 
-        return output
+        # Create a discord.File object from the BytesIO object
+        discord_file = discord.File(fp=output, filename='battle.gif')
+
+        return discord_file
         
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
