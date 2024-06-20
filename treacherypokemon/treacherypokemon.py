@@ -515,7 +515,7 @@ class TreacheryPokemon(commands.Cog):
             current_time += frame_duration
 
         output_path = 'combined_sprite.gif'
-        imageio.mimsave(output_path, combined_frames, duration=combined_durations, loop=0)
+        imageio.mimsave(output_path, combined_frames, duration=combined_durations, loop=0, disposal=2)
 
         with open(output_path, 'rb') as f:
             return discord.File(f, filename=output_path)
