@@ -433,74 +433,75 @@ class TreacheryPokemon(commands.Cog):
             print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
-    async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
-        """Generates a combat sprite GIF with the given Pokémon IDs."""
+async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
+    """Generates a combat sprite GIF with the given Pokémon IDs."""
 
-        async def fetch_sprite(session, pokemon_id, sprite_type):
-            """Fetches a specific sprite for a given Pokémon ID."""
-            sprite_url = f"{self.base_url}{pokemon_id}"
-            async with session.get(sprite_url) as response:
-                response.raise_for_status()
-                data = await response.json()
-                sprite_types = ['other.showdown.' + sprite_type, sprite_type, 'other.official-artwork.front_default']
-                sprite = next((data['sprites'][key] for key in sprite_types if key in data['sprites']), None)
-                if not sprite:
-                    raise ValueError(f"Sprite type '{sprite_type}' not found for Pokémon ID {pokemon_id}")
-                async with session.get(sprite) as sprite_response:
-                    sprite_response.raise_for_status()
-                    return Image.open(BytesIO(await sprite_response.read()))
+    async def fetch_sprite(session, pokemon_id, sprite_type):
+        """Fetches a specific sprite for a given Pokémon ID."""
+        sprite_url = f"{self.base_url}{pokemon_id}"
+        async with session.get(sprite_url) as response:
+            response.raise_for_status()
+            data = await response.json()
+            sprite_types = ['other.showdown.' + sprite_type, sprite_type, 'other.official-artwork.front_default']
+            sprite = next((data['sprites'][key] for key in sprite_types if key in data['sprites']), None)
+            if not sprite:
+                raise ValueError(f"Sprite type '{sprite_type}' not found for Pokémon ID {pokemon_id}")
+            async with session.get(sprite) as sprite_response:
+                sprite_response.raise_for_status()
+                return Image.open(BytesIO(await sprite_response.read()))
 
-        async with aiohttp.ClientSession() as session:
-            player1_sprite_image, player2_sprite_image = await asyncio.gather(
-                fetch_sprite(session, player1_pokemon_id, 'back_default'),
-                fetch_sprite(session, player2_pokemon_id, 'front_default')
-            )
+    async with aiohttp.ClientSession() as session:
+        player1_sprite_image, player2_sprite_image = await asyncio.gather(
+            fetch_sprite(session, player1_pokemon_id, 'back_default'),
+            fetch_sprite(session, player2_pokemon_id, 'front_default')
+        )
 
-        def get_gif_data(sprite):
-            """Extracts frames and durations from a GIF sprite."""
-            frames = [frame.convert("RGBA") for frame in ImageSequence.Iterator(sprite)]
-            durations = [frame.info.get('duration', 50) for frame in frames]
-            return frames, durations
+    def get_gif_data(sprite):
+        """Extracts frames and durations from a GIF sprite."""
+        frames = [frame.convert("RGBA") for frame in ImageSequence.Iterator(sprite)]
+        durations = [frame.info.get('duration', 50) for frame in frames]
+        return frames, durations
 
-        player_data = [get_gif_data(player1_sprite_image), get_gif_data(player2_sprite_image)]
-        max_duration = max(sum(durations) for _, durations in player_data)
+    player_data = [get_gif_data(player1_sprite_image), get_gif_data(player2_sprite_image)]
+    max_duration = max(sum(durations) for _, durations in player_data)
 
-        arena_image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arena.png')
-        arena_image = Image.open(arena_image_path).convert("RGBA")
-        arena_width, arena_height = arena_image.size
+    arena_image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arena.png')
+    arena_image = Image.open(arena_image_path).convert("RGBA")
+    arena_width, arena_height = arena_image.size
 
-        def create_combat_frame(current_time):
-            """Creates a single combat frame by compositing sprites onto the arena image."""
-            frame = arena_image.copy()
+    def create_combat_frame(current_time):
+        """Creates a single combat frame by compositing sprites onto the arena image."""
+        frame = arena_image.copy()
 
-            for i, (frames, durations) in enumerate(player_data):
-                total_duration = sum(durations)
-                index = int(current_time % total_duration / durations[0])
-                sprite_frame = frames[index % len(frames)]
-                x_offset = 185 if i == 0 else arena_width - 370
-                y_offset = arena_height - 170 if i == 0 else 150
-                frame.alpha_composite(sprite_frame, (x_offset - sprite_frame.width // 2, y_offset - sprite_frame.height // 2))
+        for i, (frames, durations) in enumerate(player_data):
+            total_duration = sum(durations)
+            index = int(current_time % total_duration / durations[0])
+            sprite_frame = frames[index % len(frames)]
+            x_offset = 185 if i == 0 else arena_width - 370
+            y_offset = arena_height - 170 if i == 0 else 150
+            frame.alpha_composite(sprite_frame, (x_offset - sprite_frame.width // 2, y_offset - sprite_frame.height // 2))
 
-            return frame
+        return frame
 
-        combined_frames = []
-        combined_durations = []
-        current_time = 0
+    combined_frames = []
+    combined_durations = []
+    current_time = 0
 
-        while current_time < max_duration:
-            frame = create_combat_frame(current_time)
-            combined_frames.append(frame)
+    while current_time < max_duration:
+        frame = create_combat_frame(current_time)
+        combined_frames.append(frame)
 
-            frame_duration = max(data[1][current_time % len(data[1])] for data in player_data)
-            combined_durations.append(frame_duration)
+        frame_duration = max(data[1][current_time % len(data[1])] for data in player_data)
+        combined_durations.append(frame_duration)
 
-            current_time += frame_duration
+        current_time += frame_duration
 
-        output_path = 'combined_sprite.gif'
-        imageio.mimsave(output_path, combined_frames, duration=combined_durations, loop=0, disposal=2, optimize=True)
+    output_path = 'combined_sprite.gif'
+    imageio.mimsave(output_path, combined_frames, duration=combined_durations, loop=0, disposal=2, optimize=True)
 
-        with open(output_path, 'rb') as f:
-            return discord.File(f, filename=output_path)
+    with open(output_path, 'rb') as f:
+        return discord.File(f, filename=output_path)
+
             
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
