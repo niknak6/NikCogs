@@ -434,8 +434,9 @@ class TreacheryPokemon(commands.Cog):
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
+
         async with aiohttp.ClientSession() as session:
-            async def fetch_sprite(pokemon_id, sprite_type):
+            async def fetch_gif(pokemon_id, sprite_type):
                 """Fetches a specific sprite for a given Pokémon ID."""
                 sprite_url = f"{self.base_url}{pokemon_id}"
                 async with session.get(sprite_url) as response:
@@ -454,63 +455,28 @@ class TreacheryPokemon(commands.Cog):
                         return Image.open(BytesIO(image_data))
 
             player1_sprite_image, player2_sprite_image = await asyncio.gather(
-                fetch_sprite(player1_pokemon_id, 'back_default'),
-                fetch_sprite(player2_pokemon_id, 'front_default')
+                fetch_gif(player1_pokemon_id, 'back_default'),
+                fetch_gif(player2_pokemon_id, 'front_default')
             )
 
-        def process_frames(sprite_image):
+        def get_frames_and_durations(sprite_image):
             frames = []
             durations = []
             for frame in ImageSequence.Iterator(sprite_image):
                 frame = frame.convert("RGBA")
-                frame = frame.resize(frame.size, Image.Resampling.LANCZOS)  # Apply resampling filter
-                frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
                 frames.append(frame)
-                durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
+                try:
+                    durations.append(frame.info['duration'])
+                except KeyError:
+                    durations.append(100)  # Default duration if not available
             return frames, durations
 
-        def distribute_padding(frames, durations, target_length):
-            num_padding_frames = target_length - len(frames)
-            if num_padding_frames <= 0:
-                return frames, durations
+        player1_frames, player1_durations = get_frames_and_durations(player1_sprite_image)
+        player2_frames, player2_durations = get_frames_and_durations(player2_sprite_image)
 
-            # Ensure padding_interval is never zero
-            padding_interval = max(1, len(frames) // (num_padding_frames + 1))
-            padded_frames = []
-            padded_durations = []
-
-            for i in range(len(frames)):
-                padded_frames.append(frames[i])
-                padded_durations.append(durations[i])
-                if (i + 1) % padding_interval == 0 and num_padding_frames > 0:
-                    padded_frames.append(frames[i])
-                    padded_durations.append(durations[i])
-                    num_padding_frames -= 1
-
-            # If there are still padding frames left, add them to the end
-            while num_padding_frames > 0:
-                padded_frames.append(frames[-1])
-                padded_durations.append(durations[-1])
-                num_padding_frames -= 1
-
-            return padded_frames, padded_durations
-
-        player1_frames, player1_durations = process_frames(player1_sprite_image)
-        player2_frames, player2_durations = process_frames(player2_sprite_image)
-
-        logging.info(f"Initial player1_frames length: {len(player1_frames)}")
-        logging.info(f"Initial player2_frames length: {len(player2_frames)}")
-
-        max_frames = max(len(player1_frames), len(player2_frames))
-        player1_frames, player1_durations = distribute_padding(player1_frames, player1_durations, max_frames)
-        player2_frames, player2_durations = distribute_padding(player2_frames, player2_durations, max_frames)
-
-        logging.info(f"Padded player1_frames length: {len(player1_frames)}")
-        logging.info(f"Padded player2_frames length: {len(player2_frames)}")
-
-        # Ensure both lists have the same length after padding
-        if len(player1_frames) != len(player2_frames):
-            raise ValueError("Frame lists are not of the same length after padding")
+        total_duration1 = sum(player1_durations)
+        total_duration2 = sum(player2_durations)
+        max_duration = max(total_duration1, total_duration2)
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
@@ -519,15 +485,33 @@ class TreacheryPokemon(commands.Cog):
         arena_width, arena_height = arena_image.size
         combined_frames = []
         combined_durations = []
+        current_time = 0
 
-        for i in range(max_frames):
+        while current_time < max_duration:
             frame = arena_image.copy()
-            p1_frame = player1_frames[i]
-            p2_frame = player2_frames[i]
-            frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
-            frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
+
+            gif1_index = int(current_time % total_duration1 / player1_durations[0])
+            gif2_index = int(current_time % total_duration2 / player2_durations[0])
+
+            p1_frame = player1_frames[gif1_index % len(player1_frames)]
+            p2_frame = player2_frames[gif2_index % len(player2_frames)]
+
+            player1_x = 185 - p1_frame.width // 2
+            player1_y = arena_height - 220 - p1_frame.height // 2
+            player2_x = arena_width - 370 - p2_frame.width // 2
+            player2_y = 150 - p2_frame.height // 2
+
+            frame.alpha_composite(p1_frame, (player1_x, player1_y))
+            frame.alpha_composite(p2_frame, (player2_x, player2_y))
+
             combined_frames.append(frame)
-            combined_durations.append(max(player1_durations[i], player2_durations[i]))
+
+            duration1 = player1_durations[gif1_index % len(player1_durations)]
+            duration2 = player2_durations[gif2_index % len(player2_durations)]
+            frame_duration = max(duration1, duration2)
+            combined_durations.append(frame_duration)
+
+            current_time += frame_duration
 
         output = BytesIO()
         combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
