@@ -95,11 +95,14 @@ class TreacheryPokemon(commands.Cog):
         await self.execute_query(query, (*filters.values(), value))
         await ctx.send("Update successful.")
 
-    def get_random_move(self, ctx, pokemon_name):
+    def get_random_move(self, ctx, poketag):
         member_id = ctx.author.id
-        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
+        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
         result = self.cur.fetchone()
         pokemon_level = result[0] if result else 1
+
+        self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+        pokemon_name = self.cur.fetchone()[0]
 
         pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
         try:
