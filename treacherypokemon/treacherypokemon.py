@@ -451,14 +451,20 @@ class TreacheryPokemon(commands.Cog):
                     sprite_response.raise_for_status()
                     return Image.open(BytesIO(await sprite_response.read()))
 
+        async with aiohttp.ClientSession() as session:
+            player1_sprite_image, player2_sprite_image = await asyncio.gather(
+                fetch_sprite(session, player1_pokemon_id, 'back_default'),
+                fetch_sprite(session, player2_pokemon_id, 'front_default')
+            )
+
         def get_gif_frames_and_durations(sprite):
             """Extracts frames and durations from a GIF sprite."""
             frames = [frame.convert("RGBA") for frame in ImageSequence.Iterator(sprite)]
             durations = [frame.info.get('duration', 50) for frame in frames]
             return frames, durations
 
-        player1_frames, player1_durations = get_gif_frames_and_durations(player1_sprite)
-        player2_frames, player2_durations = get_gif_frames_and_durations(player2_sprite)
+        player1_frames, player1_durations = get_gif_frames_and_durations(player1_sprite_image)
+        player2_frames, player2_durations = get_gif_frames_and_durations(player2_sprite_image)
 
         max_duration = max(sum(player1_durations), sum(player2_durations))
 
