@@ -628,7 +628,7 @@ class TreacheryPokemon(commands.Cog):
 
                         battle_embed.set_field_at(hp_field_index, name=f"{new_pokemon} HP", value=f"{round(opponent_hp[new_pokemon])}", inline=True)
                         battle_embed.set_image(url=f"attachment://{combined_image_file.filename}")
-                        await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
+                        await battle_message.edit(embed=battle_embed, file=combined_image_file)  # Changed 'attachments' to 'file'
                     else:
                         break
 
