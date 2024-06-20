@@ -553,7 +553,7 @@ class TreacheryPokemon(commands.Cog):
 
         player1_pokemon_name, player2_pokemon_name = player1_party[0], player2_party[0]
 
-        # Fetch Pokémon IDs from the database *HERE*
+        # Fetch initial Pokémon IDs from the database
         player1_pokemon_id = self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (ctx.author.id, player1_pokemon_name)).fetchone()[0]
         player2_pokemon_id = self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (opponent.id, player2_pokemon_name)).fetchone()[0]
 
@@ -630,7 +630,12 @@ class TreacheryPokemon(commands.Cog):
                     if opponent_party:
                         new_pokemon = opponent_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if opponent_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
-                        combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
+
+                        # Fetch NEW Pokémon IDs from the database
+                        player1_pokemon_id = self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (ctx.author.id, player1_pokemon_name)).fetchone()[0]
+                        player2_pokemon_id = self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (opponent.id, player2_pokemon_name)).fetchone()[0]
+
+                        combined_image_file = await self.combatsprite(ctx, player1_pokemon_id, player2_pokemon_id)  # Await the coroutine here
 
                         # Check if combined image file is ready
                         if not combined_image_file:
