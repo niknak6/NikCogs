@@ -513,11 +513,10 @@ class TreacheryPokemon(commands.Cog):
 
             current_time += frame_duration
 
-        # Moved these lines OUTSIDE the while loop
-        output = BytesIO()
-        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
-        output.seek(0)
-        return discord.File(output, filename='combined_sprite.gif')
+        with BytesIO() as output:
+            combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
+            output.seek(0)
+            return discord.File(output, filename='combined_sprite.gif')
             
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
