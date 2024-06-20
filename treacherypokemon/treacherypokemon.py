@@ -498,7 +498,7 @@ class TreacheryPokemon(commands.Cog):
             p2_frame = player2_frames[gif2_index % len(player2_frames)]
 
             player1_x = 185 - p1_frame.width // 2
-            player1_y = arena_height - 220 - p1_frame.height // 2
+            player1_y = arena_height - 170 - p1_frame.height // 2
             player2_x = arena_width - 370 - p2_frame.width // 2
             player2_y = 150 - p2_frame.height // 2
 
