@@ -95,17 +95,13 @@ class TreacheryPokemon(commands.Cog):
         await self.execute_query(query, (*filters.values(), value))
         await ctx.send("Update successful.")
 
-    def get_random_move(self, ctx, poketag):
-        # Fetch the level and pokemon_id using the poketag
-        self.cur.execute('SELECT level, pokemon_id FROM pokedex WHERE poketag = ?', (poketag,))
+    def get_random_move(self, ctx, pokemon_name):
+        member_id = ctx.author.id
+        self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
         result = self.cur.fetchone()
-        if not result:
-            print(f"No Pokémon found with poketag {poketag}")
-            return "NULL", "NULL", 0
-        pokemon_level, pokemon_id = result
+        pokemon_level = result[0] if result else 1
 
-        # Construct the URL using the pokemon_id
-        pokemon_url = f"{self.base_url}{pokemon_id}"
+        pokemon_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
         try:
             pokemon_data = requests.get(pokemon_url).json()
         except requests.exceptions.RequestException as e:
