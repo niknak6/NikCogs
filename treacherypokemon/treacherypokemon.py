@@ -10,7 +10,6 @@ import datetime
 import asyncio
 import aiohttp
 import traceback
-import imageio
 import logging
 import os
 import aiofiles
@@ -435,78 +434,106 @@ class TreacheryPokemon(commands.Cog):
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
-
-        async def fetch_sprite(session, pokemon_id, sprite_type):
-            """Fetches a specific sprite for a given Pokémon ID."""
-            sprite_url = f"{self.base_url}{pokemon_id}"
-            async with session.get(sprite_url) as response:
-                response.raise_for_status()
-                data = await response.json()
-                sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                        data['sprites'].get(sprite_type) or
-                        data['sprites']['other']['official-artwork'].get('front_default'))
-                if not sprite:
-                    raise ValueError(f"Sprite type '{sprite_type}' not found for Pokémon ID {pokemon_id}")
-                async with session.get(sprite) as sprite_response:
-                    sprite_response.raise_for_status()
-                    return Image.open(BytesIO(await sprite_response.read()))
-
         async with aiohttp.ClientSession() as session:
+            async def fetch_sprite(pokemon_id, sprite_type):
+                """Fetches a specific sprite for a given Pokémon ID."""
+                sprite_url = f"{self.base_url}{pokemon_id}"
+                async with session.get(sprite_url) as response:
+                    if response.status != 200:
+                        raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
+                    data = await response.json()
+                    sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
+                            data['sprites'].get(sprite_type) or
+                            data['sprites']['other']['official-artwork'].get('front_default'))
+                    if not sprite:
+                        raise ValueError(f"Sprite type '{sprite_type}' not found for Pokémon ID {pokemon_id}")
+                    async with session.get(sprite) as sprite_response:
+                        if sprite_response.status != 200:
+                            raise ValueError(f"Failed to fetch sprite image: {sprite}")
+                        image_data = await sprite_response.read()
+                        return Image.open(BytesIO(image_data))
+
             player1_sprite_image, player2_sprite_image = await asyncio.gather(
-                fetch_sprite(session, player1_pokemon_id, 'back_default'),
-                fetch_sprite(session, player2_pokemon_id, 'front_default')
+                fetch_sprite(player1_pokemon_id, 'back_default'),
+                fetch_sprite(player2_pokemon_id, 'front_default')
             )
 
-        def get_gif_frames_and_durations(sprite):
-            """Extracts frames and durations from a GIF sprite."""
-            frames = [frame.convert("RGBA") for frame in ImageSequence.Iterator(sprite)]
-            durations = [frame.info.get('duration', 50) for frame in frames]
+        def process_frames(sprite_image):
+            frames = []
+            durations = []
+            for frame in ImageSequence.Iterator(sprite_image):
+                frame = frame.convert("RGBA")
+                frame = frame.resize(frame.size, Image.Resampling.LANCZOS)  # Apply resampling filter
+                frame = frame.filter(ImageFilter.SMOOTH)  # Apply smoothing filter
+                frames.append(frame)
+                durations.append(frame.info.get('duration', 100))  # Default to 100ms if duration is not available
             return frames, durations
 
-        player1_frames, player1_durations = get_gif_frames_and_durations(player1_sprite_image)
-        player2_frames, player2_durations = get_gif_frames_and_durations(player2_sprite_image)
+        def distribute_padding(frames, durations, target_length):
+            num_padding_frames = target_length - len(frames)
+            if num_padding_frames <= 0:
+                return frames, durations
 
-        max_duration = max(sum(player1_durations), sum(player2_durations))
+            # Ensure padding_interval is never zero
+            padding_interval = max(1, len(frames) // (num_padding_frames + 1))
+            padded_frames = []
+            padded_durations = []
 
-        arena_image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arena.png')
+            for i in range(len(frames)):
+                padded_frames.append(frames[i])
+                padded_durations.append(durations[i])
+                if (i + 1) % padding_interval == 0 and num_padding_frames > 0:
+                    padded_frames.append(frames[i])
+                    padded_durations.append(durations[i])
+                    num_padding_frames -= 1
+
+            # If there are still padding frames left, add them to the end
+            while num_padding_frames > 0:
+                padded_frames.append(frames[-1])
+                padded_durations.append(durations[-1])
+                num_padding_frames -= 1
+
+            return padded_frames, padded_durations
+
+        player1_frames, player1_durations = process_frames(player1_sprite_image)
+        player2_frames, player2_durations = process_frames(player2_sprite_image)
+
+        logging.info(f"Initial player1_frames length: {len(player1_frames)}")
+        logging.info(f"Initial player2_frames length: {len(player2_frames)}")
+
+        max_frames = max(len(player1_frames), len(player2_frames))
+        player1_frames, player1_durations = distribute_padding(player1_frames, player1_durations, max_frames)
+        player2_frames, player2_durations = distribute_padding(player2_frames, player2_durations, max_frames)
+
+        logging.info(f"Padded player1_frames length: {len(player1_frames)}")
+        logging.info(f"Padded player2_frames length: {len(player2_frames)}")
+
+        # Ensure both lists have the same length after padding
+        if len(player1_frames) != len(player2_frames):
+            raise ValueError("Frame lists are not of the same length after padding")
+
+        cog_directory = os.path.dirname(os.path.abspath(__file__))
+        arena_image_path = os.path.join(cog_directory, 'arena.png')
         arena_image = Image.open(arena_image_path).convert("RGBA")
+
         arena_width, arena_height = arena_image.size
-
-        def create_combat_frame(current_time):
-            """Creates a single combat frame by compositing sprites onto the arena image."""
-            frame = arena_image.copy()
-
-            def composite_sprite(frames, durations, x_offset, y_offset):
-                total_duration = sum(durations)
-                index = int(current_time % total_duration / durations[0])
-                sprite_frame = frames[index % len(frames)]
-                frame.alpha_composite(sprite_frame, (x_offset - sprite_frame.width // 2, y_offset - sprite_frame.height // 2))
-
-            composite_sprite(player1_frames, player1_durations, 185, arena_height - 170)
-            composite_sprite(player2_frames, player2_durations, arena_width - 370, 150)
-
-            return frame
-
         combined_frames = []
         combined_durations = []
-        current_time = 0
 
-        while current_time < max_duration:
-            frame = create_combat_frame(current_time)
+        for i in range(max_frames):
+            frame = arena_image.copy()
+            p1_frame = player1_frames[i]
+            p2_frame = player2_frames[i]
+            frame.paste(p1_frame, (185 - p1_frame.width // 2, arena_height - 220 - p1_frame.height // 2), p1_frame)
+            frame.paste(p2_frame, (arena_width - 370 - p2_frame.width // 2, 150 - p2_frame.height // 2), p2_frame)
             combined_frames.append(frame)
+            combined_durations.append(max(player1_durations[i], player2_durations[i]))
 
-            frame_duration = max(player1_durations[current_time % len(player1_durations)],
-                                player2_durations[current_time % len(player2_durations)])
-            combined_durations.append(frame_duration)
-
-            current_time += frame_duration
-
-        output_path = 'combined_sprite.gif'
-        imageio.mimsave(output_path, combined_frames, duration=combined_durations, loop=0, disposal=2, optimize=True)
-
-        with open(output_path, 'rb') as f:
-            return discord.File(f, filename=output_path)
-            
+        output = BytesIO()
+        combined_frames[0].save(output, format='GIF', save_all=True, append_images=combined_frames[1:], loop=0, duration=combined_durations, disposal=2)
+        output.seek(0)
+        return discord.File(output, filename='combined_sprite.gif')
+        
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
         if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
@@ -526,7 +553,7 @@ class TreacheryPokemon(commands.Cog):
 
         player1_pokemon_name, player2_pokemon_name = player1_party[0], player2_party[0]
 
-        # Fetch initial Pokémon IDs from the database
+        # Fetch Pokémon IDs from the database *HERE*
         player1_pokemon_id = self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (ctx.author.id, player1_pokemon_name)).fetchone()[0]
         player2_pokemon_id = self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (opponent.id, player2_pokemon_name)).fetchone()[0]
 
@@ -603,23 +630,14 @@ class TreacheryPokemon(commands.Cog):
                     if opponent_party:
                         new_pokemon = opponent_party[0]
                         player1_pokemon_name, player2_pokemon_name = (new_pokemon, player2_pokemon_name) if opponent_display == ctx.author.display_name else (player1_pokemon_name, new_pokemon)
-
-                        # Fetch NEW Pokémon IDs from the database
-                        player1_pokemon_id = self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (ctx.author.id, player1_pokemon_name)).fetchone()[0]
-                        player2_pokemon_id = self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (opponent.id, player2_pokemon_name)).fetchone()[0]
-
-                        combined_image_file = await self.combatsprite(ctx, player1_pokemon_id, player2_pokemon_id)  # Await the coroutine here
+                        combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
 
                         # Check if combined image file is ready
                         if not combined_image_file:
                             return await ctx.send("Failed to generate battle image for new Pokémon. Please try again later.")
 
                         battle_embed.set_field_at(hp_field_index, name=f"{new_pokemon} HP", value=f"{round(opponent_hp[new_pokemon])}", inline=True)
-                        
-                        # Update the battle embed with the new image URL
                         battle_embed.set_image(url=f"attachment://{combined_image_file.filename}")
-
-                        # Edit the battle message with the updated embed and the new image file
                         await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
                     else:
                         break
