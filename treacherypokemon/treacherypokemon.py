@@ -442,20 +442,14 @@ class TreacheryPokemon(commands.Cog):
             async with session.get(sprite_url) as response:
                 response.raise_for_status()
                 data = await response.json()
-                sprite = next((data['sprites']['other']['showdown'].get(sprite_type),
-                            data['sprites'].get(sprite_type),
-                            data['sprites']['other']['official-artwork'].get('front_default')), None)
+                sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
+                        data['sprites'].get(sprite_type) or
+                        data['sprites']['other']['official-artwork'].get('front_default'))
                 if not sprite:
                     raise ValueError(f"Sprite type '{sprite_type}' not found for Pokémon ID {pokemon_id}")
                 async with session.get(sprite) as sprite_response:
                     sprite_response.raise_for_status()
                     return Image.open(BytesIO(await sprite_response.read()))
-
-        async with aiohttp.ClientSession() as session:
-            player1_sprite, player2_sprite = await asyncio.gather(
-                fetch_sprite(session, player1_pokemon_id, 'back_default'),
-                fetch_sprite(session, player2_pokemon_id, 'front_default')
-            )
 
         def get_gif_frames_and_durations(sprite):
             """Extracts frames and durations from a GIF sprite."""
