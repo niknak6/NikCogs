@@ -627,8 +627,15 @@ class TreacheryPokemon(commands.Cog):
                             return await ctx.send("Failed to generate battle image for new Pokémon. Please try again later.")
 
                         battle_embed.set_field_at(hp_field_index, name=f"{new_pokemon} HP", value=f"{round(opponent_hp[new_pokemon])}", inline=True)
+                        
+                        # Update the battle embed with the new image URL
                         battle_embed.set_image(url=f"attachment://{combined_image_file.filename}")
-                        await battle_message.edit(embed=battle_embed, file=combined_image_file)  # Changed 'attachments' to 'file'
+
+                        # Edit the battle message with the updated embed
+                        await battle_message.edit(embed=battle_embed)
+
+                        # Send the new image file as a separate message
+                        await ctx.send(file=combined_image_file)
                     else:
                         break
 
