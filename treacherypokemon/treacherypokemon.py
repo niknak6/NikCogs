@@ -436,10 +436,10 @@ class TreacheryPokemon(commands.Cog):
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
 
-        async def fetch_gif(pokemon_id, sprite_type):
-            """Fetches a specific sprite for a given Pokémon ID."""
-            sprite_url = f"{self.base_url}{pokemon_id}"
-            async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession() as session:
+            async def fetch_gif(pokemon_id, sprite_type):
+                """Fetches a specific sprite for a given Pokémon ID."""
+                sprite_url = f"{self.base_url}{pokemon_id}"
                 async with session.get(sprite_url) as response:
                     if response.status != 200:
                         raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
@@ -455,66 +455,67 @@ class TreacheryPokemon(commands.Cog):
                         image_data = await sprite_response.read()
                         return Image.open(BytesIO(image_data))
 
-        player1_sprite_image, player2_sprite_image = await asyncio.gather(
-            fetch_gif(player1_pokemon_id, 'back_default'),
-            fetch_gif(player2_pokemon_id, 'front_default')
-        )
+            player1_sprite_image, player2_sprite_image = await asyncio.gather(
+                fetch_gif(player1_pokemon_id, 'back_default'),
+                fetch_gif(player2_pokemon_id, 'front_default')
+            )
 
-        def load_gif_frames(gif):
-            frames = [frame.copy().convert("RGBA") for frame in ImageSequence.Iterator(gif)]
+        def load_gif_frames(sprite_image):
+            frames = []
             durations = []
-            for frame in ImageSequence.Iterator(gif):
+            for frame in ImageSequence.Iterator(sprite_image):
+                frame = frame.convert("RGBA")
+                frames.append(frame)
                 try:
                     durations.append(frame.info['duration'])
                 except KeyError:
                     durations.append(50)  # Default duration if not available
             return frames, durations
 
-        gif1_frames, durations1 = load_gif_frames(player1_sprite_image)
-        gif2_frames, durations2 = load_gif_frames(player2_sprite_image)
+        player1_frames, player1_durations = load_gif_frames(player1_sprite_image)
+        player2_frames, player2_durations = load_gif_frames(player2_sprite_image)
+
+        total_duration1 = sum(player1_durations)
+        total_duration2 = sum(player2_durations)
+        max_duration = max(total_duration1, total_duration2)
 
         cog_directory = os.path.dirname(os.path.abspath(__file__))
         arena_image_path = os.path.join(cog_directory, 'arena.png')
-        arena = Image.open(arena_image_path).convert("RGBA")
+        arena_image = Image.open(arena_image_path).convert("RGBA")
 
-        def composite_frames(arena, gif1_frames, gif2_frames, durations1, durations2):
-            total_duration1 = sum(durations1)
-            total_duration2 = sum(durations2)
-            max_duration = max(total_duration1, total_duration2)
+        arena_width, arena_height = arena_image.size
+        combined_frames = []
+        combined_durations = []
+        current_time = 0
 
-            result_frames = []
-            result_durations = []
-            current_time = 0
+        while current_time < max_duration:
+            frame = arena_image.copy()
 
-            while current_time < max_duration:
-                frame = arena.copy()
+            gif1_index = int(current_time % total_duration1 / player1_durations[0])
+            gif2_index = int(current_time % total_duration2 / player2_durations[0])
 
-                gif1_index = int(current_time % total_duration1 / durations1[0])
-                gif2_index = int(current_time % total_duration2 / durations2[0])
+            p1_frame = player1_frames[gif1_index % len(player1_frames)]
+            p2_frame = player2_frames[gif2_index % len(player2_frames)]
 
-                gif1_frame = gif1_frames[gif1_index % len(gif1_frames)]
-                gif2_frame = gif2_frames[gif2_index % len(gif2_frames)]
+            player1_x = 185 - p1_frame.width // 2
+            player1_y = arena_height - 220 - p1_frame.height // 2
+            player2_x = arena_width - 370 - p2_frame.width // 2
+            player2_y = 150 - p2_frame.height // 2
 
-                player1_x, player1_y = 280, arena.height - gif1_frame.height - 130
-                player2_x, player2_y = arena.width - gif2_frame.width - 330, 230
+            frame.alpha_composite(p1_frame, (player1_x, player1_y))
+            frame.alpha_composite(p2_frame, (player2_x, player2_y))
 
-                frame.alpha_composite(gif1_frame, (player1_x, player1_y))
-                frame.alpha_composite(gif2_frame, (player2_x, player2_y))
-                result_frames.append(frame)
+            combined_frames.append(frame)
 
-                duration1 = durations1[gif1_index % len(durations1)]
-                duration2 = durations2[gif2_index % len(durations2)]
-                frame_duration = max(duration1, duration2)
-                result_durations.append(frame_duration)
+            duration1 = player1_durations[gif1_index % len(player1_durations)]
+            duration2 = player2_durations[gif2_index % len(player2_durations)]
+            frame_duration = max(duration1, duration2)
+            combined_durations.append(frame_duration)
 
-                current_time += frame_duration
-
-            return result_frames, result_durations
-
-        result_frames, result_durations = composite_frames(arena, gif1_frames, gif2_frames, durations1, durations2)
+            current_time += frame_duration
 
         output_path = 'combined_sprite.gif'
-        imageio.mimsave(output_path, result_frames, duration=result_durations, loop=0)
+        imageio.mimsave(output_path, combined_frames, duration=combined_durations, loop=0)
 
         with open(output_path, 'rb') as f:
             return discord.File(f, filename=output_path)
