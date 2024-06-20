@@ -432,10 +432,12 @@ class TreacheryPokemon(commands.Cog):
             print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
         
-    async def combatsprite(self, ctx, player1_pokemon_name, player2_pokemon_name):
+    async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
+        """Generates a combat sprite GIF with the given Pokémon IDs."""
         async with aiohttp.ClientSession() as session:
-            async def fetch_sprite(pokemon_name, sprite_type):
-                sprite_url = f"{self.base_url}{pokemon_name.lower().replace(' ', '-').replace('.', '')}"
+            async def fetch_sprite(pokemon_id, sprite_type):
+                """Fetches a specific sprite for a given Pokémon ID."""
+                sprite_url = f"{self.base_url}{pokemon_id}"
                 async with session.get(sprite_url) as response:
                     if response.status != 200:
                         raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
@@ -444,7 +446,7 @@ class TreacheryPokemon(commands.Cog):
                             data['sprites'].get(sprite_type) or
                             data['sprites']['other']['official-artwork'].get('front_default'))
                     if not sprite:
-                        raise ValueError(f"Sprite type '{sprite_type}' not found for {pokemon_name}")
+                        raise ValueError(f"Sprite type '{sprite_type}' not found for Pokémon ID {pokemon_id}")
                     async with session.get(sprite) as sprite_response:
                         if sprite_response.status != 200:
                             raise ValueError(f"Failed to fetch sprite image: {sprite}")
@@ -452,8 +454,8 @@ class TreacheryPokemon(commands.Cog):
                         return Image.open(BytesIO(image_data))
 
             player1_sprite_image, player2_sprite_image = await asyncio.gather(
-                fetch_sprite(player1_pokemon_name, 'back_default'),
-                fetch_sprite(player2_pokemon_name, 'front_default')
+                fetch_sprite(player1_pokemon_id, 'back_default'),
+                fetch_sprite(player2_pokemon_id, 'front_default')
             )
 
         def process_frames(sprite_image):
