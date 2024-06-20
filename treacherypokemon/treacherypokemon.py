@@ -436,80 +436,67 @@ class TreacheryPokemon(commands.Cog):
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
 
-        async with aiohttp.ClientSession() as session:
-            async def fetch_gif(pokemon_id, sprite_type):
-                """Fetches a specific sprite for a given Pokémon ID."""
-                sprite_url = f"{self.base_url}{pokemon_id}"
-                async with session.get(sprite_url) as response:
-                    if response.status != 200:
-                        raise ValueError(f"Failed to fetch sprite URL: {sprite_url}")
-                    data = await response.json()
-                    sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                            data['sprites'].get(sprite_type) or
-                            data['sprites']['other']['official-artwork'].get('front_default'))
-                    if not sprite:
-                        raise ValueError(f"Sprite type '{sprite_type}' not found for Pokémon ID {pokemon_id}")
-                    async with session.get(sprite) as sprite_response:
-                        if sprite_response.status != 200:
-                            raise ValueError(f"Failed to fetch sprite image: {sprite}")
-                        image_data = await sprite_response.read()
-                        return Image.open(BytesIO(image_data))
+        async def fetch_sprite(session, pokemon_id, sprite_type):
+            """Fetches a specific sprite for a given Pokémon ID."""
+            sprite_url = f"{self.base_url}{pokemon_id}"
+            async with session.get(sprite_url) as response:
+                response.raise_for_status()
+                data = await response.json()
+                sprite = next((data['sprites']['other']['showdown'].get(sprite_type),
+                            data['sprites'].get(sprite_type),
+                            data['sprites']['other']['official-artwork'].get('front_default')), None)
+                if not sprite:
+                    raise ValueError(f"Sprite type '{sprite_type}' not found for Pokémon ID {pokemon_id}")
+                async with session.get(sprite) as sprite_response:
+                    sprite_response.raise_for_status()
+                    return Image.open(BytesIO(await sprite_response.read()))
 
-            player1_sprite_image, player2_sprite_image = await asyncio.gather(
-                fetch_gif(player1_pokemon_id, 'back_default'),
-                fetch_gif(player2_pokemon_id, 'front_default')
+        async with aiohttp.ClientSession() as session:
+            player1_sprite, player2_sprite = await asyncio.gather(
+                fetch_sprite(session, player1_pokemon_id, 'back_default'),
+                fetch_sprite(session, player2_pokemon_id, 'front_default')
             )
 
-        def load_gif_frames(sprite_image):
-            frames = []
-            durations = []
-            for frame in ImageSequence.Iterator(sprite_image):
-                frame = frame.convert("RGBA")
-                frames.append(frame)
-                try:
-                    durations.append(frame.info['duration'])
-                except KeyError:
-                    durations.append(50)  # Default duration if not available
+        def get_gif_frames_and_durations(sprite):
+            """Extracts frames and durations from a GIF sprite."""
+            frames = [frame.convert("RGBA") for frame in ImageSequence.Iterator(sprite)]
+            durations = [frame.info.get('duration', 50) for frame in frames]
             return frames, durations
 
-        player1_frames, player1_durations = load_gif_frames(player1_sprite_image)
-        player2_frames, player2_durations = load_gif_frames(player2_sprite_image)
+        player1_frames, player1_durations = get_gif_frames_and_durations(player1_sprite)
+        player2_frames, player2_durations = get_gif_frames_and_durations(player2_sprite)
 
-        total_duration1 = sum(player1_durations)
-        total_duration2 = sum(player2_durations)
-        max_duration = max(total_duration1, total_duration2)
+        max_duration = max(sum(player1_durations), sum(player2_durations))
 
-        cog_directory = os.path.dirname(os.path.abspath(__file__))
-        arena_image_path = os.path.join(cog_directory, 'arena.png')
+        arena_image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arena.png')
         arena_image = Image.open(arena_image_path).convert("RGBA")
-
         arena_width, arena_height = arena_image.size
+
+        def create_combat_frame(current_time):
+            """Creates a single combat frame by compositing sprites onto the arena image."""
+            frame = arena_image.copy()
+
+            def composite_sprite(frames, durations, x_offset, y_offset):
+                total_duration = sum(durations)
+                index = int(current_time % total_duration / durations[0])
+                sprite_frame = frames[index % len(frames)]
+                frame.alpha_composite(sprite_frame, (x_offset - sprite_frame.width // 2, y_offset - sprite_frame.height // 2))
+
+            composite_sprite(player1_frames, player1_durations, 185, arena_height - 170)
+            composite_sprite(player2_frames, player2_durations, arena_width - 370, 150)
+
+            return frame
+
         combined_frames = []
         combined_durations = []
         current_time = 0
 
         while current_time < max_duration:
-            frame = arena_image.copy()
-
-            gif1_index = int(current_time % total_duration1 / player1_durations[0])
-            gif2_index = int(current_time % total_duration2 / player2_durations[0])
-
-            p1_frame = player1_frames[gif1_index % len(player1_frames)]
-            p2_frame = player2_frames[gif2_index % len(player2_frames)]
-
-            player1_x = 185 - p1_frame.width // 2
-            player1_y = arena_height - 170 - p1_frame.height // 2
-            player2_x = arena_width - 370 - p2_frame.width // 2
-            player2_y = 150 - p2_frame.height // 2
-
-            frame.alpha_composite(p1_frame, (player1_x, player1_y))
-            frame.alpha_composite(p2_frame, (player2_x, player2_y))
-
+            frame = create_combat_frame(current_time)
             combined_frames.append(frame)
 
-            duration1 = player1_durations[gif1_index % len(player1_durations)]
-            duration2 = player2_durations[gif2_index % len(player2_durations)]
-            frame_duration = max(duration1, duration2)
+            frame_duration = max(player1_durations[current_time % len(player1_durations)],
+                                player2_durations[current_time % len(player2_durations)])
             combined_durations.append(frame_duration)
 
             current_time += frame_duration
