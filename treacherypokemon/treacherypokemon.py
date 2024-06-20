@@ -631,11 +631,8 @@ class TreacheryPokemon(commands.Cog):
                         # Update the battle embed with the new image URL
                         battle_embed.set_image(url=f"attachment://{combined_image_file.filename}")
 
-                        # Edit the battle message with the updated embed
-                        await battle_message.edit(embed=battle_embed)
-
-                        # Send the new image file as a separate message
-                        await ctx.send(file=combined_image_file)
+                        # Edit the battle message with the updated embed and the new image file
+                        await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
                     else:
                         break
 
