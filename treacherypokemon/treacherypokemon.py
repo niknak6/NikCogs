@@ -552,11 +552,13 @@ class TreacheryPokemon(commands.Cog):
         player2_hp = {pokemon: self.get_pokemon_health(opponent.id, pokemon) for pokemon in player2_party}
 
         player1_pokemon_name, player2_pokemon_name = player1_party[0], player2_party[0]
-        combined_image_file = await self.combatsprite(ctx, player1_pokemon_name, player2_pokemon_name)  # Await the coroutine here
 
-        # Check if combined image file is ready
-        if not combined_image_file:
-            return await ctx.send("Failed to generate battle image. Please try again later.")
+        # Fetch Pokémon IDs from the database *HERE*
+        player1_pokemon_id = self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (ctx.author.id, player1_pokemon_name)).fetchone()[0]
+        player2_pokemon_id = self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (opponent.id, player2_pokemon_name)).fetchone()[0]
+
+        # Now call combatsprite with the fetched IDs
+        combined_image_file = await self.combatsprite(ctx, player1_pokemon_id, player2_pokemon_id)  # Await the coroutine here
 
         turn_number = 1
         battle_embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
