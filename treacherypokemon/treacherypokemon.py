@@ -442,9 +442,8 @@ class TreacheryPokemon(commands.Cog):
             async with session.get(sprite_url) as response:
                 response.raise_for_status()
                 data = await response.json()
-                sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                        data['sprites'].get(sprite_type) or
-                        data['sprites']['other']['official-artwork'].get('front_default'))
+                sprite_types = ['other.showdown.' + sprite_type, sprite_type, 'other.official-artwork.front_default']
+                sprite = next((data['sprites'][key] for key in sprite_types if key in data['sprites']), None)
                 if not sprite:
                     raise ValueError(f"Sprite type '{sprite_type}' not found for Pokémon ID {pokemon_id}")
                 async with session.get(sprite) as sprite_response:
@@ -457,16 +456,14 @@ class TreacheryPokemon(commands.Cog):
                 fetch_sprite(session, player2_pokemon_id, 'front_default')
             )
 
-        def get_gif_frames_and_durations(sprite):
+        def get_gif_data(sprite):
             """Extracts frames and durations from a GIF sprite."""
             frames = [frame.convert("RGBA") for frame in ImageSequence.Iterator(sprite)]
             durations = [frame.info.get('duration', 50) for frame in frames]
             return frames, durations
 
-        player1_frames, player1_durations = get_gif_frames_and_durations(player1_sprite_image)
-        player2_frames, player2_durations = get_gif_frames_and_durations(player2_sprite_image)
-
-        max_duration = max(sum(player1_durations), sum(player2_durations))
+        player_data = [get_gif_data(player1_sprite_image), get_gif_data(player2_sprite_image)]
+        max_duration = max(sum(durations) for _, durations in player_data)
 
         arena_image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arena.png')
         arena_image = Image.open(arena_image_path).convert("RGBA")
@@ -476,14 +473,13 @@ class TreacheryPokemon(commands.Cog):
             """Creates a single combat frame by compositing sprites onto the arena image."""
             frame = arena_image.copy()
 
-            def composite_sprite(frames, durations, x_offset, y_offset):
+            for i, (frames, durations) in enumerate(player_data):
                 total_duration = sum(durations)
                 index = int(current_time % total_duration / durations[0])
                 sprite_frame = frames[index % len(frames)]
+                x_offset = 185 if i == 0 else arena_width - 370
+                y_offset = arena_height - 170 if i == 0 else 150
                 frame.alpha_composite(sprite_frame, (x_offset - sprite_frame.width // 2, y_offset - sprite_frame.height // 2))
-
-            composite_sprite(player1_frames, player1_durations, 185, arena_height - 170)
-            composite_sprite(player2_frames, player2_durations, arena_width - 370, 150)
 
             return frame
 
@@ -495,8 +491,7 @@ class TreacheryPokemon(commands.Cog):
             frame = create_combat_frame(current_time)
             combined_frames.append(frame)
 
-            frame_duration = max(player1_durations[current_time % len(player1_durations)],
-                                player2_durations[current_time % len(player2_durations)])
+            frame_duration = max(data[1][current_time % len(data[1])] for data in player_data)
             combined_durations.append(frame_duration)
 
             current_time += frame_duration
