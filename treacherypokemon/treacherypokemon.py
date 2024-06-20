@@ -10,6 +10,7 @@ import datetime
 import asyncio
 import aiohttp
 import traceback
+import imageio
 import logging
 import os
 import aiofiles
