@@ -478,13 +478,12 @@ class TreacheryPokemon(commands.Cog):
 
             def composite_sprite(frames, durations, x_offset, y_offset):
                 total_duration = sum(durations)
-                index = int(current_time % total_duration / durations[0])
-                sprite_frame = frames[index % len(frames)]
+                index = int(current_time % total_duration / durations[0]) % len(frames)
+                sprite_frame = frames[index]
                 frame.alpha_composite(sprite_frame, (x_offset - sprite_frame.width // 2, y_offset - sprite_frame.height // 2))
 
             composite_sprite(player1_frames, player1_durations, 185, arena_height - 170)
             composite_sprite(player2_frames, player2_durations, arena_width - 370, 150)
-
             return frame
 
         combined_frames = []
@@ -492,13 +491,10 @@ class TreacheryPokemon(commands.Cog):
         current_time = 0
 
         while current_time < max_duration:
-            frame = create_combat_frame(current_time)
-            combined_frames.append(frame)
-
+            combined_frames.append(create_combat_frame(current_time))
             frame_duration = max(player1_durations[current_time % len(player1_durations)],
                                 player2_durations[current_time % len(player2_durations)])
             combined_durations.append(frame_duration)
-
             current_time += frame_duration
 
         output_path = 'combined_sprite.gif'
