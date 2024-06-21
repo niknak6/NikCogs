@@ -593,7 +593,8 @@ class TreacheryPokemon(commands.Cog):
                     else:
                         break
 
-            battle_embed.set_field_at(0, name="Turn", value=turn_number := turn_number + 1, inline=False)
+            turn_number += 1
+            battle_embed.set_field_at(0, name="Turn", value=turn_number, inline=False)
             battle_embed.set_field_at(3, name="Defeated Pokémon", value='\n'.join(defeated_pokemon), inline=False)
             battle_embed.set_field_at(4, name="Moves", value=moves_display, inline=False)
             
