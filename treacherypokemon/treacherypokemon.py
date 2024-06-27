@@ -503,92 +503,92 @@ class TreacheryPokemon(commands.Cog):
         with open(output_path, 'rb') as f:
             return discord.File(f, filename=output_path)
             
-@commands.command()
-async def battle(self, ctx, opponent: discord.Member):
-    if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
-        return await ctx.send("Cannot start battle due to conditions not being met.")
+    @commands.command()
+    async def battle(self, ctx, opponent: discord.Member):
+        if opponent.bot or ctx.author.id in self.battles or opponent.id in self.battles:
+            return await ctx.send("Cannot start battle due to conditions not being met.")
 
-    def fetch_party(member_id):
-        return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0]
-                for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
-                if tag != '-']
+        def fetch_party(member_id):
+            return [self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, tag.lower())).fetchone()[0]
+                    for tag in self.cur.execute('SELECT position1, position2, position3, position4, position5, position6 FROM party WHERE member_id = ?', (member_id,)).fetchone()
+                    if tag != '-']
 
-    player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
-    if not all([player1_party, player2_party]):
-        raise commands.CommandError("Both players must have a party.")
+        player1_party, player2_party = fetch_party(ctx.author.id), fetch_party(opponent.id)
+        if not all([player1_party, player2_party]):
+            raise commands.CommandError("Both players must have a party.")
 
-    player1_hp = {p: self.get_pokemon_health(ctx.author.id, p) for p in player1_party}
-    player2_hp = {p: self.get_pokemon_health(opponent.id, p) for p in player2_party}
+        player1_hp = {p: self.get_pokemon_health(ctx.author.id, p) for p in player1_party}
+        player2_hp = {p: self.get_pokemon_health(opponent.id, p) for p in player2_party}
 
-    async def update_battle(p1_name, p2_name, turn, moves="Waiting...", defeated="None"):
-        p1_id, p2_id = [self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (m.id, n)).fetchone()[0] for m, n in [(ctx.author, p1_name), (opponent, p2_name)]]
-        img = await self.combatsprite(ctx, p1_id, p2_id)
-        embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
-        for name, value, inline in [("Turn", turn, False), (f"{p1_name} HP", player1_hp[p1_name], True), (f"{p2_name} HP", player2_hp[p2_name], True), ("Defeated Pokémon", defeated, False), ("Moves", moves, False)]:
-            embed.add_field(name=name, value=value, inline=inline)
-        embed.set_image(url=f"attachment://{img.filename}")
-        return embed, img
+        async def update_battle(p1_name, p2_name, turn, moves="Waiting...", defeated="None"):
+            p1_id, p2_id = [self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (m.id, n)).fetchone()[0] for m, n in [(ctx.author, p1_name), (opponent, p2_name)]]
+            img = await self.combatsprite(ctx, p1_id, p2_id)
+            embed = discord.Embed(title=f"Battle: {ctx.author.display_name} VS {opponent.display_name}")
+            for name, value, inline in [("Turn", turn, False), (f"{p1_name} HP", player1_hp[p1_name], True), (f"{p2_name} HP", player2_hp[p2_name], True), ("Defeated Pokémon", defeated, False), ("Moves", moves, False)]:
+                embed.add_field(name=name, value=value, inline=inline)
+            embed.set_image(url=f"attachment://{img.filename}")
+            return embed, img
 
-    battle_embed, img = await update_battle(player1_party[0], player2_party[0], 1)
-    battle_message = await ctx.send(embed=battle_embed, file=img)
-    await battle_message.add_reaction("⚔️")
-    self.battles.update({ctx.author.id: opponent.id, opponent.id: ctx.author.id})
+        battle_embed, img = await update_battle(player1_party[0], player2_party[0], 1)
+        battle_message = await ctx.send(embed=battle_embed, file=img)
+        await battle_message.add_reaction("⚔️")
+        self.battles.update({ctx.author.id: opponent.id, opponent.id: ctx.author.id})
 
-    async def fetch_pokemon_type(name):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{self.base_url}{name.lower().replace(' ', '-').replace('.', '')}") as resp:
-                return [t['type']['name'] for t in (await resp.json())['types']]
-
-    multipliers = {'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0}
-    defeated_pokemon = []
-
-    for turn in itertools.count(1):
-        moves_display = ""
-        for attacker, defender in [(ctx.author, opponent), (opponent, ctx.author)]:
-            attacker_party = player1_party if attacker == ctx.author else player2_party
-            defender_party = player2_party if attacker == ctx.author else player1_party
-            attacker_hp = player1_hp if attacker == ctx.author else player2_hp
-            defender_hp = player2_hp if attacker == ctx.author else player1_hp
-
-            if not attacker_party:
-                continue
-            attacker_pokemon, move, type_, power = attacker_party[0], *self.get_random_move(ctx, attacker_party[0])
-            defender_pokemon = defender_party[0]
-            
+        async def fetch_pokemon_type(name):
             async with aiohttp.ClientSession() as session:
-                damage_relations = (await (await session.get(f"{self.type_url}{type_}")).json()).get('damage_relations', {})
-            
-            defender_types = await fetch_pokemon_type(defender_pokemon)
-            multiplier = max((multipliers.get(k, 1.0) for k in multipliers if any(t in [r['name'] for r in damage_relations.get(k, [])] for t in defender_types)), default=1.0)
-            damage = (power or 10) * multiplier
-            
-            defender_hp[defender_pokemon] -= damage
-            moves_display += f"{attacker.display_name}'s {attacker_pokemon}: {' '.join(w.capitalize() for w in (move or 'No move available').replace('-', ' ').split())} - Damage: {damage} ({multiplier}x)\n"
-            
-            if defender_hp[defender_pokemon] <= 0:
-                defeated_pokemon.append(f"{defender_pokemon} ({defender.display_name})")
-                defender_party.pop(0)
-                moves_display += f"{defender.display_name}'s {defender_pokemon} has been defeated!\n"
-                if not defender_party:
-                    break
-        
-        battle_embed, img = await update_battle(player1_party[0], player2_party[0], turn, moves_display, '\n'.join(defeated_pokemon) or "None")
-        await battle_message.edit(embed=battle_embed, attachments=[img])
-        
-        if not (player1_party and player2_party):
-            break
-        
-        async with self.rate_limit_lock:
-            await asyncio.sleep(1.5)
+                async with session.get(f"{self.base_url}{name.lower().replace(' ', '-').replace('.', '')}") as resp:
+                    return [t['type']['name'] for t in (await resp.json())['types']]
 
-    winner = "It's a tie!" if not (player1_party or player2_party) else (ctx.author.display_name if not player2_party else opponent.display_name)
-    battle_embed.clear_fields()
-    battle_embed.description = f"**{winner} wins the battle!**" if winner != "It's a tie!" else "**It's a tie!**"
-    battle_embed.add_field(name="Defeated Pokémon", value='\n'.join(defeated_pokemon) or "None", inline=False)
-    battle_embed.set_image(url=None)
-    await battle_message.edit(embed=battle_embed)
+        multipliers = {'double_damage_to': 2.0, 'half_damage_to': 0.5, 'no_damage_to': 0.0}
+        defeated_pokemon = []
 
-    del self.battles[ctx.author.id], self.battles[opponent.id]
+        for turn in itertools.count(1):
+            moves_display = ""
+            for attacker, defender in [(ctx.author, opponent), (opponent, ctx.author)]:
+                attacker_party = player1_party if attacker == ctx.author else player2_party
+                defender_party = player2_party if attacker == ctx.author else player1_party
+                attacker_hp = player1_hp if attacker == ctx.author else player2_hp
+                defender_hp = player2_hp if attacker == ctx.author else player1_hp
+
+                if not attacker_party:
+                    continue
+                attacker_pokemon, move, type_, power = attacker_party[0], *self.get_random_move(ctx, attacker_party[0])
+                defender_pokemon = defender_party[0]
+                
+                async with aiohttp.ClientSession() as session:
+                    damage_relations = (await (await session.get(f"{self.type_url}{type_}")).json()).get('damage_relations', {})
+                
+                defender_types = await fetch_pokemon_type(defender_pokemon)
+                multiplier = max((multipliers.get(k, 1.0) for k in multipliers if any(t in [r['name'] for r in damage_relations.get(k, [])] for t in defender_types)), default=1.0)
+                damage = (power or 10) * multiplier
+                
+                defender_hp[defender_pokemon] -= damage
+                moves_display += f"{attacker.display_name}'s {attacker_pokemon}: {' '.join(w.capitalize() for w in (move or 'No move available').replace('-', ' ').split())} - Damage: {damage} ({multiplier}x)\n"
+                
+                if defender_hp[defender_pokemon] <= 0:
+                    defeated_pokemon.append(f"{defender_pokemon} ({defender.display_name})")
+                    defender_party.pop(0)
+                    moves_display += f"{defender.display_name}'s {defender_pokemon} has been defeated!\n"
+                    if not defender_party:
+                        break
+            
+            battle_embed, img = await update_battle(player1_party[0], player2_party[0], turn, moves_display, '\n'.join(defeated_pokemon) or "None")
+            await battle_message.edit(embed=battle_embed, attachments=[img])
+            
+            if not (player1_party and player2_party):
+                break
+            
+            async with self.rate_limit_lock:
+                await asyncio.sleep(1.5)
+
+        winner = "It's a tie!" if not (player1_party or player2_party) else (ctx.author.display_name if not player2_party else opponent.display_name)
+        battle_embed.clear_fields()
+        battle_embed.description = f"**{winner} wins the battle!**" if winner != "It's a tie!" else "**It's a tie!**"
+        battle_embed.add_field(name="Defeated Pokémon", value='\n'.join(defeated_pokemon) or "None", inline=False)
+        battle_embed.set_image(url=None)
+        await battle_message.edit(embed=battle_embed)
+
+        del self.battles[ctx.author.id], self.battles[opponent.id]
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
