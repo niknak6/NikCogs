@@ -493,11 +493,16 @@ class TreacheryPokemon(commands.Cog):
             species_data = response.json()
 
             evolution_details = chain.get('evolution_details', [])
+            print(f"Evolution details for {species_data['name']}: {evolution_details}")
+
             for detail in evolution_details:
                 trigger = detail.get('trigger', {}).get('name')
                 min_level = detail.get('min_level', 50) if trigger == 'level-up' else 50
+                print(f"Trigger: {trigger}, Min level: {min_level}")
+
                 if current_level >= min_level:
                     if not chain.get('evolves_to'):
+                        print(f"{species_data['name']} is the final evolution.")
                         return {
                             'name': species_data['name'],
                             'level': min_level,
@@ -510,11 +515,16 @@ class TreacheryPokemon(commands.Cog):
                                 return evolved_data
 
             if not evolution_details and chain.get('evolves_to'):
+                print(f"No evolution details for {species_data['name']}, checking evolves_to...")
                 for next_evolution in chain['evolves_to']:
                     next_evolution_details = next_evolution.get('evolution_details', [])
+                    print(f"Evolution details for next evolution: {next_evolution_details}")
+
                     for detail in next_evolution_details:
                         trigger = detail.get('trigger', {}).get('name')
                         min_level = detail.get('min_level', 50) if trigger == 'level-up' else 50
+                        print(f"Trigger: {trigger}, Min level: {min_level}")
+
                         if current_level >= min_level:
                             evolved_data = await traverse_evolution_chain(next_evolution, current_level)
                             if evolved_data:
