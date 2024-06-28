@@ -438,7 +438,7 @@ class TreacheryPokemon(commands.Cog):
     async def evolve(self, ctx, *poketags: str):
         """Evolve Pokémon in your Pokédex based on their level."""
         if not poketags:
-            await ctx.send("You must provide at least one Poketag or use the 'all' argument to evolve all Pokémon.")
+            await self.send_message(ctx, "You must provide at least one Poketag or use the 'all' argument to evolve all Pokémon.")
             return
 
         if 'all' in poketags:
@@ -449,21 +449,21 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT COUNT(*) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
             poketag_count = self.cur.fetchone()[0]
             if poketag_count != len(poketags):
-                await ctx.send("One or more of the provided Poketags do not exist in your Pokédex.")
+                await self.send_message(ctx, "One or more of the provided Poketags do not exist in your Pokédex.")
                 return
             self.cur.execute('SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
             pokemon_data = self.cur.fetchall()
-            await ctx.send(f"Fetched pokemon_data: {pokemon_data}")
+            await self.send_message(ctx, f"Fetched pokemon_data: {pokemon_data}")
 
         if not pokemon_data:
-            await ctx.send("You do not have any Pokémon in your Pokédex that match the provided Poketags.")
+            await self.send_message(ctx, "You do not have any Pokémon in your Pokédex that match the provided Poketags.")
             return
 
         evolved_pokemon = []
         for pokemon_id, pokemon_name, level, poketag in pokemon_data:
             evolution_chain = await self.get_evolution_chain(pokemon_id)
             if not evolution_chain:
-                await ctx.send(f"Error fetching evolution chain for {pokemon_name} (ID: {pokemon_id})")
+                await self.send_message(ctx, f"Error fetching evolution chain for {pokemon_name} (ID: {pokemon_id})")
                 continue
             evolved_pokemon_data = await self.handle_evolution(ctx, pokemon_name, level, evolution_chain)
             if evolved_pokemon_data:
@@ -474,15 +474,15 @@ class TreacheryPokemon(commands.Cog):
         if evolved_pokemon:
             await ctx.send("\n".join(evolved_pokemon))
         else:
-            await ctx.send("No Pokémon were eligible for evolution.")
+            await self.send_message(ctx, "No Pokémon were eligible for evolution.")
 
     async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
         """Handle the evolution of a Pokémon based on its level and evolution chain."""
         if not evolution_chain:
             return None
 
-        await ctx.send(f"Evolution chain for {pokemon_name}: {evolution_chain}")
-        await ctx.send(f"Current level for {pokemon_name}: {level}")
+        await self.send_message(ctx, f"Evolution chain for {pokemon_name}: {evolution_chain}")
+        await self.send_message(ctx, f"Current level for {pokemon_name}: {level}")
 
         async def traverse_evolution_chain(chain, current_level):
             species = chain['species']
@@ -491,23 +491,23 @@ class TreacheryPokemon(commands.Cog):
                 response.raise_for_status()
                 species_data = response.json()
             except requests.exceptions.RequestException as e:
-                await ctx.send(f"Error fetching species data for {species['name']}: {e}")
+                await self.send_message(ctx, f"Error fetching species data for {species['name']}: {e}")
                 return None
             except (KeyError, ValueError) as e:
-                await ctx.send(f"Error parsing species data for {species['name']}: {e}")
+                await self.send_message(ctx, f"Error parsing species data for {species['name']}: {e}")
                 return None
 
             evolution_details = chain.get('evolution_details', [])
-            await ctx.send(f"Evolution details for {species_data['name']}: {evolution_details}")
+            await self.send_message(ctx, f"Evolution details for {species_data['name']}: {evolution_details}")
 
             for detail in evolution_details:
                 trigger = detail.get('trigger', {}).get('name')
                 min_level = detail.get('min_level', 50) if trigger == 'level-up' else 50
-                await ctx.send(f"Trigger: {trigger}, Min level: {min_level}")
+                await self.send_message(ctx, f"Trigger: {trigger}, Min level: {min_level}")
 
                 if current_level >= min_level:
                     if not chain.get('evolves_to'):
-                        await ctx.send(f"{species_data['name']} is the final evolution.")
+                        await self.send_message(ctx, f"{species_data['name']} is the final evolution.")
                         return {
                             'name': species_data['name'],
                             'level': min_level,
@@ -520,28 +520,28 @@ class TreacheryPokemon(commands.Cog):
                                 return evolved_data
 
             if not evolution_details and chain.get('evolves_to'):
-                await ctx.send(f"No evolution details for {species_data['name']}, checking evolves_to...")
+                await self.send_message(ctx, f"No evolution details for {species_data['name']}, checking evolves_to...")
                 for next_evolution in chain['evolves_to']:
                     next_evolution_details = next_evolution.get('evolution_details', [])
-                    await ctx.send(f"Evolution details for next evolution: {next_evolution_details}")
+                    await self.send_message(ctx, f"Evolution details for next evolution: {next_evolution_details}")
 
                     for detail in next_evolution_details:
                         trigger = detail.get('trigger', {}).get('name')
                         min_level = detail.get('min_level', 50) if trigger == 'level-up' else 50
-                        await ctx.send(f"Trigger: {trigger}, Min level: {min_level}")
+                        await self.send_message(ctx, f"Trigger: {trigger}, Min level: {min_level}")
 
                         if current_level >= min_level:
                             evolved_data = await traverse_evolution_chain(next_evolution, current_level)
                             if evolved_data:
                                 return evolved_data
 
-            await ctx.send(f"No evolution found for {species_data['name']} at level {current_level}")
+            await self.send_message(ctx, f"No evolution found for {species_data['name']} at level {current_level}")
             return None
 
         try:
             return await traverse_evolution_chain(evolution_chain, level)
         except Exception as e:
-            await ctx.send(f"Error handling evolution for {pokemon_name}: {e}")
+            await self.send_message(ctx, f"Error handling evolution for {pokemon_name}: {e}")
             return None
     
             
