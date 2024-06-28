@@ -16,6 +16,7 @@ import os
 import aiofiles
 from PIL import Image, ImageFilter, ImageEnhance, ImageSequence
 from io import BytesIO
+from redbot.core.utils.views import SimpleMenu
 
 class TreacheryPokemon(commands.Cog):
     """Interacts with a database for querying, updating, and managing Pokemon-related functionalities."""
@@ -547,6 +548,46 @@ class TreacheryPokemon(commands.Cog):
 
         if not eligible_evolutions:
             return None
+
+        if len(eligible_evolutions) > 1:
+            # Create buttons for evolution options
+            options = [
+                {
+                    "name": f"{i+1}. {e['name'].capitalize()}",
+                    "value": str(i)
+                } for i, e in enumerate(eligible_evolutions)
+            ]
+
+            view = SimpleMenu(options, timeout=30)
+            message = await ctx.send(
+                f"{pokemon_name.capitalize()} can evolve into multiple Pokémon. Choose one:",
+                view=view
+            )
+
+            try:
+                result = await view.wait_result()
+                if result is None:
+                    await message.edit(content="Evolution cancelled due to timeout.", view=None)
+                    return None
+                
+                chosen_evolution = eligible_evolutions[int(result)]
+            except Exception:
+                await message.edit(content="An error occurred. Evolution cancelled.", view=None)
+                return None
+            finally:
+                await message.edit(view=None)
+        else:
+            chosen_evolution = eligible_evolutions[0]
+
+        evolved_species_data = await self.get_species_data(chosen_evolution['url'])
+        if evolved_species_data:
+            return {
+                'name': evolved_species_data['name'],
+                'level': level,
+                'pokemon_id': evolved_species_data['id']
+            }
+
+        return None
 
         if len(eligible_evolutions) > 1:
             # Present options to the user
