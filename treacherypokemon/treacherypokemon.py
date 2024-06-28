@@ -469,7 +469,7 @@ class TreacheryPokemon(commands.Cog):
             if evolved_pokemon_data:
                 self.cur.execute('UPDATE pokedex SET pokemon_name = ?, level = ?, pokemon_id = ? WHERE member_id = ? AND LOWER(poketag) = ?', (evolved_pokemon_data['name'], evolved_pokemon_data['level'], evolved_pokemon_data['pokemon_id'], ctx.author.id, poketag.lower()))
                 self.conn.commit()
-                evolved_pokemon.append(f"{pokemon_name.capitalize()} evolved into {evolved_pokemon_data['name'].capitalize()}!")
+                evolved_pokemon.append(f"{pokemon_name.capitalize()} evolved into {evolved_pokemon_data['name'].capitalize()} (Level {evolved_pokemon_data['level']})!")
 
         if evolved_pokemon:
             await ctx.send("\n".join(evolved_pokemon))
@@ -526,7 +526,7 @@ class TreacheryPokemon(commands.Cog):
                         await ctx.send(f"{species_data['name']} is the final evolution.")
                         return {
                             'name': species_data['name'],
-                            'level': min_level,
+                            'level': current_level,  # Keep the original level
                             'pokemon_id': species_data['id']
                         }
                     else:
