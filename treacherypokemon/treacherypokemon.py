@@ -489,103 +489,103 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("No Pokémon were eligible for evolution.")
 
-        async def get_evolution_chain(self, pokemon_id):
-            """Fetch the evolution chain for a given Pokemon ID."""
-            try:
-                async with aiohttp.ClientSession() as session:
-                    species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
-                    async with session.get(species_url) as resp:
-                        if resp.status != 200:
-                            return None
-                        species_data = await resp.json()
+    async def get_evolution_chain(self, pokemon_id):
+        """Fetch the evolution chain for a given Pokemon ID."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
+                async with session.get(species_url) as resp:
+                    if resp.status != 200:
+                        return None
+                    species_data = await resp.json()
 
-                    evolution_url = species_data['evolution_chain']['url']
-                    async with session.get(evolution_url) as resp:
-                        if resp.status != 200:
-                            return None
-                        evolution_data = await resp.json()
+                evolution_url = species_data['evolution_chain']['url']
+                async with session.get(evolution_url) as resp:
+                    if resp.status != 200:
+                        return None
+                    evolution_data = await resp.json()
 
-                    return evolution_data  # Return the full evolution data
-            except Exception as e:
-                print(f"Error fetching evolution chain: {e}")
-                return None
-
-        def get_all_evolutions(self, evolution_chain):
-            evolutions = []
-            
-            def traverse_chain(chain):
-                for evolution in chain.get('evolves_to', []):
-                    species = evolution['species']
-                    for details in evolution['evolution_details']:
-                        evolutions.append({
-                            'name': species['name'],
-                            'url': species['url'],
-                            'trigger': details.get('trigger', {}).get('name'),
-                            'min_level': details.get('min_level'),
-                            'item': details.get('item', {}).get('name')
-                        })
-                    traverse_chain(evolution)
-            
-            traverse_chain(evolution_chain['chain'])
-            return evolutions
-
-        async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
-            if not evolution_chain:
-                return None
-
-            all_evolutions = self.get_all_evolutions(evolution_chain)
-            eligible_evolutions = []
-
-            for evolution in all_evolutions:
-                trigger = evolution['trigger']
-                min_level = evolution['min_level']
-                
-                if trigger == 'level-up':
-                    if min_level is None or level >= min_level:
-                        eligible_evolutions.append(evolution)
-                elif trigger == 'use-item' and level >= 20:
-                    eligible_evolutions.append(evolution)
-
-            if not eligible_evolutions:
-                return None
-
-            if len(eligible_evolutions) > 1:
-                # Present options to the user
-                option_text = "\n".join([f"{i+1}. {e['name']}" for i, e in enumerate(eligible_evolutions)])
-                await ctx.send(f"{pokemon_name.capitalize()} can evolve into multiple Pokémon. Choose one:\n{option_text}")
-                
-                def check(m):
-                    return m.author == ctx.author and m.content.isdigit() and 1 <= int(m.content) <= len(eligible_evolutions)
-
-                try:
-                    msg = await self.bot.wait_for('message', check=check, timeout=30.0)
-                    chosen_evolution = eligible_evolutions[int(msg.content) - 1]
-                except asyncio.TimeoutError:
-                    await ctx.send("Evolution cancelled due to timeout.")
-                    return None
-            else:
-                chosen_evolution = eligible_evolutions[0]
-
-            evolved_species_data = await self.get_species_data(chosen_evolution['url'])
-            if evolved_species_data:
-                return {
-                    'name': evolved_species_data['name'],
-                    'level': level,
-                    'pokemon_id': evolved_species_data['id']
-                }
-
+                return evolution_data  # Return the full evolution data
+        except Exception as e:
+            print(f"Error fetching evolution chain: {e}")
             return None
 
-        async def get_species_data(self, url):
+    def get_all_evolutions(self, evolution_chain):
+        evolutions = []
+        
+        def traverse_chain(chain):
+            for evolution in chain.get('evolves_to', []):
+                species = evolution['species']
+                for details in evolution['evolution_details']:
+                    evolutions.append({
+                        'name': species['name'],
+                        'url': species['url'],
+                        'trigger': details.get('trigger', {}).get('name'),
+                        'min_level': details.get('min_level'),
+                        'item': details.get('item', {}).get('name')
+                    })
+                traverse_chain(evolution)
+        
+        traverse_chain(evolution_chain['chain'])
+        return evolutions
+
+    async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
+        if not evolution_chain:
+            return None
+
+        all_evolutions = self.get_all_evolutions(evolution_chain)
+        eligible_evolutions = []
+
+        for evolution in all_evolutions:
+            trigger = evolution['trigger']
+            min_level = evolution['min_level']
+            
+            if trigger == 'level-up':
+                if min_level is None or level >= min_level:
+                    eligible_evolutions.append(evolution)
+            elif trigger == 'use-item' and level >= 20:
+                eligible_evolutions.append(evolution)
+
+        if not eligible_evolutions:
+            return None
+
+        if len(eligible_evolutions) > 1:
+            # Present options to the user
+            option_text = "\n".join([f"{i+1}. {e['name']}" for i, e in enumerate(eligible_evolutions)])
+            await ctx.send(f"{pokemon_name.capitalize()} can evolve into multiple Pokémon. Choose one:\n{option_text}")
+            
+            def check(m):
+                return m.author == ctx.author and m.content.isdigit() and 1 <= int(m.content) <= len(eligible_evolutions)
+
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(url) as resp:
-                        if resp.status != 200:
-                            return None
-                        return await resp.json()
-            except Exception as e:
-                print(f"Error fetching species data: {e}")
+                msg = await self.bot.wait_for('message', check=check, timeout=30.0)
+                chosen_evolution = eligible_evolutions[int(msg.content) - 1]
+            except asyncio.TimeoutError:
+                await ctx.send("Evolution cancelled due to timeout.")
                 return None
+        else:
+            chosen_evolution = eligible_evolutions[0]
+
+        evolved_species_data = await self.get_species_data(chosen_evolution['url'])
+        if evolved_species_data:
+            return {
+                'name': evolved_species_data['name'],
+                'level': level,
+                'pokemon_id': evolved_species_data['id']
+            }
+
+        return None
+
+    async def get_species_data(self, url):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        return None
+                    return await resp.json()
+        except Exception as e:
+            print(f"Error fetching species data: {e}")
+            return None
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
