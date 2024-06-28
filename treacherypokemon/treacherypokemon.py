@@ -16,7 +16,6 @@ import os
 import aiofiles
 from PIL import Image, ImageFilter, ImageEnhance, ImageSequence
 from io import BytesIO
-from redbot.core.utils.views import SimpleMenu
 
 class TreacheryPokemon(commands.Cog):
     """Interacts with a database for querying, updating, and managing Pokemon-related functionalities."""
@@ -550,59 +549,28 @@ class TreacheryPokemon(commands.Cog):
             return None
 
         if len(eligible_evolutions) > 1:
-            # Create buttons for evolution options
-            options = [
-                {
-                    "name": f"{i+1}. {e['name'].capitalize()}",
-                    "value": str(i)
-                } for i, e in enumerate(eligible_evolutions)
-            ]
+            # Create a message with numbered options
+            option_text = "\n".join([f"{i}. {e['name'].capitalize()}" for i, e in enumerate(eligible_evolutions)])
+            message = await ctx.send(f"{pokemon_name.capitalize()} can evolve into multiple Pokémon. React with the number to choose:\n{option_text}")
 
-            view = SimpleMenu(options, timeout=30)
-            message = await ctx.send(
-                f"{pokemon_name.capitalize()} can evolve into multiple Pokémon. Choose one:",
-                view=view
-            )
+            # Add number reactions
+            number_emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
+            for i in range(min(len(eligible_evolutions), 10)):
+                await message.add_reaction(number_emojis[i])
+
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) in number_emojis[:len(eligible_evolutions)]
 
             try:
-                result = await view.wait_result()
-                if result is None:
-                    await message.edit(content="Evolution cancelled due to timeout.", view=None)
-                    return None
-                
-                chosen_evolution = eligible_evolutions[int(result)]
-            except Exception:
-                await message.edit(content="An error occurred. Evolution cancelled.", view=None)
-                return None
-            finally:
-                await message.edit(view=None)
-        else:
-            chosen_evolution = eligible_evolutions[0]
-
-        evolved_species_data = await self.get_species_data(chosen_evolution['url'])
-        if evolved_species_data:
-            return {
-                'name': evolved_species_data['name'],
-                'level': level,
-                'pokemon_id': evolved_species_data['id']
-            }
-
-        return None
-
-        if len(eligible_evolutions) > 1:
-            # Present options to the user
-            option_text = "\n".join([f"{i+1}. {e['name']}" for i, e in enumerate(eligible_evolutions)])
-            await ctx.send(f"{pokemon_name.capitalize()} can evolve into multiple Pokémon. Choose one:\n{option_text}")
-            
-            def check(m):
-                return m.author == ctx.author and m.content.isdigit() and 1 <= int(m.content) <= len(eligible_evolutions)
-
-            try:
-                msg = await self.bot.wait_for('message', check=check, timeout=30.0)
-                chosen_evolution = eligible_evolutions[int(msg.content) - 1]
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check)
+                chosen_index = number_emojis.index(str(reaction.emoji))
+                chosen_evolution = eligible_evolutions[chosen_index]
             except asyncio.TimeoutError:
                 await ctx.send("Evolution cancelled due to timeout.")
                 return None
+            finally:
+                # Clean up by removing the bot's reactions
+                await message.clear_reactions()
         else:
             chosen_evolution = eligible_evolutions[0]
 
