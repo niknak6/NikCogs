@@ -476,6 +476,21 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("No Pokémon were eligible for evolution.")
 
+    async def get_evolution_chain(self, pokemon_id):
+        species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(species_url) as response:
+                if response.status == 200:
+                    species_data = await response.json()
+                    evolution_chain_url = species_data['evolution_chain']['url']
+                    async with session.get(evolution_chain_url) as chain_response:
+                        if chain_response.status == 200:
+                            return await chain_response.json()
+                        else:
+                            return None
+                else:
+                    return None
+
     async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
         """Handle the evolution of a Pokémon based on its level and evolution chain."""
         if not evolution_chain:
