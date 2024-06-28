@@ -504,11 +504,11 @@ class TreacheryPokemon(commands.Cog):
 
             for i, evolution in enumerate(chain.get('evolves_to', []), start=1):
                 evo_species = evolution['species']
-                evo_details = evolution.get('evolution_details', [{}])[0]
+                evo_details = evolution.get('evolution_details', [{}])[0] or {}
                 
                 trigger = evo_details.get('trigger', {}).get('name')
                 min_level = evo_details.get('min_level')
-                item = evo_details.get('item', {}).get('name')
+                item = evo_details.get('item', {}).get('name') if evo_details.get('item') else None
                 
                 if trigger == 'level-up':
                     if min_level and current_level >= min_level:
