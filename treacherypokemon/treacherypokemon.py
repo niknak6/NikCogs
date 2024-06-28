@@ -486,19 +486,32 @@ class TreacheryPokemon(commands.Cog):
         if not evolution_chain:
             return None
 
-        current_evolution = evolution_chain
-        while current_evolution.get('evolves_to'):
-            current_evolution = current_evolution['evolves_to'][0]
-            evolution_details = current_evolution['evolution_details'][0]
-            min_level = evolution_details.get('min_level', 50) if evolution_details.get('trigger', {}).get('name') != 'level-up' else 50
-            if level >= min_level:
-                evolved_species = current_evolution['species']
-                response = requests.get(evolved_species['url'])
-                response.raise_for_status()
-                evolved_data = response.json()
-                return {'name': evolved_data['name'], 'level': min_level, 'pokemon_id': evolved_data['id']}
+        async def traverse_evolution_chain(chain, current_level):
+            species = chain['species']
+            response = requests.get(species['url'])
+            response.raise_for_status()
+            species_data = response.json()
 
-        return None
+            evolution_details = chain.get('evolution_details', [])
+            for detail in evolution_details:
+                trigger = detail.get('trigger', {}).get('name')
+                min_level = detail.get('min_level') if trigger == 'level-up' else 50
+                if current_level >= min_level:
+                    if not chain.get('evolves_to'):
+                        return {
+                            'name': species_data['name'],
+                            'level': min_level,
+                            'pokemon_id': species_data['id']
+                        }
+                    else:
+                        for next_evolution in chain['evolves_to']:
+                            evolved_data = await traverse_evolution_chain(next_evolution, current_level)
+                            if evolved_data:
+                                return evolved_data
+
+            return None
+
+        return await traverse_evolution_chain(evolution_chain, level)
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
