@@ -578,7 +578,7 @@ class TreacheryPokemon(commands.Cog):
                         
                         # Add this check
                         if min_level is None:
-                            min_level = 50  # or any other default value that makes sense
+                            min_level = 20  # or any other default value that makes sense
                         
                         await self.send_long_message(ctx, f"Trigger: {trigger}, Min level: {min_level}")
 
