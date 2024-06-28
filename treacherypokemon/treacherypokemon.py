@@ -511,10 +511,15 @@ class TreacheryPokemon(commands.Cog):
                 min_level = evo_details.get('min_level')
                 item = evo_details.get('item', {}).get('name')
                 
-                if (trigger == 'level-up' and min_level and current_level >= min_level) or \
-                   (trigger == 'use-item' and item) or \
-                   (trigger == 'level-up' and not min_level):  # For cases like happiness evolution
-                    evolution_options.append((i, evo_species['name'], item))
+                if trigger == 'level-up':
+                    if min_level and current_level >= min_level:
+                        evolution_options.append((i, evo_species['name'], item))
+                    elif not min_level:  # For cases like happiness evolution
+                        evolution_options.append((i, evo_species['name'], item))
+                else:
+                    # For any trigger other than level-up, make it available at level 20
+                    if current_level >= 20:
+                        evolution_options.append((i, evo_species['name'], item))
 
             return evolution_options
 
