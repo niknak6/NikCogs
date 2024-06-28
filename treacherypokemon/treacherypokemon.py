@@ -511,31 +511,31 @@ class TreacheryPokemon(commands.Cog):
             return None
 
     def get_all_evolutions(self, evolution_chain):
-        evolutions = []
+        evolutions = {}
         
         def traverse_chain(chain):
             for evolution in chain.get('evolves_to', []):
                 species = evolution['species']
-                for details in evolution['evolution_details']:
-                    evolution_info = {
+                if species['name'] not in evolutions:
+                    evolutions[species['name']] = {
                         'name': species['name'],
                         'url': species['url'],
-                        'trigger': details.get('trigger', {}).get('name'),
-                        'min_level': details.get('min_level')
+                        'triggers': set(),
+                        'min_level': None,
+                        'items': set()
                     }
-                    
-                    # Safely get the item name if it exists
-                    item = details.get('item')
-                    if item is not None:
-                        evolution_info['item'] = item.get('name')
-                    else:
-                        evolution_info['item'] = None
-
-                    evolutions.append(evolution_info)
+                
+                for details in evolution['evolution_details']:
+                    evolutions[species['name']]['triggers'].add(details.get('trigger', {}).get('name'))
+                    if details.get('min_level'):
+                        evolutions[species['name']]['min_level'] = details['min_level']
+                    if details.get('item'):
+                        evolutions[species['name']]['items'].add(details['item']['name'])
+                
                 traverse_chain(evolution)
         
         traverse_chain(evolution_chain['chain'])
-        return evolutions
+        return list(evolutions.values())
 
     async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
         if not evolution_chain:
