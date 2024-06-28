@@ -496,13 +496,7 @@ class TreacheryPokemon(commands.Cog):
         if not evolution_chain:
             return None
 
-        # Truncate the evolution chain data
-        evolution_chain_str = str(evolution_chain)
-        if len(evolution_chain_str) > 3900:  # Leave some room for the rest of the message
-            evolution_chain_str = evolution_chain_str[:3900] + "..."
-
-        await ctx.send(f"Evolution chain for {pokemon_name}: {evolution_chain_str}")
-        await ctx.send(f"Current level for {pokemon_name}: {level}")
+        await ctx.send(f"Processing evolution for {pokemon_name} (Level {level})...")
 
         async def get_evolution_options(chain, current_level):
             species = chain['species']
