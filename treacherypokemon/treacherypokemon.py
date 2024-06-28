@@ -446,6 +446,11 @@ class TreacheryPokemon(commands.Cog):
             pokemon_data = self.cur.fetchall()
         else:
             poketags_lower = [poketag.lower() for poketag in poketags]
+            self.cur.execute('SELECT COUNT(*) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
+            poketag_count = self.cur.fetchone()[0]
+            if poketag_count != len(poketags):
+                await ctx.send("One or more of the provided Poketags do not exist in your Pokédex.")
+                return
             self.cur.execute('SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
             pokemon_data = self.cur.fetchall()
 
@@ -533,7 +538,7 @@ class TreacheryPokemon(commands.Cog):
             return None
 
         return await traverse_evolution_chain(evolution_chain, level)
-        
+            
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
 
