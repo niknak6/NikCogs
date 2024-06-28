@@ -550,11 +550,11 @@ class TreacheryPokemon(commands.Cog):
 
         if len(eligible_evolutions) > 1:
             # Create a message with numbered options
-            option_text = "\n".join([f"{i}. {e['name'].capitalize()}" for i, e in enumerate(eligible_evolutions)])
+            option_text = "\n".join([f"{i+1}. {e['name'].capitalize()}" for i, e in enumerate(eligible_evolutions)])
             message = await ctx.send(f"{pokemon_name.capitalize()} can evolve into multiple Pokémon. React with the number to choose:\n{option_text}")
 
             # Add number reactions
-            number_emojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
+            number_emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '0️⃣']
             for i in range(min(len(eligible_evolutions), 10)):
                 await message.add_reaction(number_emojis[i])
 
