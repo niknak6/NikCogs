@@ -516,14 +516,13 @@ class TreacheryPokemon(commands.Cog):
         def traverse_chain(chain):
             for evolution in chain.get('evolves_to', []):
                 species = evolution['species']
-                for details in evolution['evolution_details']:
-                    evolutions.append({
-                        'name': species['name'],
-                        'url': species['url'],
-                        'trigger': details.get('trigger', {}).get('name'),
-                        'min_level': details.get('min_level'),
-                        'item': details.get('item', {}).get('name')
-                    })
+                details = evolution['evolution_details'][0] if evolution['evolution_details'] else {}
+                evolutions.append({
+                    'name': species['name'],
+                    'url': species['url'],
+                    'trigger': details.get('trigger', {}).get('name'),
+                    'min_level': details.get('min_level')
+                })
                 traverse_chain(evolution)
         
         traverse_chain(evolution_chain['chain'])
@@ -536,15 +535,15 @@ class TreacheryPokemon(commands.Cog):
         all_evolutions = self.get_all_evolutions(evolution_chain)
         eligible_evolutions = []
 
-    for evolution in all_evolutions:
-        trigger = evolution['trigger']
-        min_level = evolution['min_level']
-        
-        if trigger == 'level-up':
-            if min_level is None or level >= min_level:
+        for evolution in all_evolutions:
+            trigger = evolution['trigger']
+            min_level = evolution['min_level']
+            
+            if trigger == 'level-up':
+                if min_level and level >= min_level:
+                    eligible_evolutions.append(evolution)
+            elif level >= 20:
                 eligible_evolutions.append(evolution)
-        elif trigger == 'use-item' and level >= 20:
-            eligible_evolutions.append(evolution)
 
         if not eligible_evolutions:
             return None
