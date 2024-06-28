@@ -540,22 +540,31 @@ class TreacheryPokemon(commands.Cog):
 
             for detail in evolution_details:
                 trigger = detail.get('trigger', {}).get('name')
-                min_level = detail.get('min_level', 50) if trigger == 'level-up' else 50
+                min_level = detail.get('min_level')
+                
+                # Add this check
+                if min_level is None:
+                    min_level = 50  # or any other default value that makes sense
+                
                 await self.send_long_message(ctx, f"Trigger: {trigger}, Min level: {min_level}")
 
-                if current_level >= min_level:
-                    if not chain.get('evolves_to'):
-                        await self.send_long_message(ctx, f"{species_data['name']} is the final evolution.")
-                        return {
-                            'name': species_data['name'],
-                            'level': min_level,
-                            'pokemon_id': species_data['id']
-                        }
-                    else:
-                        for next_evolution in chain['evolves_to']:
-                            evolved_data = await traverse_evolution_chain(next_evolution, current_level)
-                            if evolved_data:
-                                return evolved_data
+                try:
+                    if current_level >= min_level:
+                        if not chain.get('evolves_to'):
+                            await self.send_long_message(ctx, f"{species_data['name']} is the final evolution.")
+                            return {
+                                'name': species_data['name'],
+                                'level': min_level,
+                                'pokemon_id': species_data['id']
+                            }
+                        else:
+                            for next_evolution in chain['evolves_to']:
+                                evolved_data = await traverse_evolution_chain(next_evolution, current_level)
+                                if evolved_data:
+                                    return evolved_data
+                except TypeError as e:
+                    await self.send_long_message(ctx, f"Error comparing levels: current_level = {current_level}, min_level = {min_level}. Error: {e}")
+                    continue  # Skip this evolution detail and move to the next one
 
             if not evolution_details and chain.get('evolves_to'):
                 await self.send_long_message(ctx, f"No evolution details for {species_data['name']}, checking evolves_to...")
@@ -565,13 +574,22 @@ class TreacheryPokemon(commands.Cog):
 
                     for detail in next_evolution_details:
                         trigger = detail.get('trigger', {}).get('name')
-                        min_level = detail.get('min_level', 50) if trigger == 'level-up' else 50
+                        min_level = detail.get('min_level')
+                        
+                        # Add this check
+                        if min_level is None:
+                            min_level = 50  # or any other default value that makes sense
+                        
                         await self.send_long_message(ctx, f"Trigger: {trigger}, Min level: {min_level}")
 
-                        if current_level >= min_level:
-                            evolved_data = await traverse_evolution_chain(next_evolution, current_level)
-                            if evolved_data:
-                                return evolved_data
+                        try:
+                            if current_level >= min_level:
+                                evolved_data = await traverse_evolution_chain(next_evolution, current_level)
+                                if evolved_data:
+                                    return evolved_data
+                        except TypeError as e:
+                            await self.send_long_message(ctx, f"Error comparing levels: current_level = {current_level}, min_level = {min_level}. Error: {e}")
+                            continue  # Skip this evolution detail and move to the next one
 
             await self.send_long_message(ctx, f"No evolution found for {species_data['name']} at level {current_level}")
             return None
