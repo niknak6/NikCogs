@@ -453,6 +453,7 @@ class TreacheryPokemon(commands.Cog):
                 return
             self.cur.execute('SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
             pokemon_data = self.cur.fetchall()
+            await ctx.send(f"Fetched pokemon_data: {pokemon_data}")
 
         if not pokemon_data:
             await ctx.send("You do not have any Pokémon in your Pokédex that match the provided Poketags.")
@@ -475,15 +476,28 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("No Pokémon were eligible for evolution.")
 
+    async def get_evolution_chain(self, pokemon_id):
+        species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(species_url) as response:
+                if response.status == 200:
+                    species_data = await response.json()
+                    evolution_chain_url = species_data['evolution_chain']['url']
+                    async with session.get(evolution_chain_url) as chain_response:
+                        if chain_response.status == 200:
+                            return await chain_response.json()
+                        else:
+                            return None
+                else:
+                    return None
+
     async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
         """Handle the evolution of a Pokémon based on its level and evolution chain."""
         if not evolution_chain:
             return None
 
-        # Check if there are any further evolutions
-        if not evolution_chain['chain'].get('evolves_to'):
-            await ctx.send(f"{pokemon_name.capitalize()} is already at its final evolution stage.")
-            return None
+        await ctx.send(f"Evolution chain for {pokemon_name}: {evolution_chain}")
+        await ctx.send(f"Current level for {pokemon_name}: {level}")
 
         async def get_evolution_options(chain, current_level):
             species = chain['species']
@@ -491,23 +505,21 @@ class TreacheryPokemon(commands.Cog):
 
             for i, evolution in enumerate(chain.get('evolves_to', []), start=1):
                 evo_species = evolution['species']
-                evo_details = evolution.get('evolution_details', [{}])[0] or {}
+                evo_details = evolution.get('evolution_details', [{}])[0]
                 
-                trigger = evo_details.get('trigger', {})
-                trigger_name = trigger.get('name') if trigger else None
+                trigger = evo_details.get('trigger', {}).get('name')
                 min_level = evo_details.get('min_level')
-                item = evo_details.get('item', {})
-                item_name = item.get('name') if item else None
+                item = evo_details.get('item', {}).get('name')
                 
-                if trigger_name == 'level-up':
+                if trigger == 'level-up':
                     if min_level and current_level >= min_level:
-                        evolution_options.append((i, evo_species['name'], item_name))
+                        evolution_options.append((i, evo_species['name'], item))
                     elif not min_level:  # For cases like happiness evolution
-                        evolution_options.append((i, evo_species['name'], item_name))
+                        evolution_options.append((i, evo_species['name'], item))
                 else:
                     # For any trigger other than level-up, make it available at level 20
                     if current_level >= 20:
-                        evolution_options.append((i, evo_species['name'], item_name))
+                        evolution_options.append((i, evo_species['name'], item))
 
             return evolution_options
 
