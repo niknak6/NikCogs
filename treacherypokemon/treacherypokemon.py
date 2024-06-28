@@ -517,13 +517,21 @@ class TreacheryPokemon(commands.Cog):
             for evolution in chain.get('evolves_to', []):
                 species = evolution['species']
                 for details in evolution['evolution_details']:
-                    evolutions.append({
+                    evolution_info = {
                         'name': species['name'],
                         'url': species['url'],
                         'trigger': details.get('trigger', {}).get('name'),
-                        'min_level': details.get('min_level'),
-                        'item': details.get('item', {}).get('name')
-                    })
+                        'min_level': details.get('min_level')
+                    }
+                    
+                    # Safely get the item name if it exists
+                    item = details.get('item')
+                    if item is not None:
+                        evolution_info['item'] = item.get('name')
+                    else:
+                        evolution_info['item'] = None
+
+                    evolutions.append(evolution_info)
                 traverse_chain(evolution)
         
         traverse_chain(evolution_chain['chain'])
