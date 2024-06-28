@@ -536,9 +536,13 @@ class TreacheryPokemon(commands.Cog):
         eligible_evolutions = []
 
         for evolution in all_evolutions:
-            if evolution['trigger'] == 'level-up' and evolution['min_level'] and level >= evolution['min_level']:
-                eligible_evolutions.append(evolution)
-            elif evolution['trigger'] != 'level-up' and level >= 20:
+            trigger = evolution['trigger']
+            min_level = evolution['min_level']
+            
+            if trigger == 'level-up':
+                if min_level and level >= min_level:
+                    eligible_evolutions.append(evolution)
+            elif level >= 20:
                 eligible_evolutions.append(evolution)
 
         if not eligible_evolutions:
