@@ -476,100 +476,19 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("No Pokémon were eligible for evolution.")
 
-    async def get_evolution_options(chain, current_level):
-        species = chain['species']
-        evolution_options = []
-
-        for i, evolution in enumerate(chain.get('evolves_to', []), start=1):
-            evo_species = evolution['species']
-            evo_details = evolution.get('evolution_details', [{}])[0] or {}
-            
-            trigger = evo_details.get('trigger', {}).get('name')
-            min_level = evo_details.get('min_level')
-            item = evo_details.get('item', {}).get('name') if evo_details.get('item') else None
-            
-            if trigger == 'level-up':
-                if min_level and current_level >= min_level:
-                    evolution_options.append((i, evo_species['name'], item))
-                elif not min_level:  # For cases like happiness evolution
-                    evolution_options.append((i, evo_species['name'], item))
-            else:
-                # For any trigger other than level-up, make it available at level 20
-                if current_level >= 20:
-                    evolution_options.append((i, evo_species['name'], item))
-
-        return evolution_options
-
-    async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
-        """Handle the evolution of a Pokémon based on its level and evolution chain."""
-        if not evolution_chain:
-            return None
-
-        await ctx.send(f"Processing evolution for {pokemon_name} (Level {level})...")
-
-        async def get_evolution_options(chain, current_level):
-            species = chain['species']
-            evolution_options = []
-
-            for i, evolution in enumerate(chain.get('evolves_to', []), start=1):
-                evo_species = evolution['species']
-                evo_details = evolution.get('evolution_details', [{}])[0] or {}
-                
-                trigger = evo_details.get('trigger', {}).get('name')
-                min_level = evo_details.get('min_level')
-                item = evo_details.get('item', {}).get('name') if evo_details.get('item') else None
-                
-                if trigger == 'level-up':
-                    if min_level and current_level >= min_level:
-                        evolution_options.append((i, evo_species['name'], item))
-                    elif not min_level:  # For cases like happiness evolution
-                        evolution_options.append((i, evo_species['name'], item))
-                else:
-                    # For any trigger other than level-up, make it available at level 20
-                    if current_level >= 20:
-                        evolution_options.append((i, evo_species['name'], item))
-
-            return evolution_options
-
-        evolution_options = await get_evolution_options(evolution_chain['chain'], level)
-
-        if not evolution_options:
-            await ctx.send(f"No available evolutions for {pokemon_name} at level {level}")
-            return None
-
-        view = View()
-        for i, evo_name, item in evolution_options:
-            button = Button(label=f"{i}. {evo_name.capitalize()}", style=discord.ButtonStyle.primary)
-            button.custom_id = str(i)
-            view.add_item(button)
-
-        evolution_message = "Choose an evolution:\n" + "\n".join([f"{i}. {name.capitalize()}" + (f" (requires {item})" if item else "") for i, name, item in evolution_options])
-        message = await ctx.send(evolution_message, view=view)
-
-        def check(interaction):
-            return interaction.user == ctx.author and interaction.message.id == message.id
-
-        try:
-            interaction = await self.bot.wait_for('interaction', timeout=60.0, check=check)
-        except asyncio.TimeoutError:
-            await ctx.send("Evolution selection timed out.")
-            return None
-
-        selected_index = int(interaction.data['custom_id']) - 1
-        selected_evolution = evolution_options[selected_index]
-
-        # Fetch the selected evolution's data
+    async def get_evolution_chain(self, pokemon_id):
+        species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://pokeapi.co/api/v2/pokemon-species/{selected_evolution[1]}") as response:
+            async with session.get(species_url) as response:
                 if response.status == 200:
                     species_data = await response.json()
-                    return {
-                        'name': species_data['name'],
-                        'level': level,
-                        'pokemon_id': species_data['id']
-                    }
+                    evolution_chain_url = species_data['evolution_chain']['url']
+                    async with session.get(evolution_chain_url) as chain_response:
+                        if chain_response.status == 200:
+                            return await chain_response.json()
+                        else:
+                            return None
                 else:
-                    await ctx.send(f"Error fetching data for {selected_evolution[1]}")
                     return None
             
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
