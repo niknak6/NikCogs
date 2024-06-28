@@ -476,6 +476,29 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("No Pokémon were eligible for evolution.")
 
+    async def get_evolution_chain(self, pokemon_id):
+        """Fetch the evolution chain for a given Pokemon ID."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                # First, get the species data
+                species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
+                async with session.get(species_url) as resp:
+                    if resp.status != 200:
+                        return None
+                    species_data = await resp.json()
+
+                # Then, get the evolution chain
+                evolution_url = species_data['evolution_chain']['url']
+                async with session.get(evolution_url) as resp:
+                    if resp.status != 200:
+                        return None
+                    evolution_data = await resp.json()
+
+                return evolution_data['chain']
+        except Exception as e:
+            print(f"Error fetching evolution chain: {e}")
+            return None
+
     async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
         """Handle the evolution of a Pokémon based on its level and evolution chain."""
         if not evolution_chain:
@@ -487,14 +510,14 @@ class TreacheryPokemon(commands.Cog):
         async def traverse_evolution_chain(chain, current_level):
             species = chain['species']
             try:
-                response = requests.get(species['url'])
-                response.raise_for_status()
-                species_data = response.json()
-            except requests.exceptions.RequestException as e:
-                await ctx.send(f"Error fetching species data for {species['name']}: {e}")
-                return None
-            except (KeyError, ValueError) as e:
-                await ctx.send(f"Error parsing species data for {species['name']}: {e}")
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(species['url']) as resp:
+                        if resp.status != 200:
+                            await ctx.send(f"Error fetching species data for {species['name']}")
+                            return None
+                        species_data = await resp.json()
+            except Exception as e:
+                await ctx.send(f"Error fetching/parsing species data for {species['name']}: {e}")
                 return None
 
             evolution_details = chain.get('evolution_details', [])
