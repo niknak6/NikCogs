@@ -445,7 +445,8 @@ class TreacheryPokemon(commands.Cog):
             self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
             pokemon_data = self.cur.fetchall()
         else:
-            self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ? AND poketag IN ({})'.format(','.join('?' * len(poketags))), (ctx.author.id, *poketags))
+            poketags_lower = [poketag.lower() for poketag in poketags]
+            self.cur.execute('SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
             pokemon_data = self.cur.fetchall()
 
         if not pokemon_data:
@@ -457,7 +458,7 @@ class TreacheryPokemon(commands.Cog):
             evolution_chain = await self.get_evolution_chain(pokemon_id)
             evolved_pokemon_data = await self.handle_evolution(pokemon_name, level, evolution_chain)
             if evolved_pokemon_data:
-                self.cur.execute('UPDATE pokedex SET pokemon_name = ?, level = ?, pokemon_id = ? WHERE member_id = ? AND poketag = ?', (evolved_pokemon_data['name'], evolved_pokemon_data['level'], evolved_pokemon_data['pokemon_id'], ctx.author.id, poketag))
+                self.cur.execute('UPDATE pokedex SET pokemon_name = ?, level = ?, pokemon_id = ? WHERE member_id = ? AND LOWER(poketag) = ?', (evolved_pokemon_data['name'], evolved_pokemon_data['level'], evolved_pokemon_data['pokemon_id'], ctx.author.id, poketag.lower()))
                 self.conn.commit()
                 evolved_pokemon.append(f"{pokemon_name.capitalize()} evolved into {evolved_pokemon_data['name'].capitalize()}!")
 
