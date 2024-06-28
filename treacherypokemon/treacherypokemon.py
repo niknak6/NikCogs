@@ -495,7 +495,7 @@ class TreacheryPokemon(commands.Cog):
             evolution_details = chain.get('evolution_details', [])
             for detail in evolution_details:
                 trigger = detail.get('trigger', {}).get('name')
-                min_level = detail.get('min_level') if trigger == 'level-up' else 50
+                min_level = detail.get('min_level', 50) if trigger == 'level-up' else 50
                 if current_level >= min_level:
                     if not chain.get('evolves_to'):
                         return {
@@ -505,6 +505,17 @@ class TreacheryPokemon(commands.Cog):
                         }
                     else:
                         for next_evolution in chain['evolves_to']:
+                            evolved_data = await traverse_evolution_chain(next_evolution, current_level)
+                            if evolved_data:
+                                return evolved_data
+
+            if not evolution_details and chain.get('evolves_to'):
+                for next_evolution in chain['evolves_to']:
+                    next_evolution_details = next_evolution.get('evolution_details', [])
+                    for detail in next_evolution_details:
+                        trigger = detail.get('trigger', {}).get('name')
+                        min_level = detail.get('min_level', 50) if trigger == 'level-up' else 50
+                        if current_level >= min_level:
                             evolved_data = await traverse_evolution_chain(next_evolution, current_level)
                             if evolved_data:
                                 return evolved_data
