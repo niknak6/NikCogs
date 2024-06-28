@@ -494,14 +494,12 @@ class TreacheryPokemon(commands.Cog):
         """Fetch the evolution chain for a given Pokemon ID."""
         try:
             async with aiohttp.ClientSession() as session:
-                # First, get the species data
                 species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
                 async with session.get(species_url) as resp:
                     if resp.status != 200:
                         return None
                     species_data = await resp.json()
 
-                # Then, get the evolution chain
                 evolution_url = species_data['evolution_chain']['url']
                 async with session.get(evolution_url) as resp:
                     if resp.status != 200:
@@ -542,7 +540,6 @@ class TreacheryPokemon(commands.Cog):
                 trigger = detail.get('trigger', {}).get('name')
                 min_level = detail.get('min_level')
                 
-                # Add this check
                 if min_level is None:
                     min_level = 50  # or any other default value that makes sense
                 
@@ -554,7 +551,7 @@ class TreacheryPokemon(commands.Cog):
                             await self.send_long_message(ctx, f"{species_data['name']} is the final evolution.")
                             return {
                                 'name': species_data['name'],
-                                'level': min_level,
+                                'level': current_level,  # Keep the current level
                                 'pokemon_id': species_data['id']
                             }
                         else:
@@ -564,7 +561,7 @@ class TreacheryPokemon(commands.Cog):
                                     return evolved_data
                 except TypeError as e:
                     await self.send_long_message(ctx, f"Error comparing levels: current_level = {current_level}, min_level = {min_level}. Error: {e}")
-                    continue  # Skip this evolution detail and move to the next one
+                    continue
 
             if not evolution_details and chain.get('evolves_to'):
                 await self.send_long_message(ctx, f"No evolution details for {species_data['name']}, checking evolves_to...")
@@ -576,7 +573,6 @@ class TreacheryPokemon(commands.Cog):
                         trigger = detail.get('trigger', {}).get('name')
                         min_level = detail.get('min_level')
                         
-                        # Add this check
                         if min_level is None:
                             min_level = 20  # or any other default value that makes sense
                         
@@ -589,7 +585,7 @@ class TreacheryPokemon(commands.Cog):
                                     return evolved_data
                         except TypeError as e:
                             await self.send_long_message(ctx, f"Error comparing levels: current_level = {current_level}, min_level = {min_level}. Error: {e}")
-                            continue  # Skip this evolution detail and move to the next one
+                            continue
 
             await self.send_long_message(ctx, f"No evolution found for {species_data['name']} at level {current_level}")
             return None
@@ -599,7 +595,7 @@ class TreacheryPokemon(commands.Cog):
         except Exception as e:
             await self.send_long_message(ctx, f"Error handling evolution for {pokemon_name}: {e}")
             return None
-    
+        
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
 
