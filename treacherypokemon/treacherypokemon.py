@@ -452,21 +452,12 @@ class TreacheryPokemon(commands.Cog):
     async def evolve(self, ctx, *poketags: str):
         """Evolve Pokémon in your Pokédex based on their level."""
         if not poketags:
-            await ctx.send("You must provide at least one Poketag or use the 'all' argument to evolve all Pokémon.")
+            await ctx.send("You must provide at least one Poketag.")
             return
 
-        if 'all' in poketags:
-            self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
-            pokemon_data = self.cur.fetchall()
-        else:
-            poketags_lower = [poketag.lower() for poketag in poketags]
-            self.cur.execute('SELECT COUNT(*) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
-            poketag_count = self.cur.fetchone()[0]
-            if poketag_count != len(poketags):
-                await ctx.send("One or more of the provided Poketags do not exist in your Pokédex.")
-                return
-            self.cur.execute('SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
-            pokemon_data = self.cur.fetchall()
+        poketags_lower = [poketag.lower() for poketag in poketags]
+        self.cur.execute('SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
+        pokemon_data = self.cur.fetchall()
 
         if not pokemon_data:
             await ctx.send("You do not have any Pokémon in your Pokédex that match the provided Poketags.")
