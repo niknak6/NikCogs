@@ -519,50 +519,58 @@ class TreacheryPokemon(commands.Cog):
         evolution_info += f"Current level for {pokemon_name}: {level}\n"
         await self.send_long_message(ctx, evolution_info)
 
-    async def traverse_evolution_chain(chain, current_level):
-        species = chain['species']
-        species_data = await self.get_species_data(species['url'])
-        if not species_data:
+        async def traverse_evolution_chain(chain, current_level):
+            species = chain['species']
+            species_data = await self.get_species_data(species['url'])
+            if not species_data:
+                return None
+
+            evolution_options = []
+            for evolution in chain.get('evolves_to', []):
+                for detail in evolution.get('evolution_details', []):
+                    trigger = detail.get('trigger', {}).get('name')
+                    min_level = detail.get('min_level')
+
+                    if trigger == 'level-up' and min_level and current_level >= min_level:
+                        evolution_options.append((evolution['species']['name'], evolution['species']['url']))
+                    elif trigger != 'level-up' and current_level >= 20:
+                        evolution_options.append((evolution['species']['name'], evolution['species']['url']))
+
+            if evolution_options:
+                if len(evolution_options) > 1:
+                    # Present options to the user
+                    option_text = "\n".join([f"{i+1}. {name}" for i, (name, _) in enumerate(evolution_options)])
+                    await ctx.send(f"{species_data['name'].capitalize()} can evolve into multiple Pokémon. Choose one:\n{option_text}")
+                    
+                    def check(m):
+                        return m.author == ctx.author and m.content.isdigit() and 1 <= int(m.content) <= len(evolution_options)
+
+                    try:
+                        msg = await self.bot.wait_for('message', check=check, timeout=30.0)
+                        chosen_evolution = evolution_options[int(msg.content) - 1]
+                    except asyncio.TimeoutError:
+                        await ctx.send("Evolution cancelled due to timeout.")
+                        return None
+                else:
+                    chosen_evolution = evolution_options[0]
+
+                evolved_species_data = await self.get_species_data(chosen_evolution[1])
+                if evolved_species_data:
+                    return {
+                        'name': evolved_species_data['name'],
+                        'level': current_level,
+                        'pokemon_id': evolved_species_data['id']
+                    }
+
+            # If no evolution is possible at this level, check the next stage
+            for next_evolution in chain.get('evolves_to', []):
+                result = await traverse_evolution_chain(next_evolution, current_level)
+                if result:
+                    return result
+
             return None
 
-        evolution_options = []
-        for evolution in chain.get('evolves_to', []):
-            for detail in evolution.get('evolution_details', []):
-                trigger = detail.get('trigger', {}).get('name')
-                min_level = detail.get('min_level')
-
-                if trigger == 'level-up' and min_level and current_level >= min_level:
-                    evolution_options.append((evolution['species']['name'], evolution['species']['url']))
-                elif trigger != 'level-up' and current_level >= 20:
-                    evolution_options.append((evolution['species']['name'], evolution['species']['url']))
-
-        if evolution_options:
-            if len(evolution_options) > 1:
-                # Present options to the user
-                option_text = "\n".join([f"{i+1}. {name}" for i, (name, _) in enumerate(evolution_options)])
-                await ctx.send(f"{species_data['name'].capitalize()} can evolve into multiple Pokémon. Choose one:\n{option_text}")
-                
-                def check(m):
-                    return m.author == ctx.author and m.content.isdigit() and 1 <= int(m.content) <= len(evolution_options)
-
-                try:
-                    msg = await self.bot.wait_for('message', check=check, timeout=30.0)
-                    chosen_evolution = evolution_options[int(msg.content) - 1]
-                except asyncio.TimeoutError:
-                    await ctx.send("Evolution cancelled due to timeout.")
-                    return None
-            else:
-                chosen_evolution = evolution_options[0]
-
-            evolved_species_data = await self.get_species_data(chosen_evolution[1])
-            if evolved_species_data:
-                return {
-                    'name': evolved_species_data['name'],
-                    'level': current_level,
-                    'pokemon_id': evolved_species_data['id']
-                }
-
-        return None
+        return await traverse_evolution_chain(evolution_chain, level)
 
     async def get_species_data(self, url):
         try:
