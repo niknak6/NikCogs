@@ -512,7 +512,6 @@ class TreacheryPokemon(commands.Cog):
             return None
 
     async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
-        """Handle the evolution of a Pokémon based on its level and evolution chain."""
         if not evolution_chain:
             return None
 
@@ -522,78 +521,69 @@ class TreacheryPokemon(commands.Cog):
 
         async def traverse_evolution_chain(chain, current_level):
             species = chain['species']
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(species['url']) as resp:
-                        if resp.status != 200:
-                            await self.send_long_message(ctx, f"Error fetching species data for {species['name']}")
-                            return None
-                        species_data = await resp.json()
-            except Exception as e:
-                await self.send_long_message(ctx, f"Error fetching/parsing species data for {species['name']}: {e}")
+            species_data = await self.get_species_data(species['url'])
+            if not species_data:
                 return None
 
-            evolution_details = chain.get('evolution_details', [])
-            await self.send_long_message(ctx, f"Evolution details for {species_data['name']}: {evolution_details}")
+            evolution_options = []
+            for evolution in chain.get('evolves_to', []):
+                for detail in evolution.get('evolution_details', []):
+                    trigger = detail.get('trigger', {}).get('name')
+                    min_level = detail.get('min_level')
 
-            for detail in evolution_details:
-                trigger = detail.get('trigger', {}).get('name')
-                min_level = detail.get('min_level')
-                
-                if min_level is None:
-                    min_level = 50  # or any other default value that makes sense
-                
-                await self.send_long_message(ctx, f"Trigger: {trigger}, Min level: {min_level}")
+                    if trigger == 'level-up' and min_level and current_level >= min_level:
+                        evolution_options.append((evolution['species']['name'], evolution['species']['url']))
+                    elif trigger != 'level-up' and current_level >= 20:
+                        evolution_options.append((evolution['species']['name'], evolution['species']['url']))
 
-                try:
-                    if current_level >= min_level:
-                        if not chain.get('evolves_to'):
-                            await self.send_long_message(ctx, f"{species_data['name']} is the final evolution.")
-                            return {
-                                'name': species_data['name'],
-                                'level': current_level,  # Keep the current level
-                                'pokemon_id': species_data['id']
-                            }
-                        else:
-                            for next_evolution in chain['evolves_to']:
-                                evolved_data = await traverse_evolution_chain(next_evolution, current_level)
-                                if evolved_data:
-                                    return evolved_data
-                except TypeError as e:
-                    await self.send_long_message(ctx, f"Error comparing levels: current_level = {current_level}, min_level = {min_level}. Error: {e}")
-                    continue
+            if evolution_options:
+                if len(evolution_options) > 1:
+                    # Present options to the user
+                    option_text = "\n".join([f"{i+1}. {name}" for i, (name, _) in enumerate(evolution_options)])
+                    await ctx.send(f"{species_data['name'].capitalize()} can evolve into multiple Pokémon. Choose one:\n{option_text}")
+                    
+                    def check(m):
+                        return m.author == ctx.author and m.content.isdigit() and 1 <= int(m.content) <= len(evolution_options)
 
-            if not evolution_details and chain.get('evolves_to'):
-                await self.send_long_message(ctx, f"No evolution details for {species_data['name']}, checking evolves_to...")
-                for next_evolution in chain['evolves_to']:
-                    next_evolution_details = next_evolution.get('evolution_details', [])
-                    await self.send_long_message(ctx, f"Evolution details for next evolution: {next_evolution_details}")
+                    try:
+                        msg = await self.bot.wait_for('message', check=check, timeout=30.0)
+                        chosen_evolution = evolution_options[int(msg.content) - 1]
+                    except asyncio.TimeoutError:
+                        await ctx.send("Evolution cancelled due to timeout.")
+                        return None
+                else:
+                    chosen_evolution = evolution_options[0]
 
-                    for detail in next_evolution_details:
-                        trigger = detail.get('trigger', {}).get('name')
-                        min_level = detail.get('min_level')
-                        
-                        if min_level is None:
-                            min_level = 20  # or any other default value that makes sense
-                        
-                        await self.send_long_message(ctx, f"Trigger: {trigger}, Min level: {min_level}")
+                evolved_species_data = await self.get_species_data(chosen_evolution[1])
+                if evolved_species_data:
+                    return {
+                        'name': evolved_species_data['name'],
+                        'level': current_level,
+                        'pokemon_id': evolved_species_data['id']
+                    }
 
-                        try:
-                            if current_level >= min_level:
-                                evolved_data = await traverse_evolution_chain(next_evolution, current_level)
-                                if evolved_data:
-                                    return evolved_data
-                        except TypeError as e:
-                            await self.send_long_message(ctx, f"Error comparing levels: current_level = {current_level}, min_level = {min_level}. Error: {e}")
-                            continue
+            for next_evolution in chain.get('evolves_to', []):
+                result = await traverse_evolution_chain(next_evolution, current_level)
+                if result:
+                    return result
 
-            await self.send_long_message(ctx, f"No evolution found for {species_data['name']} at level {current_level}")
             return None
 
         try:
             return await traverse_evolution_chain(evolution_chain, level)
         except Exception as e:
             await self.send_long_message(ctx, f"Error handling evolution for {pokemon_name}: {e}")
+            return None
+
+    async def get_species_data(self, url):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        return None
+                    return await resp.json()
+        except Exception as e:
+            print(f"Error fetching species data: {e}")
             return None
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
