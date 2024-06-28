@@ -476,6 +476,21 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("No Pokémon were eligible for evolution.")
 
+    async def get_evolution_chain(self, pokemon_id):
+        species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(species_url) as response:
+                if response.status == 200:
+                    species_data = await response.json()
+                    evolution_chain_url = species_data['evolution_chain']['url']
+                    async with session.get(evolution_chain_url) as chain_response:
+                        if chain_response.status == 200:
+                            return await chain_response.json()
+                        else:
+                            return None
+                else:
+                    return None
+
     async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
         """Handle the evolution of a Pokémon based on its level and evolution chain."""
         if not evolution_chain:
@@ -487,14 +502,15 @@ class TreacheryPokemon(commands.Cog):
         async def traverse_evolution_chain(chain, current_level):
             species = chain['species']
             try:
-                response = requests.get(species['url'])
-                response.raise_for_status()
-                species_data = response.json()
-            except requests.exceptions.RequestException as e:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(species['url']) as response:
+                        if response.status == 200:
+                            species_data = await response.json()
+                        else:
+                            await ctx.send(f"Error fetching species data for {species['name']}: HTTP {response.status}")
+                            return None
+            except aiohttp.ClientError as e:
                 await ctx.send(f"Error fetching species data for {species['name']}: {e}")
-                return None
-            except (KeyError, ValueError) as e:
-                await ctx.send(f"Error parsing species data for {species['name']}: {e}")
                 return None
 
             evolution_details = chain.get('evolution_details', [])
@@ -539,11 +555,10 @@ class TreacheryPokemon(commands.Cog):
             return None
 
         try:
-            return await traverse_evolution_chain(evolution_chain, level)
+            return await traverse_evolution_chain(evolution_chain['chain'], level)
         except Exception as e:
             await ctx.send(f"Error handling evolution for {pokemon_name}: {e}")
             return None
-    
             
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
