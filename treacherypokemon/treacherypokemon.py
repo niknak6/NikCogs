@@ -499,66 +499,65 @@ class TreacheryPokemon(commands.Cog):
         await ctx.send(f"Evolution chain for {pokemon_name}: {evolution_chain}")
         await ctx.send(f"Current level for {pokemon_name}: {level}")
 
-        async def traverse_evolution_chain(chain, current_level):
+        async def get_evolution_options(chain, current_level):
             species = chain['species']
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(species['url']) as response:
-                        if response.status == 200:
-                            species_data = await response.json()
-                        else:
-                            await ctx.send(f"Error fetching species data for {species['name']}: HTTP {response.status}")
-                            return None
-            except aiohttp.ClientError as e:
-                await ctx.send(f"Error fetching species data for {species['name']}: {e}")
-                return None
+            evolution_options = []
 
-            evolution_details = chain.get('evolution_details', [])
-            await ctx.send(f"Evolution details for {species_data['name']}: {evolution_details}")
+            for i, evolution in enumerate(chain.get('evolves_to', []), start=1):
+                evo_species = evolution['species']
+                evo_details = evolution.get('evolution_details', [{}])[0]
+                
+                trigger = evo_details.get('trigger', {}).get('name')
+                min_level = evo_details.get('min_level')
+                item = evo_details.get('item', {}).get('name')
+                
+                if (trigger == 'level-up' and min_level and current_level >= min_level) or \
+                   (trigger == 'use-item' and item) or \
+                   (trigger == 'level-up' and not min_level):  # For cases like happiness evolution
+                    evolution_options.append((i, evo_species['name'], item))
 
-            for detail in evolution_details:
-                trigger = detail.get('trigger', {}).get('name')
-                min_level = detail.get('min_level', 50) if trigger == 'level-up' else 50
-                await ctx.send(f"Trigger: {trigger}, Min level: {min_level}")
+            return evolution_options
 
-                if current_level >= min_level:
-                    if not chain.get('evolves_to'):
-                        await ctx.send(f"{species_data['name']} is the final evolution.")
-                        return {
-                            'name': species_data['name'],
-                            'level': current_level,  # Keep the original level
-                            'pokemon_id': species_data['id']
-                        }
-                    else:
-                        for next_evolution in chain['evolves_to']:
-                            evolved_data = await traverse_evolution_chain(next_evolution, current_level)
-                            if evolved_data:
-                                return evolved_data
+        evolution_options = await get_evolution_options(evolution_chain['chain'], level)
 
-            if not evolution_details and chain.get('evolves_to'):
-                await ctx.send(f"No evolution details for {species_data['name']}, checking evolves_to...")
-                for next_evolution in chain['evolves_to']:
-                    next_evolution_details = next_evolution.get('evolution_details', [])
-                    await ctx.send(f"Evolution details for next evolution: {next_evolution_details}")
-
-                    for detail in next_evolution_details:
-                        trigger = detail.get('trigger', {}).get('name')
-                        min_level = detail.get('min_level', 50) if trigger == 'level-up' else 50
-                        await ctx.send(f"Trigger: {trigger}, Min level: {min_level}")
-
-                        if current_level >= min_level:
-                            evolved_data = await traverse_evolution_chain(next_evolution, current_level)
-                            if evolved_data:
-                                return evolved_data
-
-            await ctx.send(f"No evolution found for {species_data['name']} at level {current_level}")
+        if not evolution_options:
+            await ctx.send(f"No available evolutions for {pokemon_name} at level {level}")
             return None
+
+        view = View()
+        for i, evo_name, item in evolution_options:
+            button = Button(label=f"{i}. {evo_name.capitalize()}", style=discord.ButtonStyle.primary)
+            button.custom_id = str(i)
+            view.add_item(button)
+
+        evolution_message = "Choose an evolution:\n" + "\n".join([f"{i}. {name.capitalize()}" + (f" (requires {item})" if item else "") for i, name, item in evolution_options])
+        message = await ctx.send(evolution_message, view=view)
+
+        def check(interaction):
+            return interaction.user == ctx.author and interaction.message.id == message.id
 
         try:
-            return await traverse_evolution_chain(evolution_chain['chain'], level)
-        except Exception as e:
-            await ctx.send(f"Error handling evolution for {pokemon_name}: {e}")
+            interaction = await self.bot.wait_for('interaction', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.send("Evolution selection timed out.")
             return None
+
+        selected_index = int(interaction.data['custom_id']) - 1
+        selected_evolution = evolution_options[selected_index]
+
+        # Fetch the selected evolution's data
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"https://pokeapi.co/api/v2/pokemon-species/{selected_evolution[1]}") as response:
+                if response.status == 200:
+                    species_data = await response.json()
+                    return {
+                        'name': species_data['name'],
+                        'level': level,
+                        'pokemon_id': species_data['id']
+                    }
+                else:
+                    await ctx.send(f"Error fetching data for {selected_evolution[1]}")
+                    return None
             
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
