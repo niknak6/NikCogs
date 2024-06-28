@@ -461,6 +461,9 @@ class TreacheryPokemon(commands.Cog):
         evolved_pokemon = []
         for pokemon_id, pokemon_name, level, poketag in pokemon_data:
             evolution_chain = await self.get_evolution_chain(pokemon_id)
+            if not evolution_chain:
+                print(f"Error fetching evolution chain for {pokemon_name} (ID: {pokemon_id})")
+                continue
             evolved_pokemon_data = await self.handle_evolution(pokemon_name, level, evolution_chain)
             if evolved_pokemon_data:
                 self.cur.execute('UPDATE pokedex SET pokemon_name = ?, level = ?, pokemon_id = ? WHERE member_id = ? AND LOWER(poketag) = ?', (evolved_pokemon_data['name'], evolved_pokemon_data['level'], evolved_pokemon_data['pokemon_id'], ctx.author.id, poketag.lower()))
@@ -493,9 +496,16 @@ class TreacheryPokemon(commands.Cog):
 
         async def traverse_evolution_chain(chain, current_level):
             species = chain['species']
-            response = requests.get(species['url'])
-            response.raise_for_status()
-            species_data = response.json()
+            try:
+                response = requests.get(species['url'])
+                response.raise_for_status()
+                species_data = response.json()
+            except requests.exceptions.RequestException as e:
+                print(f"Error fetching species data for {species['name']}: {e}")
+                return None
+            except (KeyError, ValueError) as e:
+                print(f"Error parsing species data for {species['name']}: {e}")
+                return None
 
             evolution_details = chain.get('evolution_details', [])
             print(f"Evolution details for {species_data['name']}: {evolution_details}")
@@ -535,9 +545,15 @@ class TreacheryPokemon(commands.Cog):
                             if evolved_data:
                                 return evolved_data
 
+            print(f"No evolution found for {species_data['name']} at level {current_level}")
             return None
 
-        return await traverse_evolution_chain(evolution_chain, level)
+        try:
+            return await traverse_evolution_chain(evolution_chain, level)
+        except Exception as e:
+            print(f"Error handling evolution for {pokemon_name}: {e}")
+            return None
+
             
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
