@@ -432,6 +432,72 @@ class TreacheryPokemon(commands.Cog):
             # All unhandled errors will print their original traceback
             print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+    
+    @commands.guild_only()
+    @commands.command()
+    async def evolve(self, ctx, *poketags: str):
+        """Evolve Pokémon in your Pokédex based on their level."""
+        if not poketags:
+            await ctx.send("You must provide at least one Poketag or use the 'all' argument to evolve all Pokémon.")
+            return
+
+        if 'all' in poketags:
+            self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
+            pokemon_data = self.cur.fetchall()
+        else:
+            self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ? AND poketag IN ({})'.format(','.join('?' * len(poketags))), (ctx.author.id, *poketags))
+            pokemon_data = self.cur.fetchall()
+
+        if not pokemon_data:
+            await ctx.send("You do not have any Pokémon in your Pokédex that match the provided Poketags.")
+            return
+
+        evolved_pokemon = []
+        for pokemon_id, pokemon_name, level, poketag in pokemon_data:
+            evolution_chain = await self.get_evolution_chain(pokemon_id)
+            evolved_pokemon_data = await self.handle_evolution(pokemon_name, level, evolution_chain)
+            if evolved_pokemon_data:
+                self.cur.execute('UPDATE pokedex SET pokemon_name = ?, level = ?, pokemon_id = ? WHERE member_id = ? AND poketag = ?', (evolved_pokemon_data['name'], evolved_pokemon_data['level'], evolved_pokemon_data['pokemon_id'], ctx.author.id, poketag))
+                self.conn.commit()
+                evolved_pokemon.append(f"{pokemon_name.capitalize()} evolved into {evolved_pokemon_data['name'].capitalize()}!")
+
+        if evolved_pokemon:
+            await ctx.send("\n".join(evolved_pokemon))
+        else:
+            await ctx.send("No Pokémon were eligible for evolution.")
+
+    async def get_evolution_chain(self, pokemon_id):
+        """Fetch the evolution chain for a given Pokémon ID."""
+        species_url = f"{self.base_url}{pokemon_id}"
+        try:
+            response = requests.get(species_url)
+            response.raise_for_status()
+            species_data = response.json()
+            evolution_chain_url = species_data['evolution_chain']['url']
+            response = requests.get(evolution_chain_url)
+            response.raise_for_status()
+            return response.json()['chain']
+        except (requests.exceptions.RequestException, KeyError):
+            return None
+
+    async def handle_evolution(self, pokemon_name, level, evolution_chain):
+        """Handle the evolution of a Pokémon based on its level and evolution chain."""
+        if not evolution_chain:
+            return None
+
+        current_evolution = evolution_chain
+        while current_evolution.get('evolves_to'):
+            current_evolution = current_evolution['evolves_to'][0]
+            evolution_details = current_evolution['evolution_details'][0]
+            min_level = evolution_details.get('min_level', 50) if evolution_details.get('trigger', {}).get('name') != 'level-up' else 50
+            if level >= min_level:
+                evolved_species = current_evolution['species']
+                response = requests.get(evolved_species['url'])
+                response.raise_for_status()
+                evolved_data = response.json()
+                return {'name': evolved_data['name'], 'level': min_level, 'pokemon_id': evolved_data['id']}
+
+        return None
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
