@@ -447,47 +447,47 @@ class TreacheryPokemon(commands.Cog):
         if message:
             await ctx.send(message)
 
-    @commands.guild_only()
-    @commands.command()
-    async def evolve(self, ctx, *poketags: str):
-        """Evolve Pokémon in your Pokédex based on their level."""
-        if not poketags:
-            await ctx.send("You must provide at least one Poketag or use the 'all' argument to evolve all Pokémon.")
+@commands.guild_only()
+@commands.command()
+async def evolve(self, ctx, *poketags: str):
+    """Evolve Pokémon in your Pokédex based on their level."""
+    if not poketags:
+        await ctx.send("You must provide at least one Poketag or use the 'all' argument to evolve all Pokémon.")
+        return
+
+    if 'all' in poketags:
+        self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
+        pokemon_data = self.cur.fetchall()
+    else:
+        poketags_lower = [poketag.lower() for poketag in poketags]
+        self.cur.execute('SELECT COUNT(*) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
+        poketag_count = self.cur.fetchone()[0]
+        if poketag_count != len(poketags):
+            await ctx.send("One or more of the provided Poketags do not exist in your Pokédex.")
             return
+        self.cur.execute('SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
+        pokemon_data = self.cur.fetchall()
 
-        if 'all' in poketags:
-            self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
-            pokemon_data = self.cur.fetchall()
-        else:
-            poketags_lower = [poketag.lower() for poketag in poketags]
-            self.cur.execute('SELECT COUNT(*) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
-            poketag_count = self.cur.fetchone()[0]
-            if poketag_count != len(poketags):
-                await ctx.send("One or more of the provided Poketags do not exist in your Pokédex.")
-                return
-            self.cur.execute('SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
-            pokemon_data = self.cur.fetchall()
+    if not pokemon_data:
+        await ctx.send("You do not have any Pokémon in your Pokédex that match the provided Poketags.")
+        return
 
-        if not pokemon_data:
-            await ctx.send("You do not have any Pokémon in your Pokédex that match the provided Poketags.")
-            return
+    evolved_pokemon = []
+    for pokemon_id, pokemon_name, level, poketag in pokemon_data:
+        evolution_chain = await self.get_evolution_chain(pokemon_id)
+        if not evolution_chain:
+            await ctx.send(f"Error fetching evolution chain for {pokemon_name} (ID: {pokemon_id})")
+            continue
+        evolved_pokemon_data = await self.handle_evolution(ctx, pokemon_name, level, evolution_chain)
+        if evolved_pokemon_data:
+            self.cur.execute('UPDATE pokedex SET pokemon_name = ?, level = ?, pokemon_id = ? WHERE member_id = ? AND LOWER(poketag) = ?', (evolved_pokemon_data['name'], evolved_pokemon_data['level'], evolved_pokemon_data['pokemon_id'], ctx.author.id, poketag.lower()))
+            self.conn.commit()
+            evolved_pokemon.append(f"{pokemon_name.capitalize()} evolved into {evolved_pokemon_data['name'].capitalize()}!")
 
-        evolved_pokemon = []
-        for pokemon_id, pokemon_name, level, poketag in pokemon_data:
-            evolution_chain = await self.get_evolution_chain(pokemon_id)
-            if not evolution_chain:
-                await ctx.send(f"Error fetching evolution chain for {pokemon_name} (ID: {pokemon_id})")
-                continue
-            evolved_pokemon_data = await self.handle_evolution(ctx, pokemon_name, level, evolution_chain)
-            if evolved_pokemon_data:
-                self.cur.execute('UPDATE pokedex SET pokemon_name = ?, level = ?, pokemon_id = ? WHERE member_id = ? AND LOWER(poketag) = ?', (evolved_pokemon_data['name'], evolved_pokemon_data['level'], evolved_pokemon_data['pokemon_id'], ctx.author.id, poketag.lower()))
-                self.conn.commit()
-                evolved_pokemon.append(f"{pokemon_name.capitalize()} evolved into {evolved_pokemon_data['name'].capitalize()}!")
-
-        if evolved_pokemon:
-            await self.send_long_message(ctx, "\n".join(evolved_pokemon))
-        else:
-            await ctx.send("No Pokémon were eligible for evolution.")
+    if evolved_pokemon:
+        await self.send_long_message(ctx, "\n".join(evolved_pokemon))
+    else:
+        await ctx.send("No Pokémon were eligible for evolution.")
 
     async def get_evolution_chain(self, pokemon_id):
         """Fetch the evolution chain for a given Pokemon ID."""
@@ -516,13 +516,14 @@ class TreacheryPokemon(commands.Cog):
         def traverse_chain(chain):
             for evolution in chain.get('evolves_to', []):
                 species = evolution['species']
-                details = evolution['evolution_details'][0] if evolution['evolution_details'] else {}
-                evolutions.append({
-                    'name': species['name'],
-                    'url': species['url'],
-                    'trigger': details.get('trigger', {}).get('name'),
-                    'min_level': details.get('min_level')
-                })
+                for details in evolution['evolution_details']:
+                    evolutions.append({
+                        'name': species['name'],
+                        'url': species['url'],
+                        'trigger': details.get('trigger', {}).get('name'),
+                        'min_level': details.get('min_level'),
+                        'item': details.get('item', {}).get('name')
+                    })
                 traverse_chain(evolution)
         
         traverse_chain(evolution_chain['chain'])
@@ -540,9 +541,9 @@ class TreacheryPokemon(commands.Cog):
             min_level = evolution['min_level']
             
             if trigger == 'level-up':
-                if min_level and level >= min_level:
+                if min_level is None or level >= min_level:
                     eligible_evolutions.append(evolution)
-            elif level >= 20:
+            elif trigger == 'use-item' and level >= 20:
                 eligible_evolutions.append(evolution)
 
         if not eligible_evolutions:
