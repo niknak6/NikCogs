@@ -622,7 +622,7 @@ class TreacheryPokemon(commands.Cog):
                 continue
             
             all_evolutions = self.get_all_evolutions(evolution_chain, pokemon_name)
-            evolution_level = self.get_evolution_level(all_evolutions)
+            evolution_level = self.get_evolution_level(all_evolutions, pokemon_name)
             
             if evolution_level and level < evolution_level:
                 # Update the Pokémon's level
@@ -637,13 +637,21 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("No Pokémon were eligible for leveling up.")
 
-    def get_evolution_level(self, all_evolutions):
+    def get_evolution_level(self, all_evolutions, current_pokemon_name):
         min_level = float('inf')
         for evolution in all_evolutions:
-            if 'level-up' in evolution['triggers'] and evolution['min_level']:
-                min_level = min(min_level, evolution['min_level'])
-            elif 'use-item' in evolution['triggers']:
-                min_level = min(min_level, 20)
+            if evolution['name'].lower() == current_pokemon_name.lower():
+                # This is the current Pokémon's data
+                if evolution.get('min_level'):
+                    min_level = min(min_level, evolution['min_level'])
+                elif 'use-item' in evolution['triggers']:
+                    min_level = min(min_level, 20)
+            else:
+                # This is a potential evolution
+                if 'level-up' in evolution['triggers'] and evolution.get('min_level'):
+                    min_level = min(min_level, evolution['min_level'])
+                elif 'use-item' in evolution['triggers']:
+                    min_level = min(min_level, 20)
         return min_level if min_level != float('inf') else None
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
