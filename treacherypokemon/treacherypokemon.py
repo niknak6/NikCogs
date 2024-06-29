@@ -248,6 +248,10 @@ class TreacheryPokemon(commands.Cog):
                         self.cur.execute('UPDATE pokedex SET level = ?, experience = ? WHERE member_id = ? AND poketag = ?', (level, experience, message.author.id, poketag))
                         self.conn.commit()
                         pokemon_name = self.get_pokemon_name(message.author.id, poketag)
+                        
+                        # Add this line to silently check for evolution
+                        await self.silent_evolution_check(message, poketag, pokemon_name, level)
+                        
                         if level in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]:
                             leveled_up.append((pokemon_name, level))
                     else:
@@ -260,6 +264,20 @@ class TreacheryPokemon(commands.Cog):
 
     def get_pokemon_name(self, member_id, poketag):
         self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
+        return self.cur.fetchone()[0]
+
+    async def silent_evolution_check(self, message, poketag, pokemon_name, level):
+        pokemon_id = self.get_pokemon_id(message.author.id, poketag)
+        evolution_chain = await self.get_evolution_chain(pokemon_id)
+        if evolution_chain:
+            all_evolutions = self.get_all_evolutions(evolution_chain)
+            eligible_evolutions = self.get_eligible_evolutions(all_evolutions, level)
+            if eligible_evolutions:
+                evolution_message = f"Your {pokemon_name.capitalize()} (Poketag: {poketag.upper()}) is eligible for evolution! Use the `evolve {poketag}` command to evolve it."
+                await message.channel.send(f"{message.author.mention}, {evolution_message}")
+
+    def get_pokemon_id(self, member_id, poketag):
+        self.cur.execute('SELECT pokemon_id FROM pokedex WHERE member_id = ? AND poketag = ?', (member_id, poketag))
         return self.cur.fetchone()[0]
 
     @commands.guild_only()
