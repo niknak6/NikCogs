@@ -273,7 +273,7 @@ class TreacheryPokemon(commands.Cog):
             all_evolutions = self.get_all_evolutions(evolution_chain)
             eligible_evolutions = self.get_eligible_evolutions(all_evolutions, level)
             if eligible_evolutions:
-                evolution_message = f"Your {pokemon_name.capitalize()} (Poketag: {poketag.upper()}) is eligible for evolution! Use the `evolve {poketag}` command to evolve it."
+                evolution_message = f"Your {pokemon_name.capitalize()} (Poketag: {poketag.upper()}) is eligible for evolution! Use the `!evolve {poketag}` command to evolve it."
                 await message.channel.send(f"{message.author.mention}, {evolution_message}")
 
     def get_pokemon_id(self, member_id, poketag):
