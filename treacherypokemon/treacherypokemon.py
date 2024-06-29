@@ -84,7 +84,7 @@ class TreacheryPokemon(commands.Cog):
         result_str = str(result)
         char_limit = 2000
         for chunk in [result_str[i:i+char_limit] for i in range(0, len(result_str), char_limit)]:
-            await ctx.send(chunk)
+            await ctx.send(chunk)\
 
     @commands.command(name="updatedb")
     @commands.is_owner()
@@ -600,6 +600,51 @@ class TreacheryPokemon(commands.Cog):
         except Exception as e:
             print(f"Error fetching species data: {e}")
             return None
+
+    @commands.guild_only()
+    @commands.command()
+    async def levelup(self, ctx):
+        """Level up Pokémon in your Pokédex to their evolution level."""
+        
+        # Fetch all Pokémon for the user
+        self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
+        pokemon_data = self.cur.fetchall()
+        
+        if not pokemon_data:
+            return await ctx.send("You don't have any Pokémon in your Pokédex.")
+        
+        leveled_up_pokemon = []
+        
+        for pokemon_id, pokemon_name, level, poketag in pokemon_data:
+            evolution_chain = await self.get_evolution_chain(pokemon_id)
+            if not evolution_chain:
+                await ctx.send(f"Error fetching evolution chain for {pokemon_name} (ID: {pokemon_id})")
+                continue
+            
+            all_evolutions = self.get_all_evolutions(evolution_chain, pokemon_name)
+            evolution_level = self.get_evolution_level(all_evolutions)
+            
+            if evolution_level and level < evolution_level:
+                # Update the Pokémon's level
+                self.cur.execute('UPDATE pokedex SET level = ? WHERE member_id = ? AND LOWER(poketag) = ?', 
+                                (evolution_level, ctx.author.id, poketag.lower()))
+                leveled_up_pokemon.append(f"{pokemon_name.capitalize()} leveled up to {evolution_level}!")
+        
+        self.conn.commit()
+        
+        if leveled_up_pokemon:
+            await self.send_long_message(ctx, "\n".join(leveled_up_pokemon))
+        else:
+            await ctx.send("No Pokémon were eligible for leveling up.")
+
+    def get_evolution_level(self, all_evolutions):
+        min_level = float('inf')
+        for evolution in all_evolutions:
+            if 'level-up' in evolution['triggers'] and evolution['min_level']:
+                min_level = min(min_level, evolution['min_level'])
+            elif 'use-item' in evolution['triggers']:
+                min_level = min(min_level, 20)
+        return min_level if min_level != float('inf') else None
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
