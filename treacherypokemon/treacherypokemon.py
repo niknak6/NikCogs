@@ -616,13 +616,16 @@ class TreacheryPokemon(commands.Cog):
         leveled_up_pokemon = []
         
         for pokemon_id, pokemon_name, level, poketag in pokemon_data:
+            print(f"Processing {pokemon_name} (ID: {pokemon_id}, Level: {level})")  # Debug print
             evolution_chain = await self.get_evolution_chain(pokemon_id)
             if not evolution_chain:
                 await ctx.send(f"Error fetching evolution chain for {pokemon_name} (ID: {pokemon_id})")
                 continue
             
             all_evolutions = self.get_all_evolutions(evolution_chain, pokemon_name)
+            print(f"All evolutions for {pokemon_name}: {all_evolutions}")  # Debug print
             evolution_level = self.get_evolution_level(all_evolutions, pokemon_name)
+            print(f"Evolution level for {pokemon_name}: {evolution_level}")  # Debug print
             
             if evolution_level and level < evolution_level:
                 # Update the Pokémon's level
@@ -638,25 +641,21 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("No Pokémon were eligible for leveling up.")
 
     def get_evolution_level(self, all_evolutions, current_pokemon_name):
-        current_pokemon = next((e for e in all_evolutions if e['name'].lower() == current_pokemon_name.lower()), None)
-        if not current_pokemon:
-            return None
-
-        # Find the evolution level for the current Pokémon
-        evolution_level = current_pokemon.get('min_level')
-        if not evolution_level and 'use-item' in current_pokemon.get('triggers', []):
-            evolution_level = 20
-
-        # If it's not the last in the chain, check the next evolution's level
-        next_evolution = next((e for e in all_evolutions if e['name'].lower() != current_pokemon_name.lower()), None)
-        if next_evolution:
-            next_level = next_evolution.get('min_level')
-            if next_level and (not evolution_level or next_level < evolution_level):
-                evolution_level = next_level
-            elif not evolution_level and 'use-item' in next_evolution.get('triggers', []):
-                evolution_level = 20
-
-        return evolution_level
+        print(f"Getting evolution level for {current_pokemon_name}")  # Debug print
+        print(f"All evolutions: {all_evolutions}")  # Debug print
+        
+        for evolution in all_evolutions:
+            print(f"Checking evolution: {evolution}")  # Debug print
+            if evolution['name'].lower() == current_pokemon_name.lower():
+                if evolution.get('min_level'):
+                    print(f"Found min_level: {evolution['min_level']}")  # Debug print
+                    return evolution['min_level']
+                elif 'use-item' in evolution.get('triggers', []):
+                    print("Found use-item evolution, returning 20")  # Debug print
+                    return 20
+        
+        print(f"No evolution level found for {current_pokemon_name}")  # Debug print
+        return None
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
