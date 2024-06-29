@@ -519,8 +519,11 @@ class TreacheryPokemon(commands.Cog):
             return await resp.json() if resp.status == 200 else None
 
     async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
+        print(f"Handling evolution for {pokemon_name} at level {level}")  # Debug print
         all_evolutions = self.get_all_evolutions(evolution_chain, pokemon_name)
+        print(f"All evolutions: {all_evolutions}")  # Debug print
         eligible_evolutions = self.get_eligible_evolutions(all_evolutions, level)
+        print(f"Eligible evolutions: {eligible_evolutions}")  # Debug print
         if not eligible_evolutions:
             return None
         if chosen_evolution := await self.choose_evolution(ctx, pokemon_name, eligible_evolutions):
@@ -530,7 +533,7 @@ class TreacheryPokemon(commands.Cog):
     def get_all_evolutions(self, evolution_chain, current_pokemon_name):
         evolutions = {}
         def traverse_chain(chain):
-            if chain['species']['name'] == current_pokemon_name:
+            if chain['species']['name'].lower() == current_pokemon_name.lower():
                 for evolution in chain.get('evolves_to', []):
                     species = evolution['species']
                     evolutions[species['name']] = {
@@ -546,18 +549,24 @@ class TreacheryPokemon(commands.Cog):
                             evolutions[species['name']]['min_level'] = details['min_level']
                         if details.get('item'):
                             evolutions[species['name']]['items'].add(details['item']['name'])
-                return
+                return True
             for evolution in chain.get('evolves_to', []):
-                traverse_chain(evolution)
+                if traverse_chain(evolution):
+                    return True
+            return False
+
         traverse_chain(evolution_chain['chain'])
+        print(f"Found evolutions for {current_pokemon_name}: {evolutions}")  # Debug print
         return list(evolutions.values())
 
     def get_eligible_evolutions(self, all_evolutions, level):
-        return [
+        eligible = [
             evolution for evolution in all_evolutions
             if ('level-up' in evolution['triggers'] and (evolution['min_level'] is None or level >= evolution['min_level']))
             or ('use-item' in evolution['triggers'] and level >= 20)
         ]
+        print(f"Eligible evolutions: {eligible}")  # Debug print
+        return eligible
 
     async def choose_evolution(self, ctx, pokemon_name, eligible_evolutions):
         if len(eligible_evolutions) == 1:
