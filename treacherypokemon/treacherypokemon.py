@@ -470,20 +470,18 @@ class TreacheryPokemon(commands.Cog):
     async def evolve(self, ctx, *poketags: str):
         """Evolve Pokémon in your Pokédex based on their level."""
         if not poketags:
-            await ctx.send("You must provide at least one Poketag.")
-            return
+            return await ctx.send("You must provide at least one Poketag.")
 
         pokemon_data = await self.get_pokemon_data(ctx.author.id, poketags)
         if not pokemon_data:
-            await ctx.send("You do not have any Pokémon in your Pokédex that match the provided Poketags.")
-            return
+            return await ctx.send("You do not have any Pokémon in your Pokédex that match the provided Poketags.")
 
         evolved_pokemon = await self.process_evolutions(ctx, pokemon_data)
         await self.send_evolution_results(ctx, evolved_pokemon)
 
     async def get_pokemon_data(self, member_id, poketags):
         poketags_lower = [poketag.lower() for poketag in poketags]
-        query = 'SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower)))
+        query = f'SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({",".join("?" * len(poketags_lower))})'
         self.cur.execute(query, (member_id, *poketags_lower))
         return self.cur.fetchall()
 
@@ -494,8 +492,7 @@ class TreacheryPokemon(commands.Cog):
             if not evolution_chain:
                 await ctx.send(f"Error fetching evolution chain for {pokemon_name} (ID: {pokemon_id})")
                 continue
-            evolved_pokemon_data = await self.handle_evolution(ctx, pokemon_name, level, evolution_chain)
-            if evolved_pokemon_data:
+            if evolved_pokemon_data := await self.handle_evolution(ctx, pokemon_name, level, evolution_chain):
                 await self.update_pokedex(ctx.author.id, poketag, evolved_pokemon_data)
                 evolved_pokemon.append(f"{pokemon_name.capitalize()} evolved into {evolved_pokemon_data['name'].capitalize()}!")
         return evolved_pokemon
@@ -506,18 +503,13 @@ class TreacheryPokemon(commands.Cog):
         self.conn.commit()
 
     async def send_evolution_results(self, ctx, evolved_pokemon):
-        if evolved_pokemon:
-            await self.send_long_message(ctx, "\n".join(evolved_pokemon))
-        else:
-            await ctx.send("No Pokémon were eligible for evolution.")
+        await self.send_long_message(ctx, "\n".join(evolved_pokemon)) if evolved_pokemon else await ctx.send("No Pokémon were eligible for evolution.")
 
     async def get_evolution_chain(self, pokemon_id):
         try:
             async with aiohttp.ClientSession() as session:
                 species_data = await self.fetch_json(session, f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/")
-                if not species_data:
-                    return None
-                return await self.fetch_json(session, species_data['evolution_chain']['url'])
+                return await self.fetch_json(session, species_data['evolution_chain']['url']) if species_data else None
         except Exception as e:
             print(f"Error fetching evolution chain: {e}")
             return None
@@ -529,15 +521,11 @@ class TreacheryPokemon(commands.Cog):
     async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
         all_evolutions = self.get_all_evolutions(evolution_chain)
         eligible_evolutions = self.get_eligible_evolutions(all_evolutions, level)
-
         if not eligible_evolutions:
             return None
-
-        chosen_evolution = await self.choose_evolution(ctx, pokemon_name, eligible_evolutions)
-        if not chosen_evolution:
-            return None
-
-        return await self.get_evolved_species_data(chosen_evolution['url'], level)
+        if chosen_evolution := await self.choose_evolution(ctx, pokemon_name, eligible_evolutions):
+            return await self.get_evolved_species_data(chosen_evolution['url'], level)
+        return None
 
     def get_all_evolutions(self, evolution_chain):
         evolutions = {}
@@ -582,8 +570,7 @@ class TreacheryPokemon(commands.Cog):
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=lambda r, u: u == ctx.author and str(r.emoji) in number_emojis[:len(eligible_evolutions)])
-            chosen_index = number_emojis.index(str(reaction.emoji))
-            return eligible_evolutions[chosen_index]
+            return eligible_evolutions[number_emojis.index(str(reaction.emoji))]
         except asyncio.TimeoutError:
             await ctx.send("Evolution cancelled due to timeout.")
             return None
@@ -591,13 +578,8 @@ class TreacheryPokemon(commands.Cog):
             await message.clear_reactions()
 
     async def get_evolved_species_data(self, url, level):
-        species_data = await self.get_species_data(url)
-        if species_data:
-            return {
-                'name': species_data['name'],
-                'level': level,
-                'pokemon_id': species_data['id']
-            }
+        if species_data := await self.get_species_data(url):
+            return {'name': species_data['name'], 'level': level, 'pokemon_id': species_data['id']}
         return None
 
     async def get_species_data(self, url):
