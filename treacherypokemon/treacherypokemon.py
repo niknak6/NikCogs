@@ -531,33 +531,29 @@ class TreacheryPokemon(commands.Cog):
         return None
 
     def get_all_evolutions(self, evolution_chain, current_pokemon_name):
-        evolutions = {}
+        evolutions = []
         def traverse_chain(chain):
-            if chain['species']['name'].lower() == current_pokemon_name.lower():
-                for evolution in chain.get('evolves_to', []):
-                    species = evolution['species']
-                    evolutions[species['name']] = {
-                        'name': species['name'],
-                        'url': species['url'],
-                        'triggers': set(),
-                        'min_level': None,
-                        'items': set()
-                    }
-                    for details in evolution['evolution_details']:
-                        evolutions[species['name']]['triggers'].add(details.get('trigger', {}).get('name'))
-                        if details.get('min_level'):
-                            evolutions[species['name']]['min_level'] = details['min_level']
-                        if details.get('item'):
-                            evolutions[species['name']]['items'].add(details['item']['name'])
-                return True
-            for evolution in chain.get('evolves_to', []):
-                if traverse_chain(evolution):
-                    return True
-            return False
+            species = chain['species']
+            evolution = {
+                'name': species['name'],
+                'url': species['url'],
+                'triggers': set(),
+                'min_level': None,
+                'items': set()
+            }
+            for details in chain.get('evolution_details', []):
+                evolution['triggers'].add(details.get('trigger', {}).get('name'))
+                if details.get('min_level'):
+                    evolution['min_level'] = details['min_level']
+                if details.get('item'):
+                    evolution['items'].add(details['item']['name'])
+            evolutions.append(evolution)
+            for next_evolution in chain.get('evolves_to', []):
+                traverse_chain(next_evolution)
 
         traverse_chain(evolution_chain['chain'])
-        print(f"Found evolutions for {current_pokemon_name}: {evolutions}")  # Debug print
-        return list(evolutions.values())
+        print(f"Found evolutions: {evolutions}")  # Debug print
+        return evolutions
 
     def get_eligible_evolutions(self, all_evolutions, level):
         eligible = [
@@ -644,15 +640,23 @@ class TreacheryPokemon(commands.Cog):
         print(f"Getting evolution level for {current_pokemon_name}")  # Debug print
         print(f"All evolutions: {all_evolutions}")  # Debug print
         
+        current_pokemon_name = current_pokemon_name.lower()
         for evolution in all_evolutions:
             print(f"Checking evolution: {evolution}")  # Debug print
-            if evolution['name'].lower() == current_pokemon_name.lower():
+            if evolution['name'].lower() == current_pokemon_name:
                 if evolution.get('min_level'):
                     print(f"Found min_level: {evolution['min_level']}")  # Debug print
                     return evolution['min_level']
                 elif 'use-item' in evolution.get('triggers', []):
                     print("Found use-item evolution, returning 20")  # Debug print
                     return 20
+        
+        # If we didn't find a direct evolution, check for the next evolution
+        for evolution in all_evolutions:
+            if evolution['name'].lower() > current_pokemon_name:
+                if evolution.get('min_level'):
+                    print(f"Found next evolution min_level: {evolution['min_level']}")  # Debug print
+                    return evolution['min_level']
         
         print(f"No evolution level found for {current_pokemon_name}")  # Debug print
         return None
