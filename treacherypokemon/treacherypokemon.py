@@ -606,6 +606,11 @@ class TreacheryPokemon(commands.Cog):
     async def levelup(self, ctx):
         """Level up Pokémon in your Pokédex to their evolution level."""
         
+        debug_messages = []
+        
+        def debug_print(message):
+            debug_messages.append(message)
+        
         # Fetch all Pokémon for the user
         self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,))
         pokemon_data = self.cur.fetchall()
@@ -616,16 +621,16 @@ class TreacheryPokemon(commands.Cog):
         leveled_up_pokemon = []
         
         for pokemon_id, pokemon_name, level, poketag in pokemon_data:
-            print(f"Processing {pokemon_name} (ID: {pokemon_id}, Level: {level})")  # Debug print
+            debug_print(f"Processing {pokemon_name} (ID: {pokemon_id}, Level: {level})")
             evolution_chain = await self.get_evolution_chain(pokemon_id)
             if not evolution_chain:
                 await ctx.send(f"Error fetching evolution chain for {pokemon_name} (ID: {pokemon_id})")
                 continue
             
             all_evolutions = self.get_all_evolutions(evolution_chain, pokemon_name)
-            print(f"All evolutions for {pokemon_name}: {all_evolutions}")  # Debug print
-            evolution_level = self.get_evolution_level(all_evolutions, pokemon_name)
-            print(f"Evolution level for {pokemon_name}: {evolution_level}")  # Debug print
+            debug_print(f"All evolutions for {pokemon_name}: {all_evolutions}")
+            evolution_level = self.get_evolution_level(all_evolutions, pokemon_name, debug_print)
+            debug_print(f"Evolution level for {pokemon_name}: {evolution_level}")
             
             if evolution_level and level < evolution_level:
                 # Update the Pokémon's level
@@ -639,22 +644,26 @@ class TreacheryPokemon(commands.Cog):
             await self.send_long_message(ctx, "\n".join(leveled_up_pokemon))
         else:
             await ctx.send("No Pokémon were eligible for leveling up.")
+        
+        # Send debug messages
+        debug_output = "\n".join(debug_messages)
+        await self.send_long_message(ctx, f"Debug information:\n```\n{debug_output}\n```")
 
-    def get_evolution_level(self, all_evolutions, current_pokemon_name):
-        print(f"Getting evolution level for {current_pokemon_name}")  # Debug print
-        print(f"All evolutions: {all_evolutions}")  # Debug print
+    def get_evolution_level(self, all_evolutions, current_pokemon_name, debug_print):
+        debug_print(f"Getting evolution level for {current_pokemon_name}")
+        debug_print(f"All evolutions: {all_evolutions}")
         
         for evolution in all_evolutions:
-            print(f"Checking evolution: {evolution}")  # Debug print
+            debug_print(f"Checking evolution: {evolution}")
             if evolution['name'].lower() == current_pokemon_name.lower():
                 if evolution.get('min_level'):
-                    print(f"Found min_level: {evolution['min_level']}")  # Debug print
+                    debug_print(f"Found min_level: {evolution['min_level']}")
                     return evolution['min_level']
                 elif 'use-item' in evolution.get('triggers', []):
-                    print("Found use-item evolution, returning 20")  # Debug print
+                    debug_print("Found use-item evolution, returning 20")
                     return 20
         
-        print(f"No evolution level found for {current_pokemon_name}")  # Debug print
+        debug_print(f"No evolution level found for {current_pokemon_name}")
         return None
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
