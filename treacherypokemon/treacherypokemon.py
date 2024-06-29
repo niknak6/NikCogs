@@ -640,23 +640,18 @@ class TreacheryPokemon(commands.Cog):
         print(f"Getting evolution level for {current_pokemon_name}")  # Debug print
         print(f"All evolutions: {all_evolutions}")  # Debug print
         
-        current_pokemon_name = current_pokemon_name.lower()
+        current_pokemon_found = False
         for evolution in all_evolutions:
             print(f"Checking evolution: {evolution}")  # Debug print
-            if evolution['name'].lower() == current_pokemon_name:
+            if current_pokemon_found:
                 if evolution.get('min_level'):
-                    print(f"Found min_level: {evolution['min_level']}")  # Debug print
+                    print(f"Found next evolution min_level: {evolution['min_level']}")  # Debug print
                     return evolution['min_level']
                 elif 'use-item' in evolution.get('triggers', []):
                     print("Found use-item evolution, returning 20")  # Debug print
                     return 20
-        
-        # If we didn't find a direct evolution, check for the next evolution
-        for evolution in all_evolutions:
-            if evolution['name'].lower() > current_pokemon_name:
-                if evolution.get('min_level'):
-                    print(f"Found next evolution min_level: {evolution['min_level']}")  # Debug print
-                    return evolution['min_level']
+            if evolution['name'].lower() == current_pokemon_name.lower():
+                current_pokemon_found = True
         
         print(f"No evolution level found for {current_pokemon_name}")  # Debug print
         return None
