@@ -638,21 +638,25 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("No Pokémon were eligible for leveling up.")
 
     def get_evolution_level(self, all_evolutions, current_pokemon_name):
-        min_level = float('inf')
-        for evolution in all_evolutions:
-            if evolution['name'].lower() == current_pokemon_name.lower():
-                # This is the current Pokémon's data
-                if evolution.get('min_level'):
-                    min_level = min(min_level, evolution['min_level'])
-                elif 'use-item' in evolution['triggers']:
-                    min_level = min(min_level, 20)
-            else:
-                # This is a potential evolution
-                if 'level-up' in evolution['triggers'] and evolution.get('min_level'):
-                    min_level = min(min_level, evolution['min_level'])
-                elif 'use-item' in evolution['triggers']:
-                    min_level = min(min_level, 20)
-        return min_level if min_level != float('inf') else None
+        current_pokemon = next((e for e in all_evolutions if e['name'].lower() == current_pokemon_name.lower()), None)
+        if not current_pokemon:
+            return None
+
+        # Find the evolution level for the current Pokémon
+        evolution_level = current_pokemon.get('min_level')
+        if not evolution_level and 'use-item' in current_pokemon.get('triggers', []):
+            evolution_level = 20
+
+        # If it's not the last in the chain, check the next evolution's level
+        next_evolution = next((e for e in all_evolutions if e['name'].lower() != current_pokemon_name.lower()), None)
+        if next_evolution:
+            next_level = next_evolution.get('min_level')
+            if next_level and (not evolution_level or next_level < evolution_level):
+                evolution_level = next_level
+            elif not evolution_level and 'use-item' in next_evolution.get('triggers', []):
+                evolution_level = 20
+
+        return evolution_level
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
