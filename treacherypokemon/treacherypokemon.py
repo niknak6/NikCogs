@@ -455,14 +455,21 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("You must provide at least one Poketag.")
             return
 
-        poketags_lower = [poketag.lower() for poketag in poketags]
-        self.cur.execute('SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower))), (ctx.author.id, *poketags_lower))
-        pokemon_data = self.cur.fetchall()
-
+        pokemon_data = await self.get_pokemon_data(ctx.author.id, poketags)
         if not pokemon_data:
             await ctx.send("You do not have any Pokémon in your Pokédex that match the provided Poketags.")
             return
 
+        evolved_pokemon = await self.process_evolutions(ctx, pokemon_data)
+        await self.send_evolution_results(ctx, evolved_pokemon)
+
+    async def get_pokemon_data(self, member_id, poketags):
+        poketags_lower = [poketag.lower() for poketag in poketags]
+        query = 'SELECT pokemon_id, pokemon_name, level, LOWER(poketag) FROM pokedex WHERE member_id = ? AND LOWER(poketag) IN ({})'.format(','.join('?' * len(poketags_lower)))
+        self.cur.execute(query, (member_id, *poketags_lower))
+        return self.cur.fetchall()
+
+    async def process_evolutions(self, ctx, pokemon_data):
         evolved_pokemon = []
         for pokemon_id, pokemon_name, level, poketag in pokemon_data:
             evolution_chain = await self.get_evolution_chain(pokemon_id)
@@ -471,39 +478,51 @@ class TreacheryPokemon(commands.Cog):
                 continue
             evolved_pokemon_data = await self.handle_evolution(ctx, pokemon_name, level, evolution_chain)
             if evolved_pokemon_data:
-                self.cur.execute('UPDATE pokedex SET pokemon_name = ?, level = ?, pokemon_id = ? WHERE member_id = ? AND LOWER(poketag) = ?', (evolved_pokemon_data['name'], evolved_pokemon_data['level'], evolved_pokemon_data['pokemon_id'], ctx.author.id, poketag.lower()))
-                self.conn.commit()
+                await self.update_pokedex(ctx.author.id, poketag, evolved_pokemon_data)
                 evolved_pokemon.append(f"{pokemon_name.capitalize()} evolved into {evolved_pokemon_data['name'].capitalize()}!")
+        return evolved_pokemon
 
+    async def update_pokedex(self, member_id, poketag, evolved_pokemon_data):
+        self.cur.execute('UPDATE pokedex SET pokemon_name = ?, level = ?, pokemon_id = ? WHERE member_id = ? AND LOWER(poketag) = ?', 
+                        (evolved_pokemon_data['name'], evolved_pokemon_data['level'], evolved_pokemon_data['pokemon_id'], member_id, poketag.lower()))
+        self.conn.commit()
+
+    async def send_evolution_results(self, ctx, evolved_pokemon):
         if evolved_pokemon:
             await self.send_long_message(ctx, "\n".join(evolved_pokemon))
         else:
             await ctx.send("No Pokémon were eligible for evolution.")
 
     async def get_evolution_chain(self, pokemon_id):
-        """Fetch the evolution chain for a given Pokemon ID."""
         try:
             async with aiohttp.ClientSession() as session:
-                species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
-                async with session.get(species_url) as resp:
-                    if resp.status != 200:
-                        return None
-                    species_data = await resp.json()
-
-                evolution_url = species_data['evolution_chain']['url']
-                async with session.get(evolution_url) as resp:
-                    if resp.status != 200:
-                        return None
-                    evolution_data = await resp.json()
-
-                return evolution_data  # Return the full evolution data
+                species_data = await self.fetch_json(session, f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/")
+                if not species_data:
+                    return None
+                return await self.fetch_json(session, species_data['evolution_chain']['url'])
         except Exception as e:
             print(f"Error fetching evolution chain: {e}")
             return None
 
+    async def fetch_json(self, session, url):
+        async with session.get(url) as resp:
+            return await resp.json() if resp.status == 200 else None
+
+    async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
+        all_evolutions = self.get_all_evolutions(evolution_chain)
+        eligible_evolutions = self.get_eligible_evolutions(all_evolutions, level)
+
+        if not eligible_evolutions:
+            return None
+
+        chosen_evolution = await self.choose_evolution(ctx, pokemon_name, eligible_evolutions)
+        if not chosen_evolution:
+            return None
+
+        return await self.get_evolved_species_data(chosen_evolution['url'], level)
+
     def get_all_evolutions(self, evolution_chain):
         evolutions = {}
-        
         def traverse_chain(chain):
             for evolution in chain.get('evolves_to', []):
                 species = evolution['species']
@@ -515,155 +534,61 @@ class TreacheryPokemon(commands.Cog):
                         'min_level': None,
                         'items': set()
                     }
-                
                 for details in evolution['evolution_details']:
                     evolutions[species['name']]['triggers'].add(details.get('trigger', {}).get('name'))
                     if details.get('min_level'):
                         evolutions[species['name']]['min_level'] = details['min_level']
                     if details.get('item'):
                         evolutions[species['name']]['items'].add(details['item']['name'])
-                
                 traverse_chain(evolution)
-        
         traverse_chain(evolution_chain['chain'])
         return list(evolutions.values())
 
-    async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
-        if not evolution_chain:
+    def get_eligible_evolutions(self, all_evolutions, level):
+        return [
+            evolution for evolution in all_evolutions
+            if ('level-up' in evolution['triggers'] and (evolution['min_level'] is None or level >= evolution['min_level']))
+            or ('use-item' in evolution['triggers'] and level >= 20)
+        ]
+
+    async def choose_evolution(self, ctx, pokemon_name, eligible_evolutions):
+        if len(eligible_evolutions) == 1:
+            return eligible_evolutions[0]
+
+        option_text = "\n".join([f"{i+1}. {e['name'].capitalize()}" for i, e in enumerate(eligible_evolutions)])
+        message = await ctx.send(f"{pokemon_name.capitalize()} can evolve into multiple Pokémon. React with the number to choose:\n{option_text}")
+
+        number_emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '0️⃣']
+        for i in range(min(len(eligible_evolutions), 10)):
+            await message.add_reaction(number_emojis[i])
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=lambda r, u: u == ctx.author and str(r.emoji) in number_emojis[:len(eligible_evolutions)])
+            chosen_index = number_emojis.index(str(reaction.emoji))
+            return eligible_evolutions[chosen_index]
+        except asyncio.TimeoutError:
+            await ctx.send("Evolution cancelled due to timeout.")
             return None
+        finally:
+            await message.clear_reactions()
 
-        all_evolutions = self.get_all_evolutions(evolution_chain)
-        eligible_evolutions = []
-
-        for evolution in all_evolutions:
-            triggers = evolution['triggers']
-            min_level = evolution['min_level']
-            
-            if 'level-up' in triggers:
-                if min_level is None or level >= min_level:
-                    eligible_evolutions.append(evolution)
-            elif 'use-item' in triggers and level >= 20:
-                eligible_evolutions.append(evolution)
-
-        if not eligible_evolutions:
-            return None
-
-        if len(eligible_evolutions) > 1:
-            # Create a message with numbered options
-            option_text = "\n".join([f"{i+1}. {e['name'].capitalize()}" for i, e in enumerate(eligible_evolutions)])
-            message = await ctx.send(f"{pokemon_name.capitalize()} can evolve into multiple Pokémon. React with the number to choose:\n{option_text}")
-
-            # Add number reactions
-            number_emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '0️⃣']
-            for i in range(min(len(eligible_evolutions), 10)):
-                await message.add_reaction(number_emojis[i])
-
-            def check(reaction, user):
-                return user == ctx.author and str(reaction.emoji) in number_emojis[:len(eligible_evolutions)]
-
-            try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check)
-                chosen_index = number_emojis.index(str(reaction.emoji))
-                chosen_evolution = eligible_evolutions[chosen_index]
-            except asyncio.TimeoutError:
-                await ctx.send("Evolution cancelled due to timeout.")
-                return None
-            finally:
-                # Clean up by removing the bot's reactions
-                await message.clear_reactions()
-        else:
-            chosen_evolution = eligible_evolutions[0]
-
-        evolved_species_data = await self.get_species_data(chosen_evolution['url'])
-        if evolved_species_data:
+    async def get_evolved_species_data(self, url, level):
+        species_data = await self.get_species_data(url)
+        if species_data:
             return {
-                'name': evolved_species_data['name'],
+                'name': species_data['name'],
                 'level': level,
-                'pokemon_id': evolved_species_data['id']
+                'pokemon_id': species_data['id']
             }
-
         return None
 
     async def get_species_data(self, url):
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    if resp.status != 200:
-                        return None
-                    return await resp.json()
+                return await self.fetch_json(session, url)
         except Exception as e:
             print(f"Error fetching species data: {e}")
             return None
-        
-    async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
-        """Generates a combat sprite GIF with the given Pokémon IDs."""
-
-        async def fetch_sprite(session, pokemon_id, sprite_type):
-            """Fetches a specific sprite for a given Pokémon ID."""
-            sprite_url = f"{self.base_url}{pokemon_id}"
-            async with session.get(sprite_url) as response:
-                response.raise_for_status()
-                data = await response.json()
-                sprite = (data['sprites']['other']['showdown'].get(sprite_type) or
-                        data['sprites'].get(sprite_type) or
-                        data['sprites']['other']['official-artwork'].get('front_default'))
-                if not sprite:
-                    raise ValueError(f"Sprite type '{sprite_type}' not found for Pokémon ID {pokemon_id}")
-                async with session.get(sprite) as sprite_response:
-                    sprite_response.raise_for_status()
-                    return Image.open(BytesIO(await sprite_response.read()))
-
-        async with aiohttp.ClientSession() as session:
-            player1_sprite_image, player2_sprite_image = await asyncio.gather(
-                fetch_sprite(session, player1_pokemon_id, 'back_default'),
-                fetch_sprite(session, player2_pokemon_id, 'front_default')
-            )
-
-        def get_gif_frames_and_durations(sprite):
-            """Extracts frames and durations from a GIF sprite."""
-            frames = [frame.convert("RGBA") for frame in ImageSequence.Iterator(sprite)]
-            durations = [frame.info.get('duration', 50) for frame in frames]
-            return frames, durations
-
-        player1_frames, player1_durations = get_gif_frames_and_durations(player1_sprite_image)
-        player2_frames, player2_durations = get_gif_frames_and_durations(player2_sprite_image)
-
-        max_duration = max(sum(player1_durations), sum(player2_durations))
-
-        arena_image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'arena.png')
-        arena_image = Image.open(arena_image_path).convert("RGBA")
-        arena_width, arena_height = arena_image.size
-
-        def create_combat_frame(current_time):
-            """Creates a single combat frame by compositing sprites onto the arena image."""
-            frame = arena_image.copy()
-
-            def composite_sprite(frames, durations, x_offset, y_offset):
-                total_duration = sum(durations)
-                index = int(current_time % total_duration / durations[0]) % len(frames)
-                sprite_frame = frames[index]
-                frame.alpha_composite(sprite_frame, (x_offset - sprite_frame.width // 2, y_offset - sprite_frame.height // 2))
-
-            composite_sprite(player1_frames, player1_durations, 185, arena_height - 170)
-            composite_sprite(player2_frames, player2_durations, arena_width - 370, 150)
-            return frame
-
-        combined_frames = []
-        combined_durations = []
-        current_time = 0
-
-        while current_time < max_duration:
-            combined_frames.append(create_combat_frame(current_time))
-            frame_duration = max(player1_durations[current_time % len(player1_durations)],
-                                player2_durations[current_time % len(player2_durations)])
-            combined_durations.append(frame_duration)
-            current_time += frame_duration
-
-        output_path = 'combined_sprite.gif'
-        imageio.mimsave(output_path, combined_frames, duration=combined_durations, loop=0, disposal=2, optimize=True)
-
-        with open(output_path, 'rb') as f:
-            return discord.File(f, filename=output_path)
             
     @commands.command()
     async def battle(self, ctx, opponent: discord.Member):
