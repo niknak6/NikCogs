@@ -519,7 +519,7 @@ class TreacheryPokemon(commands.Cog):
             return await resp.json() if resp.status == 200 else None
 
     async def handle_evolution(self, ctx, pokemon_name, level, evolution_chain):
-        all_evolutions = self.get_all_evolutions(evolution_chain)
+        all_evolutions = self.get_all_evolutions(evolution_chain, pokemon_name)
         eligible_evolutions = self.get_eligible_evolutions(all_evolutions, level)
         if not eligible_evolutions:
             return None
@@ -527,12 +527,12 @@ class TreacheryPokemon(commands.Cog):
             return await self.get_evolved_species_data(chosen_evolution['url'], level)
         return None
 
-    def get_all_evolutions(self, evolution_chain):
+    def get_all_evolutions(self, evolution_chain, current_pokemon_name):
         evolutions = {}
         def traverse_chain(chain):
-            for evolution in chain.get('evolves_to', []):
-                species = evolution['species']
-                if species['name'] not in evolutions:
+            if chain['species']['name'] == current_pokemon_name:
+                for evolution in chain.get('evolves_to', []):
+                    species = evolution['species']
                     evolutions[species['name']] = {
                         'name': species['name'],
                         'url': species['url'],
@@ -540,12 +540,14 @@ class TreacheryPokemon(commands.Cog):
                         'min_level': None,
                         'items': set()
                     }
-                for details in evolution['evolution_details']:
-                    evolutions[species['name']]['triggers'].add(details.get('trigger', {}).get('name'))
-                    if details.get('min_level'):
-                        evolutions[species['name']]['min_level'] = details['min_level']
-                    if details.get('item'):
-                        evolutions[species['name']]['items'].add(details['item']['name'])
+                    for details in evolution['evolution_details']:
+                        evolutions[species['name']]['triggers'].add(details.get('trigger', {}).get('name'))
+                        if details.get('min_level'):
+                            evolutions[species['name']]['min_level'] = details['min_level']
+                        if details.get('item'):
+                            evolutions[species['name']]['items'].add(details['item']['name'])
+                return
+            for evolution in chain.get('evolves_to', []):
                 traverse_chain(evolution)
         traverse_chain(evolution_chain['chain'])
         return list(evolutions.values())
