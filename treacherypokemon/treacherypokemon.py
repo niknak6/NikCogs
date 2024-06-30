@@ -641,11 +641,15 @@ class TreacheryPokemon(commands.Cog):
         print(f"All evolutions: {all_evolutions}")  # Debug print
         
         def find_evolution_details(evolutions, name):
+            if isinstance(evolutions, dict):
+                evolutions = [evolutions]
+            
             for evo in evolutions:
-                if evo['species']['name'].lower() == name.lower():
-                    return evo['evolution_details'][0] if evo['evolution_details'] else None
-                if evo['evolves_to']:
-                    result = find_evolution_details(evo['evolves_to'], name)
+                if evo.get('name', '').lower() == name.lower():
+                    return evo.get('evolution_details', [{}])[0]
+                evolves_to = evo.get('evolves_to', [])
+                if evolves_to:
+                    result = find_evolution_details(evolves_to, name)
                     if result:
                         return result
             return None
