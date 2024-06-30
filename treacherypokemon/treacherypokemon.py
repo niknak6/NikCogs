@@ -637,12 +637,12 @@ class TreacheryPokemon(commands.Cog):
             await ctx.send("No Pokémon were eligible for leveling up.")
 
     def get_evolution_level(self, all_evolutions, current_pokemon_name):
-        print(f"Getting evolution level for {current_pokemon_name}")  # Debug print
-        print(f"All evolutions: {all_evolutions}")  # Debug print
+        print(f"Getting evolution level for {current_pokemon_name}")
+        print(f"All evolutions: {all_evolutions}")
         
         current_pokemon_index = -1
         for i, evolution in enumerate(all_evolutions):
-            if evolution['name'].lower() == current_pokemon_name.lower():
+            if evolution['species']['name'].lower() == current_pokemon_name.lower():
                 current_pokemon_index = i
                 break
         
@@ -651,23 +651,16 @@ class TreacheryPokemon(commands.Cog):
             return None
         
         if current_pokemon_index == 0 and not all_evolutions[0].get('is_baby', False):
-            # This is the base form (not a baby), don't level up
             print(f"{current_pokemon_name} is in its base form, no leveling needed")
             return None
         
-        # For evolved forms or baby Pokémon, determine the appropriate level
         evolution_details = all_evolutions[current_pokemon_index].get('evolution_details', [{}])[0]
-        evolution_level = evolution_details.get('min_level')
+        trigger = evolution_details.get('trigger', {}).get('name')
         
-        if not evolution_level:
-            trigger = evolution_details.get('trigger', {}).get('name')
-            if trigger and trigger != 'level-up':
-                # For non-level-up evolutions, assign a default level
-                evolution_level = 20
-            elif current_pokemon_index > 0:
-                # If it's an evolved form without a specific level, use the previous evolution's level + 5
-                prev_evolution_level = self.get_evolution_level(all_evolutions, all_evolutions[current_pokemon_index - 1]['name'])
-                evolution_level = prev_evolution_level + 5 if prev_evolution_level else 20
+        if trigger == 'level-up':
+            evolution_level = evolution_details.get('min_level')
+        else:
+            evolution_level = 20  # Default to 20 for any non-level-up evolution
         
         print(f"Evolution level for {current_pokemon_name}: {evolution_level}")
         return evolution_level
