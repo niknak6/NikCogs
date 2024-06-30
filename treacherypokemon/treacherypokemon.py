@@ -618,9 +618,7 @@ class TreacheryPokemon(commands.Cog):
                 await ctx.send(f"Error fetching evolution chain for {pokemon_name} (ID: {pokemon_id})")
                 continue
             
-            all_evolutions = self.get_all_evolutions(evolution_chain, pokemon_name)
-            print(f"All evolutions for {pokemon_name}: {all_evolutions}")  # Debug print
-            evolution_level = self.get_evolution_level(all_evolutions, pokemon_name)
+            evolution_level = self.get_evolution_level(evolution_chain, pokemon_name)
             print(f"Evolution level for {pokemon_name}: {evolution_level}")  # Debug print
             
             if evolution_level and level < evolution_level:
@@ -636,37 +634,39 @@ class TreacheryPokemon(commands.Cog):
         else:
             await ctx.send("No Pokémon were eligible for leveling up.")
 
-    def get_evolution_level(self, all_evolutions, current_pokemon_name):
-        print(f"Getting evolution level for {current_pokemon_name}")  # Debug print
-        print(f"All evolutions: {all_evolutions}")  # Debug print
-        
-        def find_evolution_details(evolutions, name):
-            if isinstance(evolutions, dict):
-                evolutions = [evolutions]
+    def get_evolution_level(self, evolution_chain, current_pokemon_name):
+        print(f"Getting evolution level for {current_pokemon_name}")
+        print(f"Evolution chain: {evolution_chain}")
+
+        def find_evolution_details(chain, name):
+            if chain['species']['name'].lower() == name.lower():
+                return chain.get('evolution_details', [])
             
-            for evo in evolutions:
-                if evo.get('name', '').lower() == name.lower():
-                    return evo.get('evolution_details', [{}])[0]
-                evolves_to = evo.get('evolves_to', [])
-                if evolves_to:
-                    result = find_evolution_details(evolves_to, name)
-                    if result:
-                        return result
+            for evolution in chain.get('evolves_to', []):
+                result = find_evolution_details(evolution, name)
+                if result:
+                    return result
+            
             return None
 
-        evolution_details = find_evolution_details(all_evolutions, current_pokemon_name)
+        def get_level_from_details(details):
+            for detail in details:
+                trigger = detail.get('trigger', {}).get('name')
+                if trigger == 'level-up':
+                    return detail.get('min_level')
+                elif trigger == 'use-item':
+                    return 20  # Default for stone evolutions
+                elif trigger == 'trade':
+                    return 20  # Default for trade evolutions
+            return 20  # Default for other cases
+
+        evolution_details = find_evolution_details(evolution_chain['chain'], current_pokemon_name)
         
         if not evolution_details:
-            print(f"Pokemon {current_pokemon_name} not found in evolution chain")
+            print(f"Pokemon {current_pokemon_name} is at its base form or not found in evolution chain")
             return None
-        
-        trigger = evolution_details.get('trigger', {}).get('name')
-        
-        if trigger == 'level-up':
-            evolution_level = evolution_details.get('min_level')
-        else:
-            evolution_level = 20  # Default to 20 for any non-level-up evolution
-        
+
+        evolution_level = get_level_from_details(evolution_details)
         print(f"Evolution level for {current_pokemon_name}: {evolution_level}")
         return evolution_level
         
