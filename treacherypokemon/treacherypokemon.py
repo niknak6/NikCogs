@@ -640,32 +640,28 @@ class TreacheryPokemon(commands.Cog):
         print(f"Getting evolution level for {current_pokemon_name}")  # Debug print
         print(f"All evolutions: {all_evolutions}")  # Debug print
         
-        evolution_levels = {}
-        for evolution in all_evolutions:
-            print(f"Checking evolution: {evolution}")  # Debug print
-            if evolution.get('min_level'):
-                evolution_levels[evolution['name'].lower()] = evolution['min_level']
-            elif 'use-item' in evolution.get('triggers', []):
-                evolution_levels[evolution['name'].lower()] = 20
+        current_pokemon_index = -1
+        for i, evolution in enumerate(all_evolutions):
+            if evolution['name'].lower() == current_pokemon_name.lower():
+                current_pokemon_index = i
+                break
         
-        current_pokemon_level = evolution_levels.get(current_pokemon_name.lower())
+        if current_pokemon_index == -1:
+            print(f"Pokemon {current_pokemon_name} not found in evolution chain")
+            return None
         
-        if current_pokemon_level:
-            print(f"Found evolution level {current_pokemon_level} for {current_pokemon_name}")  # Debug print
-            return current_pokemon_level
-        else:
-            # If the current Pokémon is not found in the evolution levels (e.g., it's the base form),
-            # return the level of the next evolution
-            for evolution in all_evolutions:
-                if evolution['name'].lower() == current_pokemon_name.lower():
-                    for next_evolution in all_evolutions:
-                        if next_evolution.get('min_level'):
-                            return next_evolution['min_level']
-                        elif 'use-item' in next_evolution.get('triggers', []):
-                            return 20
+        if current_pokemon_index == 0:
+            # This is the base form, don't level up
+            print(f"{current_pokemon_name} is in its base form, no leveling needed")
+            return None
         
-        print(f"No evolution level found for {current_pokemon_name}")  # Debug print
-        return None
+        # For evolved forms, return the level at which they should have evolved
+        evolution_level = all_evolutions[current_pokemon_index].get('min_level')
+        if not evolution_level and 'use-item' in all_evolutions[current_pokemon_index].get('triggers', []):
+            evolution_level = 20
+        
+        print(f"Evolution level for {current_pokemon_name}: {evolution_level}")
+        return evolution_level
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
