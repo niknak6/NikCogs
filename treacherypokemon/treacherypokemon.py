@@ -733,15 +733,17 @@ class TreacheryPokemon(commands.Cog):
             nonlocal turn_number, battle_embed, battle_message
             battle_embed.clear_fields()
             battle_embed.add_field(name="Turn", value=turn_number, inline=False)
-            for player, data in battle_state.items():
+            for player_id, data in battle_state.items():
                 battle_embed.add_field(name=f"{data['party'][0][0]} HP", value=f"{round(data['hp'][data['party'][0][0]])}", inline=True)
             battle_embed.add_field(name="Defeated Pokémon", value='\n'.join(defeated_pokemon) or "None", inline=False)
             battle_embed.add_field(name="Moves", value=moves_display, inline=False)
             battle_embed.set_image(url=f"attachment://{combined_image_file.filename}")
             await battle_message.edit(embed=battle_embed, attachments=[combined_image_file])
 
-        async def perform_move(attacker, defender):
+        async def perform_move(attacker_id, defender_id):
             nonlocal moves_display
+            attacker = battle_state[attacker_id]
+            defender = battle_state[defender_id]
             pokemon, move, type_, move_power = attacker['party'][0][0], *self.get_random_move(ctx, attacker['party'][0][0])
             async with aiohttp.ClientSession() as session:
                 damage_relations = (await (await session.get(f"{self.type_url}{type_}")).json()).get('damage_relations', {})
@@ -752,12 +754,12 @@ class TreacheryPokemon(commands.Cog):
             damage = 25 if move_power == 0 else move_power * multiplier
             defender['hp'][defender['party'][0][0]] = max(defender['hp'][defender['party'][0][0]] - damage, 0)
             
-            moves_display += f"{ctx.guild.get_member(attacker['id']).display_name}'s {pokemon}: {' '.join(word.capitalize() for word in (move or 'No move').replace('-', ' ').split())} - Damage: {damage} ({multiplier}x)\n"
+            moves_display += f"{ctx.guild.get_member(attacker_id).display_name}'s {pokemon}: {' '.join(word.capitalize() for word in (move or 'No move').replace('-', ' ').split())} - Damage: {damage} ({multiplier}x)\n"
 
             if defender['hp'][defender['party'][0][0]] <= 0:
-                defeated_pokemon.append(f"{defender['party'][0][0]} ({ctx.guild.get_member(defender['id']).display_name})")
+                defeated_pokemon.append(f"{defender['party'][0][0]} ({ctx.guild.get_member(defender_id).display_name})")
                 defender['party'].pop(0)
-                moves_display += f"{ctx.guild.get_member(defender['id']).display_name}'s {defender['party'][0][0]} has been defeated!\n"
+                moves_display += f"{ctx.guild.get_member(defender_id).display_name}'s {defender['party'][0][0]} has been defeated!\n"
                 return True
             return False
 
@@ -771,7 +773,7 @@ class TreacheryPokemon(commands.Cog):
         try:
             while all(battle_state[player.id]['party'] for player, _ in players):
                 for attacker, defender in zip(players, players[::-1]):
-                    if await perform_move(battle_state[attacker[0].id], battle_state[defender[0].id]):
+                    if await perform_move(attacker[0].id, defender[0].id):
                         if not battle_state[defender[0].id]['party']:
                             break
                         combined_image_file = await self.combatsprite(ctx, battle_state[ctx.author.id]['party'][0][1], battle_state[opponent.id]['party'][0][1])
@@ -780,12 +782,13 @@ class TreacheryPokemon(commands.Cog):
                 turn_number += 1
                 await asyncio.sleep(1.5)
 
-            winner = next((player for player, data in battle_state.items() if data['party']), "It's a tie!")
+            winner = next((player_id for player_id, data in battle_state.items() if data['party']), "It's a tie!")
             battle_embed.description = f"**{ctx.guild.get_member(winner).display_name} wins the battle!**" if winner != "It's a tie!" else "**It's a tie!**"
             await update_battle_embed()
         finally:
             for player_id in battle_state:
                 self.battles.pop(player_id, None)
+
 
 class PokedexView(discord.ui.View):
     def __init__(self, ctx, embeds, pokedex):
