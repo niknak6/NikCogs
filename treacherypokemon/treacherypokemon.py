@@ -640,23 +640,22 @@ class TreacheryPokemon(commands.Cog):
         print(f"Getting evolution level for {current_pokemon_name}")  # Debug print
         print(f"All evolutions: {all_evolutions}")  # Debug print
         
-        current_pokemon_index = -1
-        for i, evolution in enumerate(all_evolutions):
-            if evolution['name'].lower() == current_pokemon_name.lower():
-                current_pokemon_index = i
-                break
+        def find_evolution_details(evolutions, name):
+            for evo in evolutions:
+                if evo['species']['name'].lower() == name.lower():
+                    return evo['evolution_details'][0] if evo['evolution_details'] else None
+                if evo['evolves_to']:
+                    result = find_evolution_details(evo['evolves_to'], name)
+                    if result:
+                        return result
+            return None
+
+        evolution_details = find_evolution_details(all_evolutions, current_pokemon_name)
         
-        if current_pokemon_index == -1:
+        if not evolution_details:
             print(f"Pokemon {current_pokemon_name} not found in evolution chain")
             return None
         
-        if current_pokemon_index == 0 and not all_evolutions[0].get('is_baby', False):
-            # This is the base form (not a baby), don't level up
-            print(f"{current_pokemon_name} is in its base form, no leveling needed")
-            return None
-        
-        # For evolved forms or baby Pokémon, determine the appropriate level
-        evolution_details = all_evolutions[current_pokemon_index].get('evolution_details', [{}])[0]
         trigger = evolution_details.get('trigger', {}).get('name')
         
         if trigger == 'level-up':
