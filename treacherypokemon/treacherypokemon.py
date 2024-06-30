@@ -656,10 +656,14 @@ class TreacheryPokemon(commands.Cog):
             return None
         
         # For evolved forms, return the level at which they should have evolved
-        evolution_level = all_evolutions[current_pokemon_index].get('min_level')
-        if not evolution_level and 'use-item' in all_evolutions[current_pokemon_index].get('triggers', []):
-            evolution_level = 20
-        
+        evolution_details = all_evolutions[current_pokemon_index].get('evolution_details', [{}])[0]
+        evolution_level = evolution_details.get('min_level')
+
+        if not evolution_level:
+            trigger = evolution_details.get('trigger', {}).get('name')
+            if trigger and trigger != 'level-up':
+                evolution_level = 20
+
         print(f"Evolution level for {current_pokemon_name}: {evolution_level}")
         return evolution_level
         
