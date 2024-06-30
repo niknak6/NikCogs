@@ -640,18 +640,29 @@ class TreacheryPokemon(commands.Cog):
         print(f"Getting evolution level for {current_pokemon_name}")  # Debug print
         print(f"All evolutions: {all_evolutions}")  # Debug print
         
-        current_pokemon_found = False
+        evolution_levels = {}
         for evolution in all_evolutions:
             print(f"Checking evolution: {evolution}")  # Debug print
-            if current_pokemon_found:
-                if evolution.get('min_level'):
-                    print(f"Found next evolution min_level: {evolution['min_level']}")  # Debug print
-                    return evolution['min_level']
-                elif 'use-item' in evolution.get('triggers', []):
-                    print("Found use-item evolution, returning 20")  # Debug print
-                    return 20
-            if evolution['name'].lower() == current_pokemon_name.lower():
-                current_pokemon_found = True
+            if evolution.get('min_level'):
+                evolution_levels[evolution['name'].lower()] = evolution['min_level']
+            elif 'use-item' in evolution.get('triggers', []):
+                evolution_levels[evolution['name'].lower()] = 20
+        
+        current_pokemon_level = evolution_levels.get(current_pokemon_name.lower())
+        
+        if current_pokemon_level:
+            print(f"Found evolution level {current_pokemon_level} for {current_pokemon_name}")  # Debug print
+            return current_pokemon_level
+        else:
+            # If the current Pokémon is not found in the evolution levels (e.g., it's the base form),
+            # return the level of the next evolution
+            for evolution in all_evolutions:
+                if evolution['name'].lower() == current_pokemon_name.lower():
+                    for next_evolution in all_evolutions:
+                        if next_evolution.get('min_level'):
+                            return next_evolution['min_level']
+                        elif 'use-item' in next_evolution.get('triggers', []):
+                            return 20
         
         print(f"No evolution level found for {current_pokemon_name}")  # Debug print
         return None
