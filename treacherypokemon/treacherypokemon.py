@@ -625,18 +625,35 @@ class TreacheryPokemon(commands.Cog):
     def get_evolution_level(self, evolution_chain, current_pokemon_name):
         def find_evolution_details(chain, name):
             if chain['species']['name'].lower() == name.lower():
-                return chain.get('evolution_details', [])
-            return next((find_evolution_details(evolution, name) for evolution in chain.get('evolves_to', []) if find_evolution_details(evolution, name)), None)
+                return chain
+            for evolution in chain.get('evolves_to', []):
+                if evolution['species']['name'].lower() == name.lower():
+                    return chain  # Return the parent chain
+                result = find_evolution_details(evolution, name)
+                if result:
+                    return result
+            return None
 
-    def get_level_from_details(details):
-        for detail in details:
-            trigger = detail.get('trigger', {}).get('name')
-            if trigger == 'level-up':
-                min_level = detail.get('min_level')
-                if min_level:
-                    return min_level
+        def get_level_from_details(details):
+            for detail in details:
+                trigger = detail.get('trigger', {}).get('name')
+                if trigger == 'level-up':
+                    min_level = detail.get('min_level')
+                    if min_level:
+                        return min_level
+                    else:
+                        # If there's no min_level but it's a level-up trigger, return 20
+                        return 20
+            # For any other trigger, return 20
+            return 20
+
+        chain = find_evolution_details(evolution_chain['chain'], current_pokemon_name)
+        if chain and chain.get('evolves_to'):
+            for evolution in chain['evolves_to']:
+                if evolution['species']['name'].lower() == current_pokemon_name.lower():
+                    return get_level_from_details(evolution['evolution_details'])
         
-        # For anything other than a level-up trigger with a specific level, return 20
+        # If we can't find a specific evolution level, return 20 as a default
         return 20
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
