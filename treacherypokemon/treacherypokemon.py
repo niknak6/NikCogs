@@ -596,6 +596,7 @@ class TreacheryPokemon(commands.Cog):
         except Exception as e:
             print(f"Error fetching species data: {e}")
             return None
+        
     def get_evolution_level(self, evolution_chain, current_pokemon_name):
         def find_pokemon_in_chain(chain, name):
             if chain['species']['name'].lower() == name.lower():
@@ -618,9 +619,9 @@ class TreacheryPokemon(commands.Cog):
         
         if trigger == 'level-up':
             min_level = evolution_details.get('min_level')
-            return min_level if min_level else None
+            return min_level if min_level else 20
         else:
-            return 20  # Default for any non-level-up evolution
+            return 20  # Flat 20 for any non-level-up evolution
         
     @commands.command()
     async def levelup(self, ctx):
