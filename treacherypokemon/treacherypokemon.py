@@ -628,14 +628,16 @@ class TreacheryPokemon(commands.Cog):
                 return chain.get('evolution_details', [])
             return next((find_evolution_details(evolution, name) for evolution in chain.get('evolves_to', []) if find_evolution_details(evolution, name)), None)
 
-        def get_level_from_details(details):
-            for detail in details:
-                trigger = detail.get('trigger', {}).get('name')
-                if trigger == 'level-up':
-                    return detail.get('min_level')
-                elif trigger in ['use-item', 'trade']:
-                    return 20
-            return 20
+    def get_level_from_details(details):
+        for detail in details:
+            trigger = detail.get('trigger', {}).get('name')
+            if trigger == 'level-up':
+                min_level = detail.get('min_level')
+                if min_level:
+                    return min_level
+            
+        # For anything other than a level-up trigger with a specific level, return 20
+        return 20
 
         evolution_details = find_evolution_details(evolution_chain['chain'], current_pokemon_name)
         return get_level_from_details(evolution_details) if evolution_details else None
