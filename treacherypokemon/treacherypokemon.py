@@ -596,7 +596,6 @@ class TreacheryPokemon(commands.Cog):
         except Exception as e:
             print(f"Error fetching species data: {e}")
             return None
-
     def get_evolution_level(self, evolution_chain, current_pokemon_name):
         def find_pokemon_in_chain(chain, name):
             if chain['species']['name'].lower() == name.lower():
