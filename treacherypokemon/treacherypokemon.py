@@ -621,7 +621,8 @@ class TreacheryPokemon(commands.Cog):
             return min_level if min_level else None
         else:
             return 20  # Default for any non-level-up evolution
-
+        
+    @commands.command()
     async def levelup(self, ctx):
         """Level up Pokémon in your Pokédex to their evolution level."""
         pokemon_data = self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,)).fetchall()
