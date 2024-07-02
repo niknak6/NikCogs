@@ -635,12 +635,9 @@ class TreacheryPokemon(commands.Cog):
                 min_level = detail.get('min_level')
                 if min_level:
                     return min_level
-            
+        
         # For anything other than a level-up trigger with a specific level, return 20
         return 20
-
-        evolution_details = find_evolution_details(evolution_chain['chain'], current_pokemon_name)
-        return get_level_from_details(evolution_details) if evolution_details else None
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
