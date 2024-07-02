@@ -597,8 +597,32 @@ class TreacheryPokemon(commands.Cog):
             print(f"Error fetching species data: {e}")
             return None
 
-    @commands.guild_only()
-    @commands.command()
+    def get_evolution_level(self, evolution_chain, current_pokemon_name):
+        def find_pokemon_in_chain(chain, name):
+            if chain['species']['name'].lower() == name.lower():
+                return chain, None
+            for evolution in chain.get('evolves_to', []):
+                if evolution['species']['name'].lower() == name.lower():
+                    return chain, evolution
+                result, next_evo = find_pokemon_in_chain(evolution, name)
+                if result:
+                    return result, next_evo
+            return None, None
+
+        current_chain, next_evolution = find_pokemon_in_chain(evolution_chain['chain'], current_pokemon_name)
+        
+        if not current_chain or not next_evolution:
+            return None  # Pokemon is at the end of its evolution chain or doesn't evolve
+        
+        evolution_details = next_evolution['evolution_details'][0]
+        trigger = evolution_details.get('trigger', {}).get('name')
+        
+        if trigger == 'level-up':
+            min_level = evolution_details.get('min_level')
+            return min_level if min_level else None
+        else:
+            return 20  # Default for any non-level-up evolution
+
     async def levelup(self, ctx):
         """Level up Pokémon in your Pokédex to their evolution level."""
         pokemon_data = self.cur.execute('SELECT pokemon_id, pokemon_name, level, poketag FROM pokedex WHERE member_id = ?', (ctx.author.id,)).fetchall()
@@ -621,40 +645,6 @@ class TreacheryPokemon(commands.Cog):
         
         self.conn.commit()
         await self.send_long_message(ctx, "\n".join(leveled_up_pokemon) if leveled_up_pokemon else "No Pokémon were eligible for leveling up.")
-
-    def get_evolution_level(self, evolution_chain, current_pokemon_name):
-        def find_evolution_details(chain, name):
-            if chain['species']['name'].lower() == name.lower():
-                return chain
-            for evolution in chain.get('evolves_to', []):
-                if evolution['species']['name'].lower() == name.lower():
-                    return chain  # Return the parent chain
-                result = find_evolution_details(evolution, name)
-                if result:
-                    return result
-            return None
-
-        def get_level_from_details(details):
-            for detail in details:
-                trigger = detail.get('trigger', {}).get('name')
-                if trigger == 'level-up':
-                    min_level = detail.get('min_level')
-                    if min_level:
-                        return min_level
-                    else:
-                        # If there's no min_level but it's a level-up trigger, return 20
-                        return 20
-            # For any other trigger, return 20
-            return 20
-
-        chain = find_evolution_details(evolution_chain['chain'], current_pokemon_name)
-        if chain and chain.get('evolves_to'):
-            for evolution in chain['evolves_to']:
-                if evolution['species']['name'].lower() == current_pokemon_name.lower():
-                    return get_level_from_details(evolution['evolution_details'])
-        
-        # If we can't find a specific evolution level, return 20 as a default
-        return 20
         
     async def combatsprite(self, ctx, player1_pokemon_id: int, player2_pokemon_id: int):
         """Generates a combat sprite GIF with the given Pokémon IDs."""
