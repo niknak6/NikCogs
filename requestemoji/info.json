@@ -1,0 +1,14 @@
+{
+    "name": "RequestEmoji",
+    "short": "A cog that allows users of Treachery to request an emoji",
+    "description": "Emoji Requester",
+    "install_msg": "Thanks for installing TikTokCog!",
+    "author": ["Treachery"],
+    "required_cogs": {},
+    "tags": ["tiktok", "regex", "url"],
+    "type": "COG",
+    "min_bot_version": "3.5.0",
+    "hidden": false,
+    "disabled": false,
+    "end_user_data_statement": "This cog does not persistently store data or metadata about users."
+}
