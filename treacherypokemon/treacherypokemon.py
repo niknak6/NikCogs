@@ -484,47 +484,84 @@ class TreacheryPokemon(commands.Cog):
 
     @commands.guild_only()
     @commands.command()
-    async def trade(self, ctx, user: commands.MemberConverter, poketag: str):
-        """Initiate and complete a trade with another user."""
-        # Initiate the trade
+    async def trade(self, ctx, poketag: str):
+        """Initiate or complete a trade with another user."""
         self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (ctx.author.id, poketag.lower()))
         pokemon_name = self.cur.fetchone()
         if pokemon_name is None:
             await ctx.send("You do not have that Pokémon in your Pokédex.")
             return
-        if user == ctx.author:
-            await ctx.send("You cannot trade with yourself.")
-            return
-        trade_message = await ctx.send(f"{user.mention}, {ctx.author.name} wants to trade their {pokemon_name[0].capitalize()} to you. Please reply with the Poketag of the Pokémon you are offering.")
-        if not hasattr(self, "trades"):
-            self.trades = {}
-        self.trades[trade_message.id] = {"sender": ctx.author, "receiver": user, "sender_poketag": poketag.lower(), "receiver_poketag": None}
 
-        # Wait for the receiver's response
-        def check(m):
-            return m.author == user and m.reference and m.reference.message_id == trade_message.id
+        if not hasattr(self, "active_trades"):
+            self.active_trades = {}
 
-        try:
-            response = await self.bot.wait_for('message', check=check, timeout=300)  # Wait for 5 minutes
-        except asyncio.TimeoutError:
-            await ctx.send("Trade request timed out.")
-            del self.trades[trade_message.id]
+        if ctx.author.id in self.active_trades:
+            await ctx.send("You already have an active trade. Please complete or cancel it first.")
             return
 
-        # Complete the trade
-        poketag = response.content.lower()
-        self.cur.execute('SELECT pokemon_name FROM pokedex WHERE member_id = ? AND poketag = ?', (user.id, poketag))
-        pokemon_name = self.cur.fetchone()
-        if pokemon_name is None:
-            await ctx.send("You do not have that Pokémon in your Pokédex.")
-            return
-        self.trades[trade_message.id]["receiver_poketag"] = poketag
-        trade = self.trades[trade_message.id]
-        self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (trade["receiver"].id, trade["sender"].id, trade["sender_poketag"]))
-        self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (trade["sender"].id, trade["receiver"].id, trade["receiver_poketag"]))
-        self.conn.commit()
-        await ctx.send(f"The trade between {trade['sender'].name} and {trade['receiver'].name} was completed successfully.")
-        del self.trades[trade_message.id]
+        if self.active_trades:
+            other_user_id, other_trade = next(iter(self.active_trades.items()))
+            other_user = ctx.guild.get_member(other_user_id)
+            
+            trade_message = await ctx.send(
+                f"{ctx.author.name} is offering {pokemon_name[0].capitalize()} ({poketag})\n"
+                f"{other_user.name} is offering {other_trade['pokemon_name']} ({other_trade['poketag']})\n\n"
+                "If both users would like to complete this trade, react with 🔄. "
+                "If the trade should be cancelled, react with ❌"
+            )
+            await trade_message.add_reaction("🔄")
+            await trade_message.add_reaction("❌")
+
+            def check(reaction, user):
+                return user in [ctx.author, other_user] and str(reaction.emoji) in ["🔄", "❌"] and reaction.message.id == trade_message.id
+
+            try:
+                reactions = {}
+                while len(reactions) < 2:
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=1800.0, check=check)
+                    reactions[user] = str(reaction.emoji)
+
+                if all(emoji == "🔄" for emoji in reactions.values()):
+                    # Complete the trade
+                    self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (other_user.id, ctx.author.id, poketag.lower()))
+                    self.cur.execute('UPDATE pokedex SET member_id = ? WHERE member_id = ? AND poketag = ?', (ctx.author.id, other_user.id, other_trade['poketag']))
+                    self.conn.commit()
+                    await ctx.send(f"The trade between {ctx.author.name} and {other_user.name} was completed successfully.")
+                else:
+                    await ctx.send("The trade was cancelled.")
+
+            except asyncio.TimeoutError:
+                await ctx.send("Trade request timed out.")
+
+            del self.active_trades[other_user_id]
+
+        else:
+            self.active_trades[ctx.author.id] = {"pokemon_name": pokemon_name[0], "poketag": poketag.lower()}
+            
+            embed = discord.Embed(
+                title="Trade Offer Registered!",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="Trainer", value=ctx.author.name, inline=False)
+            embed.add_field(name="Offering", value=f"{pokemon_name[0].capitalize()} (Poketag: {poketag.lower()})", inline=False)
+            embed.add_field(name="Duration", value="Active for 30 minutes", inline=False)
+            embed.add_field(name="How to Complete", value="Use !trade `pokétag` to match this offer", inline=False)
+            embed.set_footer(text="This trade can be cancelled by the trainer by clicking the ❌ reaction.")
+
+            trade_message = await ctx.send(embed=embed)
+            await trade_message.add_reaction("❌")
+
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) == "❌" and reaction.message.id == trade_message.id
+
+            try:
+                await self.bot.wait_for('reaction_add', timeout=1800.0, check=check)
+                del self.active_trades[ctx.author.id]
+                await ctx.send(f"{ctx.author.mention}, your trade offer has been cancelled.")
+            except asyncio.TimeoutError:
+                if ctx.author.id in self.active_trades:
+                    del self.active_trades[ctx.author.id]
+                    await ctx.send(f"{ctx.author.mention}, your trade offer has expired.")
     
     # Define the on_command_error event handler
     @commands.Cog.listener()
