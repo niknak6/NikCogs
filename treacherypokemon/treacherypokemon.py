@@ -117,6 +117,10 @@ class TreacheryPokemon(commands.Cog):
         await self.execute_query(query, (*filters.values(), value))
         await ctx.send("Update successful.")
 
+    def get_random_pokemon_id(self):
+        all_ids = list(range(1, self.pokemon_count + 1)) + list(range(10001, 10278))
+        return random.choice(all_ids)
+
     def get_random_move(self, ctx, pokemon_name):
         member_id = ctx.author.id
         self.cur.execute('SELECT level FROM pokedex WHERE member_id = ? AND pokemon_name = ?', (member_id, pokemon_name))
@@ -218,23 +222,24 @@ class TreacheryPokemon(commands.Cog):
         if ctx.channel == spawn_channel:
             now = datetime.datetime.now()
             if self.last_spawn is None or (now - self.last_spawn).total_seconds() >= spawn_cooldown * 60 or await self.bot.is_owner(ctx.author):
-                pokemon_id = random.randint(1, self.pokemon_count)
-                pokemon_url = self.base_url + str(pokemon_id)
-                response = requests.get(pokemon_url)
-                if response.status_code == 200:
-                    pokemon_data = response.json()
-                    self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
-                    self.pokemon_id = pokemon_data['id']
-                    self.current_level = await self.get_average_spawn_level(self.pokemon_id)
-                    image_data = BytesIO(requests.get(self.current_sprite).content)
-                    image_file = discord.File(image_data, filename="pokemon.png")
-                    embed_dict = {"title": f"A wild level {self.current_level} Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
-                    embed = discord.Embed.from_dict(embed_dict)
-                    message = await ctx.send(file=image_file, embed=embed)
-                    self.spawn_message = message
-                    self.last_spawn = now
-                else:
-                    await ctx.send("Failed to spawn a Pokémon. Please try again.")
+                while True:
+                    pokemon_id = self.get_random_pokemon_id()
+                    pokemon_url = self.base_url + str(pokemon_id)
+                    response = requests.get(pokemon_url)
+                    if response.status_code == 200:
+                        pokemon_data = response.json()
+                        if "mega" not in pokemon_data['name'].lower() and "gmax" not in pokemon_data['name'].lower():
+                            break
+                self.current_pokemon, self.current_sprite = pokemon_data['name'], pokemon_data['sprites']['other']['official-artwork']['front_default']
+                self.pokemon_id = pokemon_data['id']
+                self.current_level = await self.get_average_spawn_level(self.pokemon_id)
+                image_data = BytesIO(requests.get(self.current_sprite).content)
+                image_file = discord.File(image_data, filename="pokemon.png")
+                embed_dict = {"title": f"A wild level {self.current_level} Pokémon has appeared!", "image": {"url": "attachment://pokemon.png"}}
+                embed = discord.Embed.from_dict(embed_dict)
+                message = await ctx.send(file=image_file, embed=embed)
+                self.spawn_message = message
+                self.last_spawn = now
             else:
                 await ctx.send(f"A Pokémon was recently spawned. Please wait {spawn_cooldown} minutes between spawns.")
         else:
